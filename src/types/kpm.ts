@@ -361,15 +361,20 @@ export const MODES_PAIEMENT = [
 
 // ==================== MODULE BON DE LIVRAISON (BL) ====================
 
-export type BLStatus = 'prepare' | 'en_attente_validation' | 'valide' | 'livre';
+export type BLStatus = 'prepare' | 'en_attente_validation' | 'valide' | 'livre' | 'livree_partiellement' | 'refusee';
+export type BLType = 'fournisseur' | 'interne';
 
 export interface BLArticle {
   id: string;
   bl_id: string;
   designation: string;
   quantity: number;
+  quantity_ordered: number | null;
+  quantity_delivered: number | null;
   unit: string;
   observations: string | null;
+  ecart_reason: string | null;
+  article_stock_id: string | null;
   created_at: string;
 }
 
@@ -383,10 +388,14 @@ export interface BonLivraison {
   warehouse: string | null;
   observations: string | null;
   status: BLStatus;
+  bl_type: BLType;
   validated_by: string | null;
   validated_at: string | null;
   delivered_by: string | null;
   delivered_at: string | null;
+  rejection_reason: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
   created_at: string;
   updated_at: string;
   // Relations
@@ -395,6 +404,7 @@ export interface BonLivraison {
   created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   validated_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   delivered_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   articles?: BLArticle[];
 }
 
@@ -403,6 +413,13 @@ export const BL_STATUS_LABELS: Record<BLStatus, string> = {
   en_attente_validation: 'En attente de validation',
   valide: 'Validé',
   livre: 'Livré',
+  livree_partiellement: 'Livré partiellement',
+  refusee: 'Refusé',
+};
+
+export const BL_TYPE_LABELS: Record<BLType, string> = {
+  fournisseur: 'Fournisseur',
+  interne: 'Interne (stock)',
 };
 
 // Rôles Logistique
@@ -410,3 +427,59 @@ export const LOGISTICS_ROLES: AppRole[] = ['responsable_logistique', 'agent_logi
 
 // Rôles Achats
 export const ACHATS_ROLES: AppRole[] = ['responsable_achats', 'agent_achats'];
+
+// ==================== MODULE STOCK ====================
+
+export type StockMovementType = 'entree' | 'sortie' | 'ajustement' | 'reservation' | 'liberation';
+export type StockStatus = 'disponible' | 'reserve' | 'epuise';
+
+export interface ArticleStock {
+  id: string;
+  designation: string;
+  description: string | null;
+  unit: string;
+  quantity_available: number;
+  quantity_reserved: number;
+  quantity_min: number | null;
+  status: StockStatus;
+  location: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+}
+
+export interface StockMovement {
+  id: string;
+  article_stock_id: string;
+  movement_type: StockMovementType;
+  quantity: number;
+  quantity_before: number;
+  quantity_after: number;
+  bl_id: string | null;
+  da_id: string | null;
+  reference: string | null;
+  observations: string | null;
+  created_by: string;
+  created_at: string;
+  // Relations
+  article_stock?: ArticleStock | null;
+  bon_livraison?: BonLivraison | null;
+  demande_achat?: DemandeAchat | null;
+  created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+}
+
+export const STOCK_MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
+  entree: 'Entrée',
+  sortie: 'Sortie',
+  ajustement: 'Ajustement',
+  reservation: 'Réservation',
+  liberation: 'Libération',
+};
+
+export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
+  disponible: 'Disponible',
+  reserve: 'Réservé',
+  epuise: 'Épuisé',
+};

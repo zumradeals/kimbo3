@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      articles_stock: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          designation: string
+          id: string
+          location: string | null
+          quantity_available: number
+          quantity_min: number | null
+          quantity_reserved: number
+          status: Database["public"]["Enums"]["stock_status"]
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          designation: string
+          id?: string
+          location?: string | null
+          quantity_available?: number
+          quantity_min?: number | null
+          quantity_reserved?: number
+          status?: Database["public"]["Enums"]["stock_status"]
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          designation?: string
+          id?: string
+          location?: string | null
+          quantity_available?: number
+          quantity_min?: number | null
+          quantity_reserved?: number
+          status?: Database["public"]["Enums"]["stock_status"]
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_stock_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -147,33 +200,52 @@ export type Database = {
       }
       bl_articles: {
         Row: {
+          article_stock_id: string | null
           bl_id: string
           created_at: string
           designation: string
+          ecart_reason: string | null
           id: string
           observations: string | null
           quantity: number
+          quantity_delivered: number | null
+          quantity_ordered: number | null
           unit: string
         }
         Insert: {
+          article_stock_id?: string | null
           bl_id: string
           created_at?: string
           designation: string
+          ecart_reason?: string | null
           id?: string
           observations?: string | null
           quantity: number
+          quantity_delivered?: number | null
+          quantity_ordered?: number | null
           unit?: string
         }
         Update: {
+          article_stock_id?: string | null
           bl_id?: string
           created_at?: string
           designation?: string
+          ecart_reason?: string | null
           id?: string
           observations?: string | null
           quantity?: number
+          quantity_delivered?: number | null
+          quantity_ordered?: number | null
           unit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bl_articles_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bl_articles_bl_id_fkey"
             columns: ["bl_id"]
@@ -186,6 +258,7 @@ export type Database = {
       bons_livraison: {
         Row: {
           besoin_id: string
+          bl_type: string | null
           created_at: string
           created_by: string
           delivered_at: string | null
@@ -195,6 +268,9 @@ export type Database = {
           id: string
           observations: string | null
           reference: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["bl_status"]
           updated_at: string
           validated_at: string | null
@@ -203,6 +279,7 @@ export type Database = {
         }
         Insert: {
           besoin_id: string
+          bl_type?: string | null
           created_at?: string
           created_by: string
           delivered_at?: string | null
@@ -212,6 +289,9 @@ export type Database = {
           id?: string
           observations?: string | null
           reference: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["bl_status"]
           updated_at?: string
           validated_at?: string | null
@@ -220,6 +300,7 @@ export type Database = {
         }
         Update: {
           besoin_id?: string
+          bl_type?: string | null
           created_at?: string
           created_by?: string
           delivered_at?: string | null
@@ -229,6 +310,9 @@ export type Database = {
           id?: string
           observations?: string | null
           reference?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["bl_status"]
           updated_at?: string
           validated_at?: string | null
@@ -262,6 +346,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_rejected_by_fkey"
+            columns: ["rejected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -921,6 +1012,80 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          article_stock_id: string
+          bl_id: string | null
+          created_at: string
+          created_by: string
+          da_id: string | null
+          id: string
+          movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          observations: string | null
+          quantity: number
+          quantity_after: number
+          quantity_before: number
+          reference: string | null
+        }
+        Insert: {
+          article_stock_id: string
+          bl_id?: string | null
+          created_at?: string
+          created_by: string
+          da_id?: string | null
+          id?: string
+          movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          observations?: string | null
+          quantity: number
+          quantity_after: number
+          quantity_before: number
+          reference?: string | null
+        }
+        Update: {
+          article_stock_id?: string
+          bl_id?: string | null
+          created_at?: string
+          created_by?: string
+          da_id?: string | null
+          id?: string
+          movement_type?: Database["public"]["Enums"]["stock_movement_type"]
+          observations?: string | null
+          quantity?: number
+          quantity_after?: number
+          quantity_before?: number
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_bl_id_fkey"
+            columns: ["bl_id"]
+            isOneToOne: false
+            referencedRelation: "bons_livraison"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_da_id_fkey"
+            columns: ["da_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -1000,7 +1165,13 @@ export type Database = {
         | "autre"
       besoin_status: "cree" | "pris_en_charge" | "accepte" | "refuse"
       besoin_urgency: "normale" | "urgente" | "critique"
-      bl_status: "prepare" | "en_attente_validation" | "valide" | "livre"
+      bl_status:
+        | "prepare"
+        | "en_attente_validation"
+        | "valide"
+        | "livre"
+        | "livree_partiellement"
+        | "refusee"
       da_category:
         | "fournitures"
         | "equipement"
@@ -1021,6 +1192,13 @@ export type Database = {
         | "en_revision_achats"
         | "payee"
         | "rejetee_comptabilite"
+      stock_movement_type:
+        | "entree"
+        | "sortie"
+        | "ajustement"
+        | "reservation"
+        | "liberation"
+      stock_status: "disponible" | "reserve" | "epuise"
       user_status: "active" | "inactive" | "suspended"
     }
     CompositeTypes: {
@@ -1171,7 +1349,14 @@ export const Constants = {
       ],
       besoin_status: ["cree", "pris_en_charge", "accepte", "refuse"],
       besoin_urgency: ["normale", "urgente", "critique"],
-      bl_status: ["prepare", "en_attente_validation", "valide", "livre"],
+      bl_status: [
+        "prepare",
+        "en_attente_validation",
+        "valide",
+        "livre",
+        "livree_partiellement",
+        "refusee",
+      ],
       da_category: [
         "fournitures",
         "equipement",
@@ -1194,6 +1379,14 @@ export const Constants = {
         "payee",
         "rejetee_comptabilite",
       ],
+      stock_movement_type: [
+        "entree",
+        "sortie",
+        "ajustement",
+        "reservation",
+        "liberation",
+      ],
+      stock_status: ["disponible", "reserve", "epuise"],
       user_status: ["active", "inactive", "suspended"],
     },
   },

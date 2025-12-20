@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { BonLivraison, BL_STATUS_LABELS, BLStatus } from '@/types/kpm';
-import { Package, Search, Clock, CheckCircle, Truck, FileCheck } from 'lucide-react';
+import { Package, Search, Clock, CheckCircle, Truck, FileCheck, AlertTriangle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -33,6 +33,8 @@ const statusColors: Record<BLStatus, string> = {
   en_attente_validation: 'bg-warning/10 text-warning border-warning/20',
   valide: 'bg-primary/10 text-primary border-primary/20',
   livre: 'bg-success/10 text-success border-success/20',
+  livree_partiellement: 'bg-warning/10 text-warning border-warning/20',
+  refusee: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const statusIcons: Record<BLStatus, React.ElementType> = {
@@ -40,6 +42,8 @@ const statusIcons: Record<BLStatus, React.ElementType> = {
   en_attente_validation: FileCheck,
   valide: CheckCircle,
   livre: Truck,
+  livree_partiellement: AlertTriangle,
+  refusee: XCircle,
 };
 
 export default function BLList() {
