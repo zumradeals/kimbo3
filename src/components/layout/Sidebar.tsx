@@ -51,7 +51,7 @@ const navItems: NavItem[] = [
     label: 'Journal d\'audit',
     href: '/audit',
     icon: FileText,
-    roles: ['admin', 'dg', 'daf'],
+    roles: ['admin', 'dg', 'daf', 'comptable'],
   },
   {
     label: 'Rapports',

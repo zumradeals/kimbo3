@@ -79,7 +79,7 @@ export default function AuditLogs() {
   const [tableFilter, setTableFilter] = useState<string>('all');
   const [selectedLog, setSelectedLog] = useState<AuditLogWithProfile | null>(null);
 
-  const hasAccess = isAdmin || roles.some(r => ['dg', 'daf'].includes(r));
+  const hasAccess = isAdmin || roles.some(r => ['dg', 'daf', 'comptable'].includes(r));
 
   useEffect(() => {
     if (hasAccess) {
@@ -168,7 +168,7 @@ export default function AuditLogs() {
   if (!hasAccess) {
     return (
       <AppLayout>
-        <AccessDenied message="Seuls les administrateurs, DG et DAF peuvent consulter le journal d'audit." />
+        <AccessDenied message="Seuls les administrateurs, DG, DAF et Comptables peuvent consulter le journal d'audit." />
       </AppLayout>
     );
   }
