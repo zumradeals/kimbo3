@@ -42,6 +42,9 @@ import ComptabiliteDetail from "./pages/comptabilite/ComptabiliteDetail";
 import StockList from "./pages/stock/StockList";
 import StockMovements from "./pages/stock/StockMovements";
 
+// Notifications
+import Notifications from "./pages/Notifications";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -106,6 +109,9 @@ function AppRoutes() {
       {/* Module Stock */}
       <Route path="/stock" element={<ProtectedRoute><StockList /></ProtectedRoute>} />
       <Route path="/stock/mouvements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
+      
+      {/* Notifications */}
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
