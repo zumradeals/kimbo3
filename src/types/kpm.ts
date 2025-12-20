@@ -182,7 +182,7 @@ export const ROLES_CAN_CREATE_BESOIN: AppRole[] = [
 
 export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
 export type DAPriority = 'basse' | 'normale' | 'haute' | 'urgente';
-export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'soumise_validation' | 'rejetee';
+export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee';
 
 export interface DAArticle {
   id: string;
@@ -251,6 +251,13 @@ export interface DemandeAchat {
   priced_at: string | null;
   submitted_validation_at: string | null;
   submitted_validation_by: string | null;
+  // Champs Validation Financière
+  validated_finance_by: string | null;
+  validated_finance_at: string | null;
+  finance_decision_comment: string | null;
+  revision_requested_by: string | null;
+  revision_requested_at: string | null;
+  revision_comment: string | null;
   created_at: string;
   updated_at: string;
   // Relations
@@ -261,6 +268,8 @@ export interface DemandeAchat {
   selected_fournisseur?: Fournisseur | null;
   analyzed_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   priced_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  validated_finance_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  revision_requested_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   articles?: DAArticle[];
 }
 
@@ -286,6 +295,9 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   en_analyse: 'En analyse Achats',
   chiffree: 'Chiffrée',
   soumise_validation: 'En attente validation DAF/DG',
+  validee_finance: 'Validée financièrement',
+  refusee_finance: 'Refusée (DAF/DG)',
+  en_revision_achats: 'En révision Achats',
   rejetee: 'Rejetée',
 };
 
