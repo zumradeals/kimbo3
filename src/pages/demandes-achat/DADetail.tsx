@@ -605,6 +605,24 @@ export default function DADetail() {
           </div>
         </div>
 
+        {/* Bannière lecture seule pour DAF/DG hors validation */}
+        {(isDAF || isDG) && !isAdmin && !canValidateFinance && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Mode lecture seule</p>
+                <p className="text-sm text-muted-foreground">
+                  Vous consultez cette DA en tant que {isDAF ? 'DAF' : 'DG'}. 
+                  {da.status === 'soumise_validation' 
+                    ? ' Vous pouvez valider ou refuser cette demande.'
+                    : ' Les actions de validation ne sont disponibles qu\'au statut "Soumise à validation".'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Rejection reason */}
         {da.status === 'rejetee' && da.rejection_reason && (
           <Card className="border-destructive/50 bg-destructive/5">
