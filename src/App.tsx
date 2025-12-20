@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import BesoinsList from "./pages/besoins/BesoinsList";
 import BesoinCreate from "./pages/besoins/BesoinCreate";
 import BesoinDetail from "./pages/besoins/BesoinDetail";
+import DossierComplet from "./pages/besoins/DossierComplet";
 
 // Module DA
 import DAList from "./pages/demandes-achat/DAList";
@@ -88,6 +89,7 @@ function AppRoutes() {
       <Route path="/besoins" element={<ProtectedRoute><BesoinsList /></ProtectedRoute>} />
       <Route path="/besoins/nouveau" element={<ProtectedRoute><BesoinCreate /></ProtectedRoute>} />
       <Route path="/besoins/:id" element={<ProtectedRoute><BesoinDetail /></ProtectedRoute>} />
+      <Route path="/besoins/:id/dossier" element={<ProtectedRoute><DossierComplet /></ProtectedRoute>} />
       
       {/* Module DA */}
       <Route path="/demandes-achat" element={<ProtectedRoute><DAList /></ProtectedRoute>} />

@@ -56,6 +56,7 @@ import {
   X,
   FileText,
   Package,
+  FolderOpen,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -331,6 +332,12 @@ export default function BesoinDetail() {
           </div>
 
           <div className="flex gap-2">
+            <Link to={`/besoins/${id}/dossier`}>
+              <Button variant="outline" size="sm">
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Dossier complet
+              </Button>
+            </Link>
             {canEdit && !isEditing && (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                 <Edit className="mr-2 h-4 w-4" />
