@@ -63,6 +63,18 @@ export default function AdminUsers() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Create modal
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    department_id: '',
+    role: 'employe' as AppRole,
+  });
+  const [isCreating, setIsCreating] = useState(false);
+
   const fetchData = async () => {
     try {
       // Fetch departments
@@ -128,6 +140,79 @@ export default function AdminUsers() {
     });
   };
 
+  const resetCreateForm = () => {
+    setCreateForm({
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: '',
+      department_id: '',
+      role: 'employe',
+    });
+  };
+
+  const handleCreate = async () => {
+    if (!createForm.email || !createForm.password || !createForm.first_name || !createForm.last_name) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez remplir tous les champs obligatoires.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (createForm.password.length < 6) {
+      toast({
+        title: 'Erreur',
+        description: 'Le mot de passe doit contenir au moins 6 caractères.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('create-user', {
+        body: {
+          email: createForm.email,
+          password: createForm.password,
+          first_name: createForm.first_name,
+          last_name: createForm.last_name,
+          department_id: createForm.department_id || null,
+          role: createForm.role,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Erreur lors de la création');
+      }
+
+      toast({
+        title: 'Utilisateur créé',
+        description: `${createForm.first_name} ${createForm.last_name} a été créé avec succès.`,
+      });
+
+      setIsCreateOpen(false);
+      resetCreateForm();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de créer l\'utilisateur.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
   const closeEditModal = () => {
     setEditingUser(null);
     setEditForm({
@@ -229,6 +314,10 @@ export default function AdminUsers() {
               {users.length} utilisateur(s) enregistré(s)
             </p>
           </div>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvel utilisateur
+          </Button>
         </div>
 
         {/* Search */}
@@ -422,6 +511,112 @@ export default function AdminUsers() {
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Modal */}
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) resetCreateForm();
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Créer un utilisateur</DialogTitle>
+            <DialogDescription>
+              Remplissez les informations pour créer un nouvel utilisateur.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create_email">Email *</Label>
+              <Input
+                id="create_email"
+                type="email"
+                placeholder="email@exemple.com"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create_password">Mot de passe * (min. 6 caractères)</Label>
+              <Input
+                id="create_password"
+                type="password"
+                placeholder="••••••••"
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create_first_name">Prénom *</Label>
+                <Input
+                  id="create_first_name"
+                  value={createForm.first_name}
+                  onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create_last_name">Nom *</Label>
+                <Input
+                  id="create_last_name"
+                  value={createForm.last_name}
+                  onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create_department">Département</Label>
+              <Select
+                value={createForm.department_id}
+                onValueChange={(value) => setCreateForm({ ...createForm, department_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un département" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun département</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create_role">Rôle *</Label>
+              <Select
+                value={createForm.role}
+                onValueChange={(value) => setCreateForm({ ...createForm, role: value as AppRole })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreate} disabled={isCreating}>
+              {isCreating ? 'Création...' : 'Créer l\'utilisateur'}
             </Button>
           </DialogFooter>
         </DialogContent>
