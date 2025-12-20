@@ -51,7 +51,7 @@ const navItems: NavItem[] = [
     label: 'Journal d\'audit',
     href: '/audit',
     icon: FileText,
-    roles: ['admin'],
+    roles: ['admin', 'dg', 'daf'],
   },
   {
     label: 'Rapports',
@@ -66,7 +66,7 @@ const besoinNavItem: NavItem = {
   label: 'Besoins internes',
   href: '/besoins',
   icon: ClipboardList,
-  roles: ['admin', 'dg', 'daf', 'responsable_departement', 'responsable_logistique', 'agent_logistique', 'responsable_achats'],
+  roles: ['admin', 'dg', 'daf', 'responsable_departement', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'employe'],
 };
 
 // Modules DA et BL (actifs)
