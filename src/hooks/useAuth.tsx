@@ -11,6 +11,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   hasRole: (role: AppRole) => boolean;
+  hasAnyRole: (checkRoles: AppRole[]) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -138,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
+  const hasAnyRole = (checkRoles: AppRole[]) => checkRoles.some(role => roles.includes(role));
   const isAdmin = hasRole('admin');
 
   return (
@@ -150,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAdmin,
         hasRole,
+        hasAnyRole,
         signIn,
         signUp,
         signOut,
