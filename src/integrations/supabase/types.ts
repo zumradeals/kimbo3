@@ -681,7 +681,13 @@ export type Database = {
         | "informatique"
         | "autre"
       da_priority: "basse" | "normale" | "haute" | "urgente"
-      da_status: "brouillon" | "soumise" | "rejetee"
+      da_status:
+        | "brouillon"
+        | "soumise"
+        | "rejetee"
+        | "en_analyse"
+        | "chiffree"
+        | "soumise_validation"
       user_status: "active" | "inactive" | "suspended"
     }
     CompositeTypes: {
@@ -842,7 +848,14 @@ export const Constants = {
         "autre",
       ],
       da_priority: ["basse", "normale", "haute", "urgente"],
-      da_status: ["brouillon", "soumise", "rejetee"],
+      da_status: [
+        "brouillon",
+        "soumise",
+        "rejetee",
+        "en_analyse",
+        "chiffree",
+        "soumise_validation",
+      ],
       user_status: ["active", "inactive", "suspended"],
     },
   },
