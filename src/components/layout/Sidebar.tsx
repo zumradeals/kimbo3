@@ -69,9 +69,23 @@ const besoinNavItem: NavItem = {
   roles: ['admin', 'dg', 'daf', 'responsable_departement', 'responsable_logistique', 'agent_logistique', 'responsable_achats'],
 };
 
+// Modules DA et BL (actifs)
+const daNavItem: NavItem = {
+  label: 'Demandes d\'achat',
+  href: '/demandes-achat',
+  icon: FileText,
+  roles: ['admin', 'dg', 'daf', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats'],
+};
+
+const blNavItem: NavItem = {
+  label: 'Bons de livraison',
+  href: '/bons-livraison',
+  icon: Package,
+  roles: ['admin', 'dg', 'responsable_logistique', 'agent_logistique'],
+};
+
 // Modules métier (désactivés pour l'instant)
 const businessModules: NavItem[] = [
-  { label: 'Demandes d\'achat', href: '/da', icon: FileText },
   { label: 'Stock', href: '/stock', icon: Package },
   { label: 'Comptabilité', href: '/compta', icon: Wallet },
 ];
@@ -192,8 +206,10 @@ export function Sidebar() {
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {navItems.map((item) => renderNavItem(item))}
           
-          {/* Module Besoins (actif) */}
+          {/* Modules actifs */}
           {hasAccess(besoinNavItem) && renderNavItem(besoinNavItem)}
+          {hasAccess(daNavItem) && renderNavItem(daNavItem)}
+          {hasAccess(blNavItem) && renderNavItem(blNavItem)}
 
           {/* Modules métier (désactivés) */}
           <div className="mt-6 border-t border-sidebar-border pt-4">

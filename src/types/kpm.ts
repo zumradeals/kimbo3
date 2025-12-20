@@ -177,3 +177,119 @@ export const ROLES_CAN_CREATE_BESOIN: AppRole[] = [
   'responsable_logistique',
   'responsable_achats',
 ];
+
+// ==================== MODULE DEMANDE D'ACHAT (DA) ====================
+
+export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
+export type DAPriority = 'basse' | 'normale' | 'haute' | 'urgente';
+export type DAStatus = 'brouillon' | 'soumise' | 'rejetee';
+
+export interface DAArticle {
+  id: string;
+  da_id: string;
+  designation: string;
+  quantity: number;
+  unit: string;
+  observations: string | null;
+  created_at: string;
+}
+
+export interface DemandeAchat {
+  id: string;
+  reference: string;
+  besoin_id: string;
+  department_id: string;
+  created_by: string;
+  description: string;
+  category: DACategory;
+  priority: DAPriority;
+  desired_date: string | null;
+  observations: string | null;
+  status: DAStatus;
+  rejection_reason: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  besoin?: Besoin | null;
+  department?: { id: string; name: string } | null;
+  created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  articles?: DAArticle[];
+}
+
+export const DA_CATEGORY_LABELS: Record<DACategory, string> = {
+  fournitures: 'Fournitures',
+  equipement: 'Équipement',
+  service: 'Service',
+  maintenance: 'Maintenance',
+  informatique: 'Informatique',
+  autre: 'Autre',
+};
+
+export const DA_PRIORITY_LABELS: Record<DAPriority, string> = {
+  basse: 'Basse',
+  normale: 'Normale',
+  haute: 'Haute',
+  urgente: 'Urgente',
+};
+
+export const DA_STATUS_LABELS: Record<DAStatus, string> = {
+  brouillon: 'Brouillon',
+  soumise: 'Soumise aux Achats',
+  rejetee: 'Rejetée',
+};
+
+// ==================== MODULE BON DE LIVRAISON (BL) ====================
+
+export type BLStatus = 'prepare' | 'en_attente_validation' | 'valide' | 'livre';
+
+export interface BLArticle {
+  id: string;
+  bl_id: string;
+  designation: string;
+  quantity: number;
+  unit: string;
+  observations: string | null;
+  created_at: string;
+}
+
+export interface BonLivraison {
+  id: string;
+  reference: string;
+  besoin_id: string;
+  department_id: string;
+  created_by: string;
+  delivery_date: string | null;
+  warehouse: string | null;
+  observations: string | null;
+  status: BLStatus;
+  validated_by: string | null;
+  validated_at: string | null;
+  delivered_by: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  besoin?: Besoin | null;
+  department?: { id: string; name: string } | null;
+  created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  validated_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  delivered_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  articles?: BLArticle[];
+}
+
+export const BL_STATUS_LABELS: Record<BLStatus, string> = {
+  prepare: 'Préparé',
+  en_attente_validation: 'En attente de validation',
+  valide: 'Validé',
+  livre: 'Livré',
+};
+
+// Rôles Logistique
+export const LOGISTICS_ROLES: AppRole[] = ['responsable_logistique', 'agent_logistique'];
+
+// Rôles Achats
+export const ACHATS_ROLES: AppRole[] = ['responsable_achats', 'agent_achats'];
