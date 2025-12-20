@@ -271,7 +271,7 @@ export default function ComptabiliteDetail() {
       centreCout: da.syscohada_centre_cout || undefined,
       debit: da.total_amount || 0,
       credit: 0,
-      devise: da.currency || 'XAF',
+      devise: da.currency || 'XOF',
       modePaiement: da.mode_paiement || undefined,
       referencePaiement: da.reference_paiement || undefined,
       isValidated: true,
@@ -348,6 +348,21 @@ export default function ComptabiliteDetail() {
                 <p className="font-bold text-destructive">Rejetée par la Comptabilité</p>
                 <p className="text-sm text-foreground">
                   {da.comptabilite_rejection_reason || 'Aucun motif spécifié.'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière lecture seule pour DAF/DG */}
+        {(isDAF || isDG) && !isComptable && !isAdmin && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Mode lecture seule</p>
+                <p className="text-sm text-muted-foreground">
+                  Vous consultez cette DA en tant que {isDAF ? 'DAF' : 'DG'}. Seul le comptable peut effectuer le traitement comptable.
                 </p>
               </div>
             </CardContent>
