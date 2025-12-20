@@ -99,10 +99,16 @@ const comptabiliteNavItem: NavItem = {
   roles: ['admin', 'comptable', 'daf'],
 };
 
+// Module Stock (actif)
+const stockNavItem: NavItem = {
+  label: 'Stock',
+  href: '/stock',
+  icon: Package,
+  roles: ['admin', 'responsable_logistique', 'agent_logistique', 'dg', 'daf'],
+};
+
 // Modules métier (désactivés pour l'instant)
-const businessModules: NavItem[] = [
-  { label: 'Stock', href: '/stock', icon: Package },
-];
+const businessModules: NavItem[] = [];
 
 export function Sidebar() {
   const { profile, roles, isAdmin, signOut } = useAuth();
@@ -226,6 +232,7 @@ export function Sidebar() {
           {hasAccess(blNavItem) && renderNavItem(blNavItem)}
           {hasAccess(fournisseursNavItem) && renderNavItem(fournisseursNavItem)}
           {hasAccess(comptabiliteNavItem) && renderNavItem(comptabiliteNavItem)}
+          {hasAccess(stockNavItem) && renderNavItem(stockNavItem)}
 
           {/* Modules métier (désactivés) */}
           <div className="mt-6 border-t border-sidebar-border pt-4">

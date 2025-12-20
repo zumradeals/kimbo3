@@ -6,6 +6,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -24,6 +27,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
   BonLivraison,
@@ -41,6 +52,9 @@ import {
   Trash2,
   FileText,
   ExternalLink,
+  AlertTriangle,
+  XCircle,
+  PackageCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -50,6 +64,8 @@ const statusColors: Record<BLStatus, string> = {
   en_attente_validation: 'bg-warning/10 text-warning border-warning/20',
   valide: 'bg-primary/10 text-primary border-primary/20',
   livre: 'bg-success/10 text-success border-success/20',
+  livree_partiellement: 'bg-warning/10 text-warning border-warning/20',
+  refusee: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const statusIcons: Record<BLStatus, React.ElementType> = {
@@ -57,7 +73,17 @@ const statusIcons: Record<BLStatus, React.ElementType> = {
   en_attente_validation: FileCheck,
   valide: CheckCircle,
   livre: Truck,
+  livree_partiellement: AlertTriangle,
+  refusee: XCircle,
 };
+
+interface DeliveryFormArticle {
+  id: string;
+  designation: string;
+  quantity_ordered: number;
+  quantity_delivered: number;
+  ecart_reason: string;
+}
 
 export default function BLDetail() {
   const { id } = useParams<{ id: string }>();
@@ -70,9 +96,10 @@ export default function BLDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
-  const isDG = roles.includes('dg');
 
   const canValidate = (isLogistics || isAdmin) && bl?.status === 'en_attente_validation';
   const canDeliver = (isLogistics || isAdmin) && bl?.status === 'valide';
@@ -151,10 +178,115 @@ export default function BLDetail() {
         en_attente_validation: 'BL soumis à validation',
         valide: 'BL validé',
         livre: 'Livraison confirmée',
+        livree_partiellement: 'Livraison partielle enregistrée',
+        refusee: 'BL refusé',
       };
 
       toast({ title: 'Statut mis à jour', description: messages[newStatus] });
       fetchBL();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openDeliveryDialog = () => {
+    setDeliveryArticles(
+      articles.map((art) => ({
+        id: art.id,
+        designation: art.designation,
+        quantity_ordered: art.quantity_ordered || art.quantity,
+        quantity_delivered: art.quantity_delivered || 0,
+        ecart_reason: art.ecart_reason || '',
+      }))
+    );
+    setShowDeliveryDialog(true);
+  };
+
+  const handleDelivery = async () => {
+    if (!bl || !user) return;
+    setIsSaving(true);
+
+    try {
+      // Update each article with delivered quantities
+      for (const art of deliveryArticles) {
+        await supabase
+          .from('bl_articles')
+          .update({
+            quantity_delivered: art.quantity_delivered,
+            ecart_reason: art.ecart_reason || null,
+          })
+          .eq('id', art.id);
+      }
+
+      // Determine if full or partial delivery
+      const isPartial = deliveryArticles.some(
+        (art) => art.quantity_delivered < art.quantity_ordered
+      );
+
+      // Update BL status
+      const newStatus: BLStatus = isPartial ? 'livree_partiellement' : 'livre';
+      const { error } = await supabase
+        .from('bons_livraison')
+        .update({
+          status: newStatus,
+          delivered_by: user.id,
+          delivered_at: new Date().toISOString(),
+        })
+        .eq('id', bl.id);
+
+      if (error) throw error;
+
+      // Create stock movements for delivered items
+      for (const art of deliveryArticles) {
+        if (art.quantity_delivered > 0) {
+          const originalArticle = articles.find((a) => a.id === art.id);
+          if (originalArticle?.article_stock_id) {
+            // Get current stock quantity
+            const { data: stockData } = await supabase
+              .from('articles_stock')
+              .select('quantity_available')
+              .eq('id', originalArticle.article_stock_id)
+              .single();
+
+            if (stockData) {
+              const quantityBefore = stockData.quantity_available;
+              const quantityAfter = quantityBefore - art.quantity_delivered;
+
+              // Create stock movement
+              await supabase.from('stock_movements').insert({
+                article_stock_id: originalArticle.article_stock_id,
+                movement_type: 'sortie',
+                quantity: art.quantity_delivered,
+                quantity_before: quantityBefore,
+                quantity_after: quantityAfter,
+                bl_id: bl.id,
+                reference: bl.reference,
+                observations: `Livraison BL ${bl.reference}`,
+                created_by: user.id,
+              });
+
+              // Update stock quantity
+              await supabase
+                .from('articles_stock')
+                .update({ quantity_available: quantityAfter })
+                .eq('id', originalArticle.article_stock_id);
+            }
+          }
+        }
+      }
+
+      toast({
+        title: isPartial ? 'Livraison partielle' : 'Livraison complète',
+        description: isPartial
+          ? 'La livraison partielle a été enregistrée. Le stock a été mis à jour.'
+          : 'La livraison a été confirmée. Le stock a été mis à jour.',
+      });
+
+      setShowDeliveryDialog(false);
+      fetchBL();
+      fetchArticles();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -274,13 +406,15 @@ export default function BLDetail() {
               <div>
                 <p className="font-medium text-foreground">Prêt pour livraison</p>
                 <p className="text-sm text-muted-foreground">
-                  Confirmez la livraison une fois effectuée.
+                  Confirmez la livraison une fois effectuée. Vous pourrez indiquer les quantités réellement livrées.
                 </p>
               </div>
-              <Button onClick={() => updateStatus('livre')} disabled={isSaving}>
-                <Truck className="mr-2 h-4 w-4" />
-                Confirmer la livraison
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={openDeliveryDialog} disabled={isSaving}>
+                  <PackageCheck className="mr-2 h-4 w-4" />
+                  Enregistrer livraison
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -320,6 +454,10 @@ export default function BLDetail() {
                 <p className="font-medium">
                   {bl.created_by_profile?.first_name} {bl.created_by_profile?.last_name}
                 </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Type de livraison</p>
+                <p className="font-medium">{bl.bl_type === 'interne' ? 'Interne (stock)' : 'Fournisseur'}</p>
               </div>
               {bl.warehouse && (
                 <div>
@@ -387,22 +525,34 @@ export default function BLDetail() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Désignation</TableHead>
-                    <TableHead className="text-right">Quantité</TableHead>
+                    <TableHead className="text-right">Commandé</TableHead>
+                    <TableHead className="text-right">Livré</TableHead>
                     <TableHead>Unité</TableHead>
-                    <TableHead>Observations</TableHead>
+                    <TableHead>Écart</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {articles.map((art) => (
-                    <TableRow key={art.id}>
-                      <TableCell className="font-medium">{art.designation}</TableCell>
-                      <TableCell className="text-right">{art.quantity}</TableCell>
-                      <TableCell>{art.unit}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {art.observations || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {articles.map((art) => {
+                    const ordered = art.quantity_ordered || art.quantity;
+                    const delivered = art.quantity_delivered || 0;
+                    const hasEcart = delivered > 0 && delivered !== ordered;
+                    return (
+                      <TableRow key={art.id} className={hasEcart ? 'bg-warning/5' : undefined}>
+                        <TableCell className="font-medium">{art.designation}</TableCell>
+                        <TableCell className="text-right font-mono">{ordered}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {delivered > 0 ? delivered : '-'}
+                          {hasEcart && (
+                            <AlertTriangle className="ml-2 inline h-4 w-4 text-warning" />
+                          )}
+                        </TableCell>
+                        <TableCell>{art.unit}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {art.ecart_reason || (art.observations || '-')}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -430,6 +580,73 @@ export default function BLDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delivery Dialog */}
+      <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Enregistrer la livraison</DialogTitle>
+            <DialogDescription>
+              Indiquez les quantités réellement livrées pour chaque article.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto py-4">
+            <div className="space-y-4">
+              {deliveryArticles.map((art, index) => (
+                <div key={art.id} className="rounded-lg border p-4">
+                  <p className="mb-3 font-medium">{art.designation}</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Quantité commandée</Label>
+                      <Input value={art.quantity_ordered} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantité livrée</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={art.quantity_ordered}
+                        value={art.quantity_delivered}
+                        onChange={(e) => {
+                          const newArticles = [...deliveryArticles];
+                          newArticles[index].quantity_delivered = Number(e.target.value);
+                          setDeliveryArticles(newArticles);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {art.quantity_delivered < art.quantity_ordered && (
+                    <div className="mt-3 space-y-2">
+                      <Label className="flex items-center gap-2 text-warning">
+                        <AlertTriangle className="h-4 w-4" />
+                        Motif de l'écart
+                      </Label>
+                      <Textarea
+                        placeholder="Expliquez la raison de l'écart..."
+                        value={art.ecart_reason}
+                        onChange={(e) => {
+                          const newArticles = [...deliveryArticles];
+                          newArticles[index].ecart_reason = e.target.value;
+                          setDeliveryArticles(newArticles);
+                        }}
+                        rows={2}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeliveryDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleDelivery} disabled={isSaving}>
+              {isSaving ? 'Enregistrement...' : 'Confirmer la livraison'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
