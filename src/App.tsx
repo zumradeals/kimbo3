@@ -21,6 +21,16 @@ import BesoinsList from "./pages/besoins/BesoinsList";
 import BesoinCreate from "./pages/besoins/BesoinCreate";
 import BesoinDetail from "./pages/besoins/BesoinDetail";
 
+// Module DA
+import DAList from "./pages/demandes-achat/DAList";
+import DACreate from "./pages/demandes-achat/DACreate";
+import DADetail from "./pages/demandes-achat/DADetail";
+
+// Module BL
+import BLList from "./pages/bons-livraison/BLList";
+import BLCreate from "./pages/bons-livraison/BLCreate";
+import BLDetail from "./pages/bons-livraison/BLDetail";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -64,6 +74,16 @@ function AppRoutes() {
       <Route path="/besoins" element={<ProtectedRoute><BesoinsList /></ProtectedRoute>} />
       <Route path="/besoins/nouveau" element={<ProtectedRoute><BesoinCreate /></ProtectedRoute>} />
       <Route path="/besoins/:id" element={<ProtectedRoute><BesoinDetail /></ProtectedRoute>} />
+      
+      {/* Module DA */}
+      <Route path="/demandes-achat" element={<ProtectedRoute><DAList /></ProtectedRoute>} />
+      <Route path="/demandes-achat/nouveau" element={<ProtectedRoute><DACreate /></ProtectedRoute>} />
+      <Route path="/demandes-achat/:id" element={<ProtectedRoute><DADetail /></ProtectedRoute>} />
+      
+      {/* Module BL */}
+      <Route path="/bons-livraison" element={<ProtectedRoute><BLList /></ProtectedRoute>} />
+      <Route path="/bons-livraison/nouveau" element={<ProtectedRoute><BLCreate /></ProtectedRoute>} />
+      <Route path="/bons-livraison/:id" element={<ProtectedRoute><BLDetail /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

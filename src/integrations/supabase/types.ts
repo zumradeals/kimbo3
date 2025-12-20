@@ -145,6 +145,261 @@ export type Database = {
           },
         ]
       }
+      bl_articles: {
+        Row: {
+          bl_id: string
+          created_at: string
+          designation: string
+          id: string
+          observations: string | null
+          quantity: number
+          unit: string
+        }
+        Insert: {
+          bl_id: string
+          created_at?: string
+          designation: string
+          id?: string
+          observations?: string | null
+          quantity: number
+          unit?: string
+        }
+        Update: {
+          bl_id?: string
+          created_at?: string
+          designation?: string
+          id?: string
+          observations?: string | null
+          quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bl_articles_bl_id_fkey"
+            columns: ["bl_id"]
+            isOneToOne: false
+            referencedRelation: "bons_livraison"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bons_livraison: {
+        Row: {
+          besoin_id: string
+          created_at: string
+          created_by: string
+          delivered_at: string | null
+          delivered_by: string | null
+          delivery_date: string | null
+          department_id: string
+          id: string
+          observations: string | null
+          reference: string
+          status: Database["public"]["Enums"]["bl_status"]
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          warehouse: string | null
+        }
+        Insert: {
+          besoin_id: string
+          created_at?: string
+          created_by: string
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivery_date?: string | null
+          department_id: string
+          id?: string
+          observations?: string | null
+          reference: string
+          status?: Database["public"]["Enums"]["bl_status"]
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          warehouse?: string | null
+        }
+        Update: {
+          besoin_id?: string
+          created_at?: string
+          created_by?: string
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivery_date?: string | null
+          department_id?: string
+          id?: string
+          observations?: string | null
+          reference?: string
+          status?: Database["public"]["Enums"]["bl_status"]
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          warehouse?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bons_livraison_besoin_id_fkey"
+            columns: ["besoin_id"]
+            isOneToOne: false
+            referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      da_articles: {
+        Row: {
+          created_at: string
+          da_id: string
+          designation: string
+          id: string
+          observations: string | null
+          quantity: number
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          da_id: string
+          designation: string
+          id?: string
+          observations?: string | null
+          quantity: number
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          da_id?: string
+          designation?: string
+          id?: string
+          observations?: string | null
+          quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "da_articles_da_id_fkey"
+            columns: ["da_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demandes_achat: {
+        Row: {
+          besoin_id: string
+          category: Database["public"]["Enums"]["da_category"]
+          created_at: string
+          created_by: string
+          department_id: string
+          description: string
+          desired_date: string | null
+          id: string
+          observations: string | null
+          priority: Database["public"]["Enums"]["da_priority"]
+          reference: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["da_status"]
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          besoin_id: string
+          category: Database["public"]["Enums"]["da_category"]
+          created_at?: string
+          created_by: string
+          department_id: string
+          description: string
+          desired_date?: string | null
+          id?: string
+          observations?: string | null
+          priority?: Database["public"]["Enums"]["da_priority"]
+          reference: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["da_status"]
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          besoin_id?: string
+          category?: Database["public"]["Enums"]["da_category"]
+          created_at?: string
+          created_by?: string
+          department_id?: string
+          description?: string
+          desired_date?: string | null
+          id?: string
+          observations?: string | null
+          priority?: Database["public"]["Enums"]["da_priority"]
+          reference?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["da_status"]
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandes_achat_besoin_id_fkey"
+            columns: ["besoin_id"]
+            isOneToOne: false
+            referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_rejected_by_fkey"
+            columns: ["rejected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -370,6 +625,7 @@ export type Database = {
     }
     Functions: {
       can_create_besoin: { Args: { _user_id: string }; Returns: boolean }
+      can_transform_besoin: { Args: { _besoin_id: string }; Returns: boolean }
       create_notification: {
         Args: {
           _link?: string
@@ -380,6 +636,8 @@ export type Database = {
         }
         Returns: string
       }
+      generate_bl_reference: { Args: never; Returns: string }
+      generate_da_reference: { Args: never; Returns: string }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -388,6 +646,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_achats: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_dg: { Args: { _user_id: string }; Returns: boolean }
       is_logistics: { Args: { _user_id: string }; Returns: boolean }
@@ -413,6 +672,16 @@ export type Database = {
         | "autre"
       besoin_status: "cree" | "pris_en_charge" | "accepte" | "refuse"
       besoin_urgency: "normale" | "urgente" | "critique"
+      bl_status: "prepare" | "en_attente_validation" | "valide" | "livre"
+      da_category:
+        | "fournitures"
+        | "equipement"
+        | "service"
+        | "maintenance"
+        | "informatique"
+        | "autre"
+      da_priority: "basse" | "normale" | "haute" | "urgente"
+      da_status: "brouillon" | "soumise" | "rejetee"
       user_status: "active" | "inactive" | "suspended"
     }
     CompositeTypes: {
@@ -563,6 +832,17 @@ export const Constants = {
       ],
       besoin_status: ["cree", "pris_en_charge", "accepte", "refuse"],
       besoin_urgency: ["normale", "urgente", "critique"],
+      bl_status: ["prepare", "en_attente_validation", "valide", "livre"],
+      da_category: [
+        "fournitures",
+        "equipement",
+        "service",
+        "maintenance",
+        "informatique",
+        "autre",
+      ],
+      da_priority: ["basse", "normale", "haute", "urgente"],
+      da_status: ["brouillon", "soumise", "rejetee"],
       user_status: ["active", "inactive", "suspended"],
     },
   },
