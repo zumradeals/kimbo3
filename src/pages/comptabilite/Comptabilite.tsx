@@ -154,7 +154,7 @@ export default function Comptabilite() {
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{totalPending.toLocaleString()} XAF</p>
+                <p className="text-2xl font-bold">{totalPending.toLocaleString()} XOF</p>
                 <p className="text-sm text-muted-foreground">Montant en attente</p>
               </div>
             </CardContent>
