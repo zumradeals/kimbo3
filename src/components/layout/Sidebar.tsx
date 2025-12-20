@@ -91,10 +91,17 @@ const fournisseursNavItem: NavItem = {
   roles: ['admin', 'responsable_achats', 'agent_achats'],
 };
 
+// Module Comptabilité (actif)
+const comptabiliteNavItem: NavItem = {
+  label: 'Comptabilité',
+  href: '/comptabilite',
+  icon: Wallet,
+  roles: ['admin', 'comptable', 'daf'],
+};
+
 // Modules métier (désactivés pour l'instant)
 const businessModules: NavItem[] = [
   { label: 'Stock', href: '/stock', icon: Package },
-  { label: 'Comptabilité', href: '/compta', icon: Wallet },
 ];
 
 export function Sidebar() {
@@ -218,6 +225,7 @@ export function Sidebar() {
           {hasAccess(daNavItem) && renderNavItem(daNavItem)}
           {hasAccess(blNavItem) && renderNavItem(blNavItem)}
           {hasAccess(fournisseursNavItem) && renderNavItem(fournisseursNavItem)}
+          {hasAccess(comptabiliteNavItem) && renderNavItem(comptabiliteNavItem)}
 
           {/* Modules métier (désactivés) */}
           <div className="mt-6 border-t border-sidebar-border pt-4">

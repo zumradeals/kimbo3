@@ -34,6 +34,10 @@ import BLDetail from "./pages/bons-livraison/BLDetail";
 // Module Fournisseurs
 import Fournisseurs from "./pages/achats/Fournisseurs";
 
+// Module Comptabilité
+import Comptabilite from "./pages/comptabilite/Comptabilite";
+import ComptabiliteDetail from "./pages/comptabilite/ComptabiliteDetail";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -90,6 +94,10 @@ function AppRoutes() {
       
       {/* Module Fournisseurs */}
       <Route path="/fournisseurs" element={<ProtectedRoute><Fournisseurs /></ProtectedRoute>} />
+      
+      {/* Module Comptabilité */}
+      <Route path="/comptabilite" element={<ProtectedRoute><Comptabilite /></ProtectedRoute>} />
+      <Route path="/comptabilite/:id" element={<ProtectedRoute><ComptabiliteDetail /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
