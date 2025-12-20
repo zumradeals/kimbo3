@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { DemandeAchat, DA_STATUS_LABELS, DA_PRIORITY_LABELS, DAStatus } from '@/types/kpm';
-import { FileText, Search, Clock, Send, XCircle, BarChart3, CheckCircle, FileCheck } from 'lucide-react';
+import { FileText, Search, Clock, Send, XCircle, BarChart3, CheckCircle, FileCheck, ShieldCheck, Ban, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -34,6 +34,9 @@ const statusColors: Record<DAStatus, string> = {
   en_analyse: 'bg-warning/10 text-warning border-warning/20',
   chiffree: 'bg-success/10 text-success border-success/20',
   soumise_validation: 'bg-accent/10 text-accent-foreground border-accent/20',
+  validee_finance: 'bg-success text-success-foreground',
+  refusee_finance: 'bg-destructive text-destructive-foreground',
+  en_revision_achats: 'bg-warning text-warning-foreground',
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
@@ -43,6 +46,9 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   en_analyse: BarChart3,
   chiffree: CheckCircle,
   soumise_validation: FileCheck,
+  validee_finance: ShieldCheck,
+  refusee_finance: Ban,
+  en_revision_achats: RotateCcw,
   rejetee: XCircle,
 };
 

@@ -70,6 +70,9 @@ import {
   Calculator,
   Building2,
   DollarSign,
+  Ban,
+  RotateCcw,
+  ShieldCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -80,6 +83,9 @@ const statusColors: Record<DAStatus, string> = {
   en_analyse: 'bg-warning/10 text-warning border-warning/20',
   chiffree: 'bg-success/10 text-success border-success/20',
   soumise_validation: 'bg-accent/10 text-accent-foreground border-accent/20',
+  validee_finance: 'bg-success text-success-foreground',
+  refusee_finance: 'bg-destructive text-destructive-foreground',
+  en_revision_achats: 'bg-warning text-warning-foreground',
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
@@ -89,6 +95,9 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   en_analyse: BarChart3,
   chiffree: CheckCircle,
   soumise_validation: FileCheck,
+  validee_finance: ShieldCheck,
+  refusee_finance: Ban,
+  en_revision_achats: RotateCcw,
   rejetee: XCircle,
 };
 
@@ -107,9 +116,14 @@ export default function DADetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showPriceDialog, setShowPriceDialog] = useState(false);
+  const [showFinanceRefuseDialog, setShowFinanceRefuseDialog] = useState(false);
+  const [showRevisionDialog, setShowRevisionDialog] = useState(false);
+  const [showValidateDialog, setShowValidateDialog] = useState(false);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [justification, setJustification] = useState('');
+  const [financeComment, setFinanceComment] = useState('');
+  const [revisionComment, setRevisionComment] = useState('');
 
   const [priceForm, setPriceForm] = useState({
     fournisseur_id: '',
@@ -123,11 +137,12 @@ export default function DADetail() {
   const isAchats = roles.some((r) => ACHATS_ROLES.includes(r));
   const isDG = roles.includes('dg');
   const isDAF = roles.includes('daf');
+  const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
 
   const canSubmitToAchats = (isLogistics || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
-  const canSubmitToValidation = (isAchats || isAdmin) && da?.status === 'chiffree';
+  const canPrice = (isAchats || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
+  const canSubmitToValidation = (isAchats || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   const canDelete = isAdmin;
 
@@ -397,6 +412,82 @@ export default function DADetail() {
     }
   };
 
+  // === VALIDATION FINANCIÈRE ===
+  const handleValidateFinance = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'validee_finance',
+          validated_finance_by: user?.id,
+          validated_finance_at: new Date().toISOString(),
+          finance_decision_comment: financeComment.trim() || null,
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA validée financièrement', description: 'La Comptabilité a été notifiée.' });
+      setShowValidateDialog(false);
+      setFinanceComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRefuseFinance = async () => {
+    if (!da || !financeComment.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'refusee_finance',
+          validated_finance_by: user?.id,
+          validated_finance_at: new Date().toISOString(),
+          finance_decision_comment: financeComment.trim(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA refusée', description: 'Les parties concernées ont été notifiées.' });
+      setShowFinanceRefuseDialog(false);
+      setFinanceComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRequestRevision = async () => {
+    if (!da || !revisionComment.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'en_revision_achats',
+          revision_requested_by: user?.id,
+          revision_requested_at: new Date().toISOString(),
+          revision_comment: revisionComment.trim(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'Révision demandée', description: 'Le Service Achats a été notifié.' });
+      setShowRevisionDialog(false);
+      setRevisionComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!da) return;
     setIsSaving(true);
@@ -582,8 +673,128 @@ export default function DADetail() {
           </Card>
         )}
 
+        {/* PANNEAU VALIDATION FINANCIÈRE (DAF/DG) */}
+        {canValidateFinance && (
+          <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 to-accent/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Validation Financière Requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Cette décision engage la responsabilité financière de l'entreprise.
+                  </p>
+                </div>
+              </div>
+
+              {/* Récapitulatif */}
+              <div className="rounded-lg border bg-card p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Montant total</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {da.total_amount?.toLocaleString()} {da.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fournisseur</p>
+                    <p className="font-medium">{(da.selected_fournisseur as Fournisseur)?.name || 'Multiple'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Priorité</p>
+                    <Badge className={da.priority === 'urgente' ? 'bg-destructive/10 text-destructive' : da.priority === 'haute' ? 'bg-warning/10 text-warning' : 'bg-muted text-muted-foreground'}>
+                      {DA_PRIORITY_LABELS[da.priority]}
+                    </Badge>
+                  </div>
+                </div>
+                {da.fournisseur_justification && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-xs text-muted-foreground">Justification Achats</p>
+                    <p className="text-sm">{da.fournisseur_justification}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  onClick={() => setShowValidateDialog(true)} 
+                  className="bg-success hover:bg-success/90"
+                  disabled={isSaving}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Valider financièrement
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowRevisionDialog(true)}
+                  disabled={isSaving}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Demander révision
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowFinanceRefuseDialog(true)}
+                  disabled={isSaving}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Refuser
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière si validée financièrement */}
+        {da.status === 'validee_finance' && (
+          <Card className="border-success bg-success/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ShieldCheck className="h-6 w-6 text-success" />
+              <div>
+                <p className="font-bold text-success">Validée financièrement</p>
+                <p className="text-sm text-foreground">
+                  Cette DA est autorisée et transmise à la Comptabilité.
+                  {da.finance_decision_comment && ` — ${da.finance_decision_comment}`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière si refusée financièrement */}
+        {da.status === 'refusee_finance' && (
+          <Card className="border-destructive bg-destructive/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <Ban className="h-6 w-6 text-destructive" />
+              <div>
+                <p className="font-bold text-destructive">Refusée par la Direction</p>
+                <p className="text-sm text-foreground">
+                  {da.finance_decision_comment || 'Aucun motif spécifié.'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière si en révision Achats */}
+        {da.status === 'en_revision_achats' && (
+          <Card className="border-warning bg-warning/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <RotateCcw className="h-6 w-6 text-warning" />
+              <div>
+                <p className="font-bold text-warning">Révision demandée</p>
+                <p className="text-sm text-foreground">
+                  {da.revision_comment || 'La Direction demande une révision de cette DA.'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Total if priced */}
-        {da.total_amount && (
+        {da.total_amount && !['validee_finance', 'refusee_finance'].includes(da.status) && (
           <Card className="border-success/50 bg-success/5">
             <CardContent className="flex items-center gap-3 py-4">
               <DollarSign className="h-6 w-6 text-success" />
@@ -864,6 +1075,114 @@ export default function DADetail() {
             <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Annuler</Button>
             <Button variant="destructive" onClick={handleReject} disabled={!rejectionReason.trim() || isSaving}>
               Confirmer le rejet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Finance Validate Dialog */}
+      <AlertDialog open={showValidateDialog} onOpenChange={setShowValidateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-success" />
+              Valider financièrement cette DA ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette décision engage la responsabilité financière de l'entreprise. 
+              La DA sera transmise à la Comptabilité pour traitement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <p className="text-sm text-muted-foreground">Montant autorisé</p>
+              <p className="text-xl font-bold">{da?.total_amount?.toLocaleString()} {da?.currency}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Commentaire (optionnel)</Label>
+              <Textarea
+                placeholder="Ajouter un commentaire de validation..."
+                value={financeComment}
+                onChange={(e) => setFinanceComment(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleValidateFinance} 
+              className="bg-success text-success-foreground hover:bg-success/90"
+              disabled={isSaving}
+            >
+              Confirmer la validation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Finance Refuse Dialog */}
+      <Dialog open={showFinanceRefuseDialog} onOpenChange={setShowFinanceRefuseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Ban className="h-5 w-5" />
+              Refuser cette DA
+            </DialogTitle>
+            <DialogDescription>
+              Cette action bloque définitivement la demande. Le motif sera communiqué aux parties concernées.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label>Motif du refus *</Label>
+            <Textarea
+              placeholder="Expliquez pourquoi cette DA est refusée..."
+              value={financeComment}
+              onChange={(e) => setFinanceComment(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFinanceRefuseDialog(false)}>Annuler</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRefuseFinance} 
+              disabled={!financeComment.trim() || isSaving}
+            >
+              Confirmer le refus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revision Dialog */}
+      <Dialog open={showRevisionDialog} onOpenChange={setShowRevisionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-warning" />
+              Demander une révision
+            </DialogTitle>
+            <DialogDescription>
+              La DA sera renvoyée au Service Achats pour révision. Expliquez ce qui doit être modifié.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label>Commentaire de révision *</Label>
+            <Textarea
+              placeholder="Indiquez les éléments à réviser (prix, fournisseur, justification...)..."
+              value={revisionComment}
+              onChange={(e) => setRevisionComment(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRevisionDialog(false)}>Annuler</Button>
+            <Button 
+              onClick={handleRequestRevision} 
+              disabled={!revisionComment.trim() || isSaving}
+            >
+              Demander la révision
             </Button>
           </DialogFooter>
         </DialogContent>

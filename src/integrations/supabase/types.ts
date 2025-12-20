@@ -384,6 +384,7 @@ export type Database = {
           department_id: string
           description: string
           desired_date: string | null
+          finance_decision_comment: string | null
           fournisseur_justification: string | null
           id: string
           observations: string | null
@@ -394,6 +395,9 @@ export type Database = {
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
+          revision_comment: string | null
+          revision_requested_at: string | null
+          revision_requested_by: string | null
           selected_fournisseur_id: string | null
           status: Database["public"]["Enums"]["da_status"]
           submitted_at: string | null
@@ -401,6 +405,8 @@ export type Database = {
           submitted_validation_by: string | null
           total_amount: number | null
           updated_at: string
+          validated_finance_at: string | null
+          validated_finance_by: string | null
         }
         Insert: {
           analyzed_at?: string | null
@@ -413,6 +419,7 @@ export type Database = {
           department_id: string
           description: string
           desired_date?: string | null
+          finance_decision_comment?: string | null
           fournisseur_justification?: string | null
           id?: string
           observations?: string | null
@@ -423,6 +430,9 @@ export type Database = {
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          revision_comment?: string | null
+          revision_requested_at?: string | null
+          revision_requested_by?: string | null
           selected_fournisseur_id?: string | null
           status?: Database["public"]["Enums"]["da_status"]
           submitted_at?: string | null
@@ -430,6 +440,8 @@ export type Database = {
           submitted_validation_by?: string | null
           total_amount?: number | null
           updated_at?: string
+          validated_finance_at?: string | null
+          validated_finance_by?: string | null
         }
         Update: {
           analyzed_at?: string | null
@@ -442,6 +454,7 @@ export type Database = {
           department_id?: string
           description?: string
           desired_date?: string | null
+          finance_decision_comment?: string | null
           fournisseur_justification?: string | null
           id?: string
           observations?: string | null
@@ -452,6 +465,9 @@ export type Database = {
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          revision_comment?: string | null
+          revision_requested_at?: string | null
+          revision_requested_by?: string | null
           selected_fournisseur_id?: string | null
           status?: Database["public"]["Enums"]["da_status"]
           submitted_at?: string | null
@@ -459,6 +475,8 @@ export type Database = {
           submitted_validation_by?: string | null
           total_amount?: number | null
           updated_at?: string
+          validated_finance_at?: string | null
+          validated_finance_by?: string | null
         }
         Relationships: [
           {
@@ -504,6 +522,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "demandes_achat_revision_requested_by_fkey"
+            columns: ["revision_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "demandes_achat_selected_fournisseur_id_fkey"
             columns: ["selected_fournisseur_id"]
             isOneToOne: false
@@ -513,6 +538,13 @@ export type Database = {
           {
             foreignKeyName: "demandes_achat_submitted_validation_by_fkey"
             columns: ["submitted_validation_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_validated_finance_by_fkey"
+            columns: ["validated_finance_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
