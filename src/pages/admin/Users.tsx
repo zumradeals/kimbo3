@@ -1,0 +1,431 @@
+import { useState, useEffect } from 'react';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { useAuth } from '@/hooks/useAuth';
+import { AccessDenied } from '@/components/ui/AccessDenied';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus } from '@/types/kpm';
+import { Plus, Pencil, UserCog, Search } from 'lucide-react';
+
+const ALL_ROLES: AppRole[] = [
+  'admin', 'dg', 'daf', 'comptable', 'responsable_logistique',
+  'agent_logistique', 'responsable_achats', 'agent_achats',
+  'responsable_departement', 'employe', 'lecture_seule'
+];
+
+interface UserWithRoles extends Profile {
+  roles: AppRole[];
+}
+
+export default function AdminUsers() {
+  const { isAdmin, user } = useAuth();
+  const { toast } = useToast();
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Edit modal
+  const [editingUser, setEditingUser] = useState<UserWithRoles | null>(null);
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    department_id: '',
+    status: 'active' as UserStatus,
+    role: 'employe' as AppRole,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      // Fetch departments
+      const { data: deptData } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      setDepartments(deptData || []);
+
+      // Fetch profiles with department info
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*, department:departments(*)')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        return;
+      }
+
+      // Fetch all user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      if (rolesError) {
+        console.error('Error fetching roles:', rolesError);
+        return;
+      }
+
+      // Map roles to users
+      const usersWithRoles: UserWithRoles[] = (profilesData || []).map((profile) => {
+        const userRoles = (rolesData || [])
+          .filter((r) => r.user_id === profile.id)
+          .map((r) => r.role as AppRole);
+        return { ...profile, roles: userRoles };
+      });
+
+      setUsers(usersWithRoles);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchData();
+    }
+  }, [isAdmin]);
+
+  const openEditModal = (userToEdit: UserWithRoles) => {
+    setEditingUser(userToEdit);
+    setEditForm({
+      first_name: userToEdit.first_name || '',
+      last_name: userToEdit.last_name || '',
+      department_id: userToEdit.department_id || '',
+      status: userToEdit.status,
+      role: userToEdit.roles[0] || 'employe',
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingUser(null);
+    setEditForm({
+      first_name: '',
+      last_name: '',
+      department_id: '',
+      status: 'active',
+      role: 'employe',
+    });
+  };
+
+  const handleSave = async () => {
+    if (!editingUser) return;
+    setIsSaving(true);
+
+    try {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
+          department_id: editForm.department_id || null,
+          status: editForm.status,
+        })
+        .eq('id', editingUser.id);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      // Update role - delete existing and insert new
+      const { error: deleteRoleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', editingUser.id);
+
+      if (deleteRoleError) {
+        throw deleteRoleError;
+      }
+
+      const { error: insertRoleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: editingUser.id,
+          role: editForm.role,
+          assigned_by: user?.id,
+        });
+
+      if (insertRoleError) {
+        throw insertRoleError;
+      }
+
+      toast({
+        title: 'Utilisateur mis à jour',
+        description: `Les informations de ${editForm.first_name} ${editForm.last_name} ont été enregistrées.`,
+      });
+
+      closeEditModal();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error saving user:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de sauvegarder les modifications.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const filteredUsers = users.filter((u) => {
+    const search = searchQuery.toLowerCase();
+    return (
+      u.email.toLowerCase().includes(search) ||
+      (u.first_name?.toLowerCase() || '').includes(search) ||
+      (u.last_name?.toLowerCase() || '').includes(search)
+    );
+  });
+
+  if (!isAdmin) {
+    return (
+      <AppLayout>
+        <AccessDenied message="Seuls les administrateurs peuvent gérer les utilisateurs." />
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-foreground">
+              Gestion des utilisateurs
+            </h1>
+            <p className="text-muted-foreground">
+              {users.length} utilisateur(s) enregistré(s)
+            </p>
+          </div>
+        </div>
+
+        {/* Search */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par nom ou email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Users table */}
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                {searchQuery ? 'Aucun utilisateur trouvé.' : 'Aucun utilisateur enregistré.'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Utilisateur</TableHead>
+                      <TableHead>Département</TableHead>
+                      <TableHead>Rôle</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {u.first_name} {u.last_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{u.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {u.department?.name || (
+                            <span className="text-muted-foreground">Non assigné</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {u.roles.map((role) => (
+                              <span
+                                key={role}
+                                className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                              >
+                                {ROLE_LABELS[role]}
+                              </span>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
+                              u.status === 'active'
+                                ? 'bg-success/10 text-success'
+                                : u.status === 'suspended'
+                                ? 'bg-destructive/10 text-destructive'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {STATUS_LABELS[u.status]}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditModal(u)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Edit Modal */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && closeEditModal()}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Modifier l'utilisateur</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations, le rôle et le département de l'utilisateur.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">Prénom</Label>
+                <Input
+                  id="first_name"
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Nom</Label>
+                <Input
+                  id="last_name"
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Département</Label>
+              <Select
+                value={editForm.department_id}
+                onValueChange={(value) => setEditForm({ ...editForm, department_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un département" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun département</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Rôle</Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(value) => setEditForm({ ...editForm, role: value as AppRole })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Statut</Label>
+              <Select
+                value={editForm.status}
+                onValueChange={(value) => setEditForm({ ...editForm, status: value as UserStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="inactive">Inactif</SelectItem>
+                  <SelectItem value="suspended">Suspendu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEditModal} disabled={isSaving}>
+              Annuler
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AppLayout>
+  );
+}
