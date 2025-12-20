@@ -9,6 +9,9 @@ import {
   ShoppingCart, Truck, CreditCard, AlertTriangle, Clock,
   CheckCircle, XCircle, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
+import { LogistiqueDashboard } from '@/components/dashboard/LogistiqueDashboard';
+import { AchatsDashboard } from '@/components/dashboard/AchatsDashboard';
+import { ComptabiliteDashboard } from '@/components/dashboard/ComptabiliteDashboard';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area
@@ -576,6 +579,19 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* Role-Specific Dashboards */}
+        {hasAnyRole(['responsable_logistique', 'agent_logistique']) && (
+          <LogistiqueDashboard />
+        )}
+
+        {hasAnyRole(['responsable_achats', 'agent_achats']) && (
+          <AchatsDashboard />
+        )}
+
+        {hasAnyRole(['comptable']) && (
+          <ComptabiliteDashboard />
+        )}
 
         {/* Admin Stats */}
         {isAdmin && (
