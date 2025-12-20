@@ -136,7 +136,7 @@ export default function DADetail() {
   const [priceForm, setPriceForm] = useState({
     fournisseur_id: '',
     unit_price: '',
-    currency: 'XAF',
+    currency: 'XOF',
     delivery_delay: '',
     conditions: '',
   });
@@ -284,7 +284,7 @@ export default function DADetail() {
       if (error) throw error;
       toast({ title: 'Prix ajouté' });
       setShowPriceDialog(false);
-      setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XAF', delivery_delay: '', conditions: '' });
+      setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' });
       fetchArticlePrices(selectedArticleId);
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -353,14 +353,14 @@ export default function DADetail() {
         .update({
           status: 'chiffree',
           total_amount: total,
-          currency: 'XAF',
+          currency: 'XOF',
           selected_fournisseur_id: topFournisseur || null,
           priced_by: user?.id,
           priced_at: new Date().toISOString(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA chiffrée', description: `Montant total: ${total.toLocaleString()} XAF` });
+      toast({ title: 'DA chiffrée', description: `Montant total: ${total.toLocaleString()} XOF` });
       fetchDA();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -551,7 +551,7 @@ export default function DADetail() {
         ? `${da.created_by_profile.first_name || ''} ${da.created_by_profile.last_name || ''}`.trim() 
         : 'N/A',
       totalAmount: da.total_amount,
-      currency: da.currency || 'XAF',
+      currency: da.currency || 'XOF',
       fournisseur: da.selected_fournisseur?.name,
       articles: articlesWithPrices,
     });
@@ -678,7 +678,7 @@ export default function DADetail() {
               <div>
                 <p className="font-medium text-foreground">Prêt à chiffrer ?</p>
                 <p className="text-sm text-muted-foreground">
-                  Sélectionnez un prix par article puis validez. Total actuel: {total.toLocaleString()} XAF
+                  Sélectionnez un prix par article puis validez. Total actuel: {total.toLocaleString()} XOF
                 </p>
               </div>
               <div className="flex gap-2">
@@ -1070,7 +1070,7 @@ export default function DADetail() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="XAF">XAF (FCFA)</SelectItem>
+                    <SelectItem value="XOF">XOF (FCFA)</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="USD">USD</SelectItem>
                   </SelectContent>

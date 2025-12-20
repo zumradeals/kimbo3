@@ -124,7 +124,7 @@ export function AchatsDashboard() {
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value) + ' ' + (currency || 'XAF');
+    }).format(value) + ' ' + (currency || 'XOF');
   };
 
   if (isLoading) {

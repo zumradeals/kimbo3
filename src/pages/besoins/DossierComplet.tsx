@@ -186,7 +186,7 @@ export default function DossierComplet() {
         details: {
           createur: `${da.created_by_user?.first_name || ''} ${da.created_by_user?.last_name || ''}`.trim(),
           fournisseur: da.fournisseur?.name || 'Non sélectionné',
-          montant: da.total_amount ? `${da.total_amount.toLocaleString('fr-FR')} ${da.currency || 'XAF'}` : '-',
+          montant: da.total_amount ? `${da.total_amount.toLocaleString('fr-FR')} ${da.currency || 'XOF'}` : '-',
           statut: da.status,
         },
       });
@@ -246,7 +246,7 @@ export default function DossierComplet() {
         reference: lastEcriture?.reference,
         link: da ? `/comptabilite/${da.id}` : undefined,
         details: {
-          montant: `${da.total_amount?.toLocaleString('fr-FR')} ${da.currency || 'XAF'}`,
+          montant: `${da.total_amount?.toLocaleString('fr-FR')} ${da.currency || 'XOF'}`,
           modePaiement: da.mode_paiement || '-',
           reference: da.reference_paiement || '-',
           ecritures: ecritures.length,
@@ -275,7 +275,7 @@ export default function DossierComplet() {
     }
   };
 
-  const formatMontant = (value: number | null | undefined, currency = 'XAF') => {
+  const formatMontant = (value: number | null | undefined, currency = 'XOF') => {
     if (!value) return '-';
     return new Intl.NumberFormat('fr-FR').format(value) + ' ' + currency;
   };

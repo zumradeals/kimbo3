@@ -203,7 +203,7 @@ export default function Reports() {
       '',
       '=== DEMANDES D\'ACHAT ===',
       `Total: ${stats.da.total}`,
-      `Montant total: ${stats.da.totalAmount.toLocaleString('fr-FR')} XAF`,
+      `Montant total: ${stats.da.totalAmount.toLocaleString('fr-FR')} XOF`,
       `Délai moyen: ${stats.da.avgProcessingDays} jours`,
       ...Object.entries(stats.da.byStatus).map(([k, v]) => `- ${DA_STATUS_LABELS[k as keyof typeof DA_STATUS_LABELS] || k}: ${v}`),
       '',
@@ -219,8 +219,8 @@ export default function Reports() {
       `Épuisés: ${stats.stock.outOfStock}`,
       '',
       '=== FINANCE ===',
-      `Payé: ${stats.finance.totalPaid.toLocaleString('fr-FR')} XAF`,
-      `En attente: ${stats.finance.pendingPayments.toLocaleString('fr-FR')} XAF`,
+      `Payé: ${stats.finance.totalPaid.toLocaleString('fr-FR')} XOF`,
+      `En attente: ${stats.finance.pendingPayments.toLocaleString('fr-FR')} XOF`,
       '',
       '=== ANOMALIES ===',
       `DA en attente > 30j: ${stats.anomalies.longPending}`,
@@ -318,7 +318,7 @@ export default function Reports() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{(stats.da.totalAmount / 1000000).toFixed(1)}M</p>
-                      <p className="text-sm text-muted-foreground">XAF engagés</p>
+                      <p className="text-sm text-muted-foreground">XOF engagés</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -500,7 +500,7 @@ export default function Reports() {
                     <CardContent className="py-6 text-center">
                       <p className="text-sm text-muted-foreground">Total payé</p>
                       <p className="text-3xl font-bold text-success">
-                        {stats.finance.totalPaid.toLocaleString('fr-FR')} XAF
+                        {stats.finance.totalPaid.toLocaleString('fr-FR')} XOF
                       </p>
                     </CardContent>
                   </Card>
@@ -508,7 +508,7 @@ export default function Reports() {
                     <CardContent className="py-6 text-center">
                       <p className="text-sm text-muted-foreground">En attente de paiement</p>
                       <p className="text-3xl font-bold text-warning">
-                        {stats.finance.pendingPayments.toLocaleString('fr-FR')} XAF
+                        {stats.finance.pendingPayments.toLocaleString('fr-FR')} XOF
                       </p>
                     </CardContent>
                   </Card>
@@ -529,7 +529,7 @@ export default function Reports() {
                             </span>
                           </div>
                           <span className="font-mono font-medium">
-                            {item.amount.toLocaleString('fr-FR')} XAF
+                            {item.amount.toLocaleString('fr-FR')} XOF
                           </span>
                         </div>
                       ))}

@@ -92,7 +92,7 @@ export function ComptabiliteDashboard() {
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value) + ' ' + (currency || 'XAF');
+    }).format(value) + ' ' + (currency || 'XOF');
   };
 
   const getDaysSinceValidation = (date: string | null) => {
