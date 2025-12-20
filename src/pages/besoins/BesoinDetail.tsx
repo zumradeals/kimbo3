@@ -54,6 +54,8 @@ import {
   Play,
   Check,
   X,
+  FileText,
+  Package,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -85,6 +87,7 @@ export default function BesoinDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [canTransform, setCanTransform] = useState(false);
 
   const [editForm, setEditForm] = useState({
     title: '',
@@ -102,8 +105,21 @@ export default function BesoinDetail() {
   const canDelete = isAdmin;
 
   useEffect(() => {
-    if (id) fetchBesoin();
+    if (id) {
+      fetchBesoin();
+    }
   }, [id]);
+
+  useEffect(() => {
+    if (besoin?.status === 'accepte' && id) {
+      checkCanTransform();
+    }
+  }, [besoin?.status, id]);
+
+  const checkCanTransform = async () => {
+    const { data } = await supabase.rpc('can_transform_besoin', { _besoin_id: id });
+    setCanTransform(data === true);
+  };
 
   const fetchBesoin = async () => {
     try {
@@ -394,7 +410,53 @@ export default function BesoinDetail() {
           </Card>
         )}
 
-        {/* Details */}
+        {/* Transformation actions for accepted besoins */}
+        {canManage && besoin.status === 'accepte' && canTransform && (
+          <Card className="border-success/50 bg-success/5">
+            <CardContent className="py-4">
+              <div className="mb-3">
+                <p className="font-medium text-foreground">Transformation requise</p>
+                <p className="text-sm text-muted-foreground">
+                  Ce besoin a été accepté. Choisissez comment le traiter :
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link to={`/demandes-achat/nouveau?besoin=${besoin.id}`} className="flex-1">
+                  <Button variant="outline" className="w-full justify-start">
+                    <FileText className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <p className="font-medium">Transformer en DA</p>
+                      <p className="text-xs text-muted-foreground">Achat requis auprès d'un fournisseur</p>
+                    </div>
+                  </Button>
+                </Link>
+                <Link to={`/bons-livraison/nouveau?besoin=${besoin.id}`} className="flex-1">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Package className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <p className="font-medium">Transformer en BL</p>
+                      <p className="text-xs text-muted-foreground">Livraison depuis le stock existant</p>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {canManage && besoin.status === 'accepte' && !canTransform && (
+          <Card className="border-muted bg-muted/30">
+            <CardContent className="flex items-start gap-3 py-4">
+              <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+              <div>
+                <p className="font-medium text-foreground">Besoin déjà transformé</p>
+                <p className="text-sm text-muted-foreground">
+                  Ce besoin a déjà été transformé en DA ou BL.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Détails du besoin</CardTitle>
