@@ -236,20 +236,6 @@ export default function Auth() {
               </Button>
             </form>
 
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                className="text-sm text-muted-foreground hover:text-primary"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrors({});
-                }}
-              >
-                {isLogin
-                  ? 'Pas encore de compte ? Créer un compte'
-                  : 'Déjà un compte ? Se connecter'}
-              </button>
-            </div>
           </CardContent>
         </Card>
       </div>
