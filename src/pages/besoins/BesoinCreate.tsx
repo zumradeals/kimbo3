@@ -24,7 +24,7 @@ import {
   BESOIN_URGENCY_LABELS,
   ROLES_CAN_CREATE_BESOIN,
 } from '@/types/kpm';
-import { ArrowLeft, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Info, Paperclip, X, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function BesoinCreate() {
@@ -32,6 +32,8 @@ export default function BesoinCreate() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -75,6 +77,32 @@ export default function BesoinCreate() {
     setIsSubmitting(true);
 
     try {
+      let attachmentUrl: string | null = null;
+      let attachmentName: string | null = null;
+
+      // Upload attachment if present
+      if (attachment) {
+        setIsUploading(true);
+        const fileExt = attachment.name.split('.').pop();
+        const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('besoins-attachments')
+          .upload(fileName, attachment);
+
+        if (uploadError) {
+          throw new Error('Échec de l\'upload du fichier: ' + uploadError.message);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('besoins-attachments')
+          .getPublicUrl(fileName);
+        
+        attachmentUrl = urlData.publicUrl;
+        attachmentName = attachment.name;
+        setIsUploading(false);
+      }
+
       const { data, error } = await supabase
         .from('besoins')
         .insert({
@@ -85,6 +113,8 @@ export default function BesoinCreate() {
           desired_date: form.desired_date || null,
           user_id: user?.id,
           department_id: profile.department_id,
+          attachment_url: attachmentUrl,
+          attachment_name: attachmentName,
         })
         .select()
         .single();
@@ -108,7 +138,28 @@ export default function BesoinCreate() {
       });
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Max 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'Fichier trop volumineux',
+          description: 'La taille maximale autorisée est de 10 Mo.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setAttachment(file);
+    }
+  };
+
+  const removeAttachment = () => {
+    setAttachment(null);
   };
 
   return (
@@ -249,6 +300,48 @@ export default function BesoinCreate() {
                 />
               </div>
 
+              {/* Pièce jointe */}
+              <div className="space-y-2">
+                <Label htmlFor="attachment">Pièce jointe (optionnel)</Label>
+                {!attachment ? (
+                  <div className="relative">
+                    <input
+                      id="attachment"
+                      type="file"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    />
+                    <div className="flex items-center justify-center gap-2 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 hover:border-primary/50 transition-colors cursor-pointer">
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Cliquez pour ajouter un fichier (max 10 Mo)
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-3">
+                    <Paperclip className="h-4 w-4 text-primary" />
+                    <span className="flex-1 text-sm truncate">{attachment.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {(attachment.size / 1024).toFixed(0)} Ko
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={removeAttachment}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Formats acceptés : PDF, Word, Excel, Images (PNG, JPG)
+                </p>
+              </div>
+
               {/* Urgence critique warning */}
               {form.urgency === 'critique' && (
                 <Card className="border-destructive/50 bg-destructive/5">
@@ -269,8 +362,8 @@ export default function BesoinCreate() {
                     Annuler
                   </Button>
                 </Link>
-                <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-none">
-                  {isSubmitting ? 'Envoi en cours...' : 'Soumettre le besoin'}
+                <Button type="submit" disabled={isSubmitting || isUploading} className="flex-1 sm:flex-none">
+                  {isUploading ? 'Upload du fichier...' : isSubmitting ? 'Envoi en cours...' : 'Soumettre le besoin'}
                 </Button>
               </div>
             </form>
