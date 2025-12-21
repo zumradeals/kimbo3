@@ -57,6 +57,9 @@ import {
   FileText,
   Package,
   FolderOpen,
+  Paperclip,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -612,6 +615,49 @@ export default function BesoinDetail() {
                         </span>
                       )}
                     </p>
+                  </div>
+                )}
+
+                {/* Pièce jointe */}
+                {besoin.attachment_url && (
+                  <div className="border-t pt-4">
+                    <p className="mb-2 text-sm text-muted-foreground">Pièce jointe</p>
+                    <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Paperclip className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {besoin.attachment_name || 'Fichier joint'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Document attaché au besoin
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a
+                          href={besoin.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex"
+                        >
+                          <Button variant="outline" size="sm">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Ouvrir
+                          </Button>
+                        </a>
+                        <a
+                          href={besoin.attachment_url}
+                          download={besoin.attachment_name || 'fichier'}
+                          className="inline-flex"
+                        >
+                          <Button variant="default" size="sm">
+                            <Download className="mr-2 h-4 w-4" />
+                            Télécharger
+                          </Button>
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>
