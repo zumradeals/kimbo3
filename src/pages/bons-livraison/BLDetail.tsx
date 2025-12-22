@@ -330,18 +330,26 @@ export default function BLDetail() {
   const handleExportPDF = () => {
     exportBLToPDF({
       reference: bl.reference,
-      status: BL_STATUS_LABELS[bl.status],
+      status: bl.status,
+      statusLabel: BL_STATUS_LABELS[bl.status],
       department: bl.department?.name || 'N/A',
       warehouse: bl.warehouse || undefined,
       blType: bl.bl_type === 'interne' ? 'Depuis stock' : 'Fournisseur externe',
-      deliveryDate: bl.delivery_date 
-        ? format(new Date(bl.delivery_date), 'dd MMMM yyyy', { locale: fr }) 
-        : undefined,
-      createdAt: format(new Date(bl.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr }),
+      deliveryDate: bl.delivery_date || undefined,
+      createdAt: bl.created_at,
       createdBy: bl.created_by_profile 
         ? `${bl.created_by_profile.first_name || ''} ${bl.created_by_profile.last_name || ''}`.trim() 
         : 'N/A',
+      deliveredBy: bl.delivered_by_profile 
+        ? `${bl.delivered_by_profile.first_name || ''} ${bl.delivered_by_profile.last_name || ''}`.trim() 
+        : undefined,
+      deliveredAt: bl.delivered_at || undefined,
+      validatedBy: bl.validated_by_profile 
+        ? `${bl.validated_by_profile.first_name || ''} ${bl.validated_by_profile.last_name || ''}`.trim() 
+        : undefined,
+      validatedAt: bl.validated_at || undefined,
       besoinTitle: bl.besoin?.title || 'N/A',
+      besoinReference: undefined,
       observations: bl.observations || undefined,
       articles: articles.map(art => ({
         designation: art.designation,

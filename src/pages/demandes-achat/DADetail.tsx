@@ -548,18 +548,32 @@ export default function DADetail() {
 
     exportDAToPDF({
       reference: da.reference,
-      status: DA_STATUS_LABELS[da.status],
+      status: da.status,
+      statusLabel: DA_STATUS_LABELS[da.status],
       department: da.department?.name || 'N/A',
       category: DA_CATEGORY_LABELS[da.category],
       priority: DA_PRIORITY_LABELS[da.priority],
       description: da.description,
-      createdAt: format(new Date(da.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr }),
+      createdAt: da.created_at,
       createdBy: da.created_by_profile 
         ? `${da.created_by_profile.first_name || ''} ${da.created_by_profile.last_name || ''}`.trim() 
         : 'N/A',
+      desiredDate: da.desired_date || undefined,
       totalAmount: da.total_amount,
       currency: da.currency || 'XOF',
       fournisseur: da.selected_fournisseur?.name,
+      fournisseurAddress: da.selected_fournisseur?.address || undefined,
+      fournisseurPhone: da.selected_fournisseur?.phone || undefined,
+      fournisseurEmail: da.selected_fournisseur?.email || undefined,
+      justification: da.fournisseur_justification || undefined,
+      analyzedBy: da.analyzed_by_profile ? `${da.analyzed_by_profile.first_name || ''} ${da.analyzed_by_profile.last_name || ''}`.trim() : undefined,
+      analyzedAt: da.analyzed_at || undefined,
+      pricedBy: da.priced_by_profile ? `${da.priced_by_profile.first_name || ''} ${da.priced_by_profile.last_name || ''}`.trim() : undefined,
+      pricedAt: da.priced_at || undefined,
+      validatedFinanceBy: da.validated_finance_by_profile ? `${da.validated_finance_by_profile.first_name || ''} ${da.validated_finance_by_profile.last_name || ''}`.trim() : undefined,
+      validatedFinanceAt: da.validated_finance_at || undefined,
+      comptabiliseBy: da.comptabilise_by_profile ? `${da.comptabilise_by_profile.first_name || ''} ${da.comptabilise_by_profile.last_name || ''}`.trim() : undefined,
+      comptabiliseAt: da.comptabilise_at || undefined,
       articles: articlesWithPrices,
     });
   };
