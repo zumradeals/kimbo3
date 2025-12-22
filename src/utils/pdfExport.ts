@@ -96,23 +96,31 @@ const formatDateTime = (dateString: string | undefined): string => {
   }
 };
 
-// Charger le logo en base64
-const loadLogoAsBase64 = async (): Promise<string | null> => {
-  try {
-    const response = await fetch(COMPANY_INFO.logoUrl);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
+// Logo KIMBO AFRICA en Base64 pré-encodé pour éviter les problèmes CORS
+// Logo simplifié textuel pour garantir l'affichage
+const drawKimboLogo = (doc: jsPDF, x: number, y: number, width: number): void => {
+  // Fond orange arrondi pour le K
+  doc.setFillColor(...COLORS.orange);
+  doc.roundedRect(x, y, 12, 12, 2, 2, 'F');
+  
+  // Lettre K en blanc
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.white);
+  doc.setFont('helvetica', 'bold');
+  doc.text('K', x + 3.8, y + 8.5);
+  
+  // Texte KIMBO AFRICA
+  doc.setFontSize(14);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('KIMBO', x + 15, y + 6);
+  
+  doc.setFontSize(14);
+  doc.setTextColor(...COLORS.orange);
+  doc.text('AFRICA', x + 15, y + 12);
 };
 
-// ===================== DEMANDE D'ACHAT - REFONTE INSTITUTIONNELLE =====================
+// ===================== DEMANDE D'ACHAT - VERSION COMPACTE 1 PAGE =====================
 interface DAExportData {
   reference: string;
   status: string;
@@ -131,7 +139,6 @@ interface DAExportData {
   fournisseurPhone?: string;
   fournisseurEmail?: string;
   justification?: string;
-  // Traçabilité complète
   analyzedBy?: string;
   analyzedAt?: string;
   pricedBy?: string;
@@ -160,54 +167,30 @@ export const exportDAToPDF = async (data: DAExportData) => {
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
+  const margin = 12;
   const contentWidth = pageWidth - (margin * 2);
   
-  // Charger le logo
-  const logoBase64 = await loadLogoAsBase64();
+  // ========== EN-TÊTE COMPACT ==========
+  let y = 8;
   
-  // ========== EN-TÊTE ==========
-  let y = 12;
-  
-  // Bande supérieure orange fine
+  // Bande supérieure orange
   doc.setFillColor(...COLORS.orange);
-  doc.rect(0, 0, pageWidth, 3, 'F');
+  doc.rect(0, 0, pageWidth, 2.5, 'F');
   
-  // Logo KIMBO AFRICA (gauche)
-  if (logoBase64) {
-    try {
-      doc.addImage(logoBase64, 'PNG', margin, y, 35, 14);
-    } catch {
-      // Fallback: texte si logo non chargé
-      doc.setFontSize(18);
-      doc.setTextColor(...COLORS.marron);
-      doc.setFont('helvetica', 'bold');
-      doc.text('KIMBO AFRICA', margin, y + 10);
-    }
-  } else {
-    doc.setFontSize(18);
-    doc.setTextColor(...COLORS.marron);
-    doc.setFont('helvetica', 'bold');
-    doc.text('KIMBO AFRICA', margin, y + 10);
-  }
+  // Logo KIMBO stylisé
+  drawKimboLogo(doc, margin, y, 50);
   
-  // Bloc document (droite)
-  const boxWidth = 65;
-  const boxX = pageWidth - margin - boxWidth;
-  
-  // Titre du document en MARRON
-  doc.setFontSize(14);
+  // Bloc document à droite
+  doc.setFontSize(12);
   doc.setTextColor(...COLORS.marron);
   doc.setFont('helvetica', 'bold');
-  doc.text("DEMANDE D'ACHAT", boxX + boxWidth, y + 4, { align: 'right' });
+  doc.text("DEMANDE D'ACHAT", pageWidth - margin, y + 4, { align: 'right' });
   
-  // Référence
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(...COLORS.textPrimary);
-  doc.setFont('helvetica', 'bold');
-  doc.text(data.reference, boxX + boxWidth, y + 11, { align: 'right' });
+  doc.text(data.reference, pageWidth - margin, y + 10, { align: 'right' });
   
-  // Badge statut
+  // Badge statut compact
   const statusText = data.statusLabel.toUpperCase();
   let statusBgColor = COLORS.grisClairFond;
   let statusTextColor = COLORS.textMuted;
@@ -224,182 +207,105 @@ export const exportDAToPDF = async (data: DAExportData) => {
     statusTextColor = COLORS.warning;
   }
   
-  doc.setFontSize(7);
-  const statusWidth = doc.getTextWidth(statusText) + 8;
+  doc.setFontSize(6);
+  const statusWidth = doc.getTextWidth(statusText) + 6;
   doc.setFillColor(...statusBgColor);
-  doc.roundedRect(boxX + boxWidth - statusWidth, y + 14, statusWidth, 6, 1.5, 1.5, 'F');
+  doc.roundedRect(pageWidth - margin - statusWidth, y + 13, statusWidth, 5, 1, 1, 'F');
   doc.setTextColor(...statusTextColor);
   doc.setFont('helvetica', 'bold');
-  doc.text(statusText, boxX + boxWidth - statusWidth / 2, y + 18.5, { align: 'center' });
+  doc.text(statusText, pageWidth - margin - statusWidth / 2, y + 16.5, { align: 'center' });
   
-  // Ligne séparatrice orange
-  y = 32;
+  // Ligne séparatrice
+  y = 24;
   doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.8);
+  doc.setLineWidth(0.6);
   doc.line(margin, y, pageWidth - margin, y);
   
-  // Date de génération
-  doc.setFontSize(7);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text(
-    `Document généré le ${format(new Date(), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}`,
-    pageWidth - margin, y + 5,
-    { align: 'right' }
-  );
+  y = 28;
   
-  y = 42;
-  
-  // Watermark pour brouillons
+  // Watermark brouillon
   if (data.status.toLowerCase().includes('brouillon')) {
-    doc.setTextColor(230, 230, 230);
-    doc.setFontSize(50);
+    doc.setTextColor(235, 235, 235);
+    doc.setFontSize(45);
     doc.setFont('helvetica', 'bold');
-    doc.text('BROUILLON', pageWidth / 2, pageHeight / 2, {
-      align: 'center',
-      angle: 45,
-    });
+    doc.text('BROUILLON', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
   }
   
-  // ========== SECTION 1: INFORMATIONS GÉNÉRALES ==========
-  y = drawSectionTitle(doc, y, margin, 'INFORMATIONS GÉNÉRALES');
-  
-  const halfWidth = (contentWidth - 6) / 2;
-  
-  // Carte gauche
+  // ========== INFOS GÉNÉRALES - LAYOUT HORIZONTAL COMPACT ==========
   doc.setFillColor(...COLORS.grisTresClair);
   doc.setDrawColor(...COLORS.borderLight);
-  doc.roundedRect(margin, y, halfWidth, 38, 2, 2, 'FD');
+  doc.roundedRect(margin, y, contentWidth, 18, 1.5, 1.5, 'FD');
   
-  // Carte droite
-  doc.roundedRect(margin + halfWidth + 6, y, halfWidth, 38, 2, 2, 'FD');
+  const col1X = margin + 4;
+  const col2X = margin + contentWidth * 0.25;
+  const col3X = margin + contentWidth * 0.5;
+  const col4X = margin + contentWidth * 0.75;
   
-  // Contenu gauche
-  let cardY = y + 7;
-  drawInfoRow(doc, margin + 4, cardY, 'Département', data.department, halfWidth - 8);
-  cardY += 7;
-  drawInfoRow(doc, margin + 4, cardY, 'Catégorie', data.category, halfWidth - 8);
-  cardY += 7;
-  drawInfoRow(doc, margin + 4, cardY, 'Priorité', data.priority, halfWidth - 8, data.priority.toLowerCase().includes('urgent'));
-  cardY += 7;
-  drawInfoRow(doc, margin + 4, cardY, 'Date souhaitée', formatDate(data.desiredDate) || 'Non définie', halfWidth - 8);
-  cardY += 7;
-  drawInfoRow(doc, margin + 4, cardY, 'Demandeur', data.createdBy, halfWidth - 8);
+  // Ligne 1
+  drawCompactInfo(doc, col1X, y + 6, 'Département', data.department);
+  drawCompactInfo(doc, col2X, y + 6, 'Catégorie', data.category);
+  drawCompactInfo(doc, col3X, y + 6, 'Priorité', data.priority, data.priority.toLowerCase().includes('urgent'));
+  drawCompactInfo(doc, col4X, y + 6, 'Date souhaitée', formatDate(data.desiredDate) || '-');
   
-  // Contenu droite  
-  cardY = y + 7;
-  const rightX = margin + halfWidth + 10;
-  drawInfoRow(doc, rightX, cardY, 'Créée le', formatDateTime(data.createdAt), halfWidth - 8);
-  cardY += 7;
-  drawInfoRow(doc, rightX, cardY, 'Créé par', data.createdBy, halfWidth - 8);
+  // Ligne 2
+  drawCompactInfo(doc, col1X, y + 13, 'Demandeur', data.createdBy);
+  drawCompactInfo(doc, col2X, y + 13, 'Créée le', formatDate(data.createdAt));
   
-  y += 44;
+  y += 22;
   
-  // ========== SECTION 2: TRAÇABILITÉ ==========
-  y = drawSectionTitle(doc, y, margin, '🔒 TRAÇABILITÉ');
+  // ========== FOURNISSEUR - COMPACT ==========
+  drawMiniSectionTitle(doc, margin, y, 'Fournisseur');
+  y += 5;
+  
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.borderLight);
+  doc.roundedRect(margin, y, contentWidth, 12, 1.5, 1.5, 'FD');
+  
+  if (data.fournisseur) {
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.orange);
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.fournisseur, margin + 4, y + 5);
+    
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.setFont('helvetica', 'normal');
+    const contactInfo = [data.fournisseurAddress, data.fournisseurPhone, data.fournisseurEmail].filter(Boolean).join(' • ');
+    doc.text(contactInfo || '-', margin + 4, y + 10);
+  } else {
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Non encore sélectionné', margin + 4, y + 7);
+  }
+  
+  y += 16;
+  
+  // ========== DESCRIPTION - COMPACT ==========
+  drawMiniSectionTitle(doc, margin, y, 'Description');
+  y += 5;
+  
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'normal');
+  const splitDesc = doc.splitTextToSize(data.description || '-', contentWidth - 8);
+  const descLines = Math.min(splitDesc.length, 3); // Max 3 lignes
+  const descHeight = descLines * 4 + 4;
   
   doc.setFillColor(...COLORS.white);
   doc.setDrawColor(...COLORS.orange);
   doc.setLineWidth(0.3);
-  doc.roundedRect(margin, y, contentWidth, 34, 2, 2, 'FD');
+  doc.roundedRect(margin, y, contentWidth, descHeight, 1.5, 1.5, 'FD');
+  doc.text(splitDesc.slice(0, 3), margin + 4, y + 5);
   
-  // Liseré orange à gauche
-  doc.setFillColor(...COLORS.orange);
-  doc.rect(margin, y, 3, 34, 'F');
+  y += descHeight + 4;
   
-  const colWidth = contentWidth / 3;
-  cardY = y + 7;
-  
-  // Colonne 1
-  drawTraceItem(doc, margin + 8, cardY, 'Analyse Achats', data.analyzedBy, data.analyzedAt);
-  drawTraceItem(doc, margin + 8, cardY + 10, 'Chiffrage', data.pricedBy, data.pricedAt);
-  
-  // Colonne 2
-  drawTraceItem(doc, margin + colWidth + 4, cardY, 'Soumis validation', data.submittedValidationBy, data.submittedValidationAt);
-  drawTraceItem(doc, margin + colWidth + 4, cardY + 10, 'Validé DAF/DG', data.validatedFinanceBy, data.validatedFinanceAt);
-  
-  // Colonne 3
-  drawTraceItem(doc, margin + colWidth * 2, cardY, 'Comptabilisé', data.comptabiliseBy, data.comptabiliseAt);
-  
-  y += 40;
-  
-  // ========== SECTION 3: FOURNISSEUR ==========
-  y = drawSectionTitle(doc, y, margin, 'FOURNISSEUR');
-  
-  doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.borderLight);
-  doc.roundedRect(margin, y, contentWidth, 24, 2, 2, 'FD');
-  
-  cardY = y + 7;
-  if (data.fournisseur) {
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.orange);
-    doc.setFont('helvetica', 'bold');
-    doc.text(data.fournisseur, margin + 4, cardY);
-    
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.textSecondary);
-    doc.setFont('helvetica', 'normal');
-    doc.text(data.fournisseurAddress || 'Adresse non renseignée', margin + 4, cardY + 6);
-    doc.text(`Tél: ${data.fournisseurPhone || '-'}  |  Email: ${data.fournisseurEmail || '-'}`, margin + 4, cardY + 12);
-  } else {
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.textMuted);
-    doc.setFont('helvetica', 'italic');
-    doc.text('Non encore sélectionné', margin + 4, cardY + 5);
-  }
-  
-  y += 30;
-  
-  // ========== SECTION 4: DESCRIPTION ==========
-  y = drawSectionTitle(doc, y, margin, 'DESCRIPTION DE LA DEMANDE');
-  
-  // Bordure orange
-  doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.5);
-  
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.setFont('helvetica', 'normal');
-  const splitDescription = doc.splitTextToSize(data.description || 'Aucune description', contentWidth - 8);
-  const descHeight = Math.max(splitDescription.length * 4.5 + 8, 16);
-  
-  doc.roundedRect(margin, y, contentWidth, descHeight, 2, 2, 'FD');
-  doc.text(splitDescription, margin + 4, y + 6);
-  
-  y += descHeight + 6;
-  
-  // Justification si présente
-  if (data.justification) {
-    y = drawSectionTitle(doc, y, margin, 'JUSTIFICATION DU CHOIX FOURNISSEUR');
-    
-    doc.setFillColor(...COLORS.grisTresClair);
-    doc.setDrawColor(...COLORS.borderLight);
-    
-    const splitJustif = doc.splitTextToSize(data.justification, contentWidth - 8);
-    const justifHeight = Math.max(splitJustif.length * 4.5 + 8, 12);
-    
-    doc.roundedRect(margin, y, contentWidth, justifHeight, 2, 2, 'FD');
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.textSecondary);
-    doc.setFont('helvetica', 'italic');
-    doc.text(splitJustif, margin + 4, y + 6);
-    
-    y += justifHeight + 6;
-  }
-  
-  // Vérifier si on a besoin d'une nouvelle page pour le tableau
-  if (y > pageHeight - 100) {
-    doc.addPage();
-    y = 20;
-  }
-  
-  // ========== SECTION 5: TABLEAU ARTICLES ==========
-  y = drawSectionTitle(doc, y, margin, `ARTICLES / SERVICES (${data.articles.length})`);
+  // ========== TABLEAU ARTICLES COMPACT ==========
+  drawMiniSectionTitle(doc, margin, y, `Articles / Services (${data.articles.length})`);
+  y += 4;
   
   const tableData = data.articles.map(art => [
-    art.designation,
+    art.designation.length > 40 ? art.designation.substring(0, 37) + '...' : art.designation,
     art.quantity.toString(),
     art.unit,
     art.unitPrice ? formatMontant(art.unitPrice, data.currency) : '-',
@@ -408,29 +314,29 @@ export const exportDAToPDF = async (data: DAExportData) => {
   
   autoTable(doc, {
     startY: y,
-    head: [['Désignation', 'Qté', 'Unité', 'Prix Unitaire', 'Total Ligne']],
+    head: [['Désignation', 'Qté', 'Unité', 'P.U.', 'Total']],
     body: tableData,
     theme: 'plain',
     headStyles: {
       fillColor: COLORS.marron,
       textColor: COLORS.white,
       fontStyle: 'bold',
-      fontSize: 9,
-      cellPadding: 4,
+      fontSize: 7,
+      cellPadding: 2,
       halign: 'left',
     },
     bodyStyles: {
-      fontSize: 9,
+      fontSize: 7,
       textColor: COLORS.textPrimary,
-      cellPadding: 4,
+      cellPadding: 2,
     },
     alternateRowStyles: {
       fillColor: COLORS.grisAlternate,
     },
     columnStyles: {
-      0: { cellWidth: 70, halign: 'left' },
-      1: { cellWidth: 18, halign: 'center' },
-      2: { cellWidth: 22, halign: 'center' },
+      0: { cellWidth: 65, halign: 'left' },
+      1: { cellWidth: 15, halign: 'center' },
+      2: { cellWidth: 20, halign: 'center' },
       3: { cellWidth: 35, halign: 'right' },
       4: { cellWidth: 35, halign: 'right' },
     },
@@ -439,55 +345,148 @@ export const exportDAToPDF = async (data: DAExportData) => {
     tableLineWidth: 0.1,
   });
   
-  // ========== SECTION 6: TOTAUX ==========
-  const finalY = doc.lastAutoTable.finalY + 4;
+  // ========== TOTAUX ==========
+  const finalY = doc.lastAutoTable.finalY + 3;
   
   if (data.totalAmount) {
-    // Bloc totaux à droite
-    const totalsX = pageWidth - margin - 75;
+    const totalsX = pageWidth - margin - 60;
     
-    // Ligne Total HT (si applicable)
-    doc.setFillColor(...COLORS.grisTresClair);
-    doc.roundedRect(totalsX, finalY, 75, 10, 1, 1, 'F');
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.textSecondary);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Total HT:', totalsX + 4, finalY + 7);
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.setFont('helvetica', 'bold');
-    doc.text(formatMontant(data.totalAmount, data.currency), totalsX + 71, finalY + 7, { align: 'right' });
-    
-    // TOTAL TTC - ZONE VISUELLE FORTE
+    // TOTAL TTC - bien visible
     doc.setFillColor(...COLORS.orangeLight);
     doc.setDrawColor(...COLORS.orange);
-    doc.setLineWidth(1);
-    doc.roundedRect(totalsX, finalY + 12, 75, 14, 2, 2, 'FD');
+    doc.setLineWidth(0.8);
+    doc.roundedRect(totalsX, finalY, 60, 12, 2, 2, 'FD');
     
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.marron);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL TTC:', totalsX + 4, finalY + 21);
+    doc.text('TOTAL TTC:', totalsX + 4, finalY + 7);
     
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.orange);
     doc.setFont('helvetica', 'bold');
-    doc.text(formatMontant(data.totalAmount, data.currency), totalsX + 71, finalY + 21, { align: 'right' });
+    doc.text(formatMontant(data.totalAmount, data.currency), totalsX + 56, finalY + 7, { align: 'right' });
   }
   
-  // ========== PIED DE PAGE ==========
-  addInstitutionalFooter(doc);
+  // ========== TRAÇABILITÉ - EN BAS COMPACT ==========
+  const traceY = Math.max(finalY + 20, pageHeight - 55);
+  
+  drawMiniSectionTitle(doc, margin, traceY, '🔒 Traçabilité');
+  
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(margin, traceY + 4, contentWidth, 16, 1.5, 1.5, 'FD');
+  
+  // Liseré orange
+  doc.setFillColor(...COLORS.orange);
+  doc.rect(margin, traceY + 4, 2.5, 16, 'F');
+  
+  const traceCol = contentWidth / 5;
+  const ty = traceY + 10;
+  
+  drawMiniTrace(doc, margin + 6, ty, 'Analyse', data.analyzedBy);
+  drawMiniTrace(doc, margin + traceCol, ty, 'Chiffrage', data.pricedBy);
+  drawMiniTrace(doc, margin + traceCol * 2, ty, 'Soumission', data.submittedValidationBy);
+  drawMiniTrace(doc, margin + traceCol * 3, ty, 'Valid. Finance', data.validatedFinanceBy);
+  drawMiniTrace(doc, margin + traceCol * 4, ty, 'Comptabilisé', data.comptabiliseBy);
+  
+  // ========== PIED DE PAGE COMPACT ==========
+  addCompactFooter(doc);
   
   doc.save(`DA_${data.reference}.pdf`);
 };
 
-// Fonctions utilitaires pour le PDF DA
+// Fonctions utilitaires pour le PDF DA - VERSION COMPACTE
+
+function drawCompactInfo(doc: jsPDF, x: number, y: number, label: string, value: string, highlight: boolean = false): void {
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text(label, x, y);
+  
+  doc.setFontSize(7);
+  if (highlight) {
+    doc.setTextColor(...COLORS.orange);
+    doc.setFont('helvetica', 'bold');
+  } else {
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'normal');
+  }
+  
+  let displayValue = value || '-';
+  if (displayValue.length > 18) {
+    displayValue = displayValue.substring(0, 15) + '...';
+  }
+  doc.text(displayValue, x, y + 4);
+}
+
+function drawMiniSectionTitle(doc: jsPDF, x: number, y: number, title: string): void {
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, x, y);
+}
+
+function drawMiniTrace(doc: jsPDF, x: number, y: number, label: string, value?: string): void {
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text(label, x, y);
+  
+  doc.setFontSize(6);
+  if (value) {
+    doc.setTextColor(...COLORS.success);
+    doc.setFont('helvetica', 'bold');
+    doc.text('✓ ' + (value.length > 12 ? value.substring(0, 10) + '..' : value), x, y + 4);
+  } else {
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'italic');
+    doc.text('-', x, y + 4);
+  }
+}
+
+function addCompactFooter(doc: jsPDF): void {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageCount = doc.getNumberOfPages();
+  const margin = 12;
+  
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    
+    // Ligne séparatrice
+    doc.setDrawColor(...COLORS.orange);
+    doc.setLineWidth(0.4);
+    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+    
+    // Infos entreprise
+    doc.setFontSize(6);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${COMPANY_INFO.name} | ${COMPANY_INFO.address} ${COMPANY_INFO.addressLine2} | ${COMPANY_INFO.phone1}`, margin, pageHeight - 13);
+    
+    // Mention légale
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Document généré par KPM SYSTÈME – Toute modification invalide ce document', margin, pageHeight - 9);
+    
+    // Pagination
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.marron);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${i}/${pageCount}`, pageWidth - margin, pageHeight - 11, { align: 'right' });
+    
+    // Bande marron
+    doc.setFillColor(...COLORS.marron);
+    doc.rect(0, pageHeight - 2.5, pageWidth, 2.5, 'F');
+  }
+}
 
 function drawSectionTitle(doc: jsPDF, y: number, margin: number, title: string): number {
-  // Liseré orange
   doc.setFillColor(...COLORS.orange);
   doc.roundedRect(margin, y, 3, 8, 0.5, 0.5, 'F');
   
-  // Titre en marron
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.marron);
   doc.setFont('helvetica', 'bold');
@@ -510,7 +509,6 @@ function drawInfoRow(doc: jsPDF, x: number, y: number, label: string, value: str
     doc.setFont('helvetica', 'normal');
   }
   
-  // Tronquer si trop long
   let displayValue = value || '-';
   while (doc.getTextWidth(displayValue) > maxWidth - 35 && displayValue.length > 3) {
     displayValue = displayValue.slice(0, -4) + '...';
@@ -547,12 +545,10 @@ function addInstitutionalFooter(doc: jsPDF): void {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     
-    // Ligne séparatrice orange
     doc.setDrawColor(...COLORS.orange);
     doc.setLineWidth(0.5);
     doc.line(margin, pageHeight - 22, pageWidth - margin, pageHeight - 22);
     
-    // Infos entreprise
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.textMuted);
     doc.setFont('helvetica', 'normal');
@@ -560,9 +556,7 @@ function addInstitutionalFooter(doc: jsPDF): void {
     doc.text(`${COMPANY_INFO.address} ${COMPANY_INFO.addressLine2}`, margin, pageHeight - 13);
     doc.text(`${COMPANY_INFO.phone1} | ${COMPANY_INFO.email}`, margin, pageHeight - 9);
     
-    // Mention légale
     doc.setFontSize(6);
-    doc.setTextColor(...COLORS.textMuted);
     doc.setFont('helvetica', 'italic');
     doc.text(
       'Document généré automatiquement par KPM SYSTÈME – Toute modification manuelle invalide ce document',
@@ -570,13 +564,11 @@ function addInstitutionalFooter(doc: jsPDF): void {
       { align: 'center' }
     );
     
-    // Pagination
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.marron);
     doc.setFont('helvetica', 'bold');
     doc.text(`Page ${i} / ${pageCount}`, pageWidth - margin, pageHeight - 13, { align: 'right' });
     
-    // Bande marron en bas
     doc.setFillColor(...COLORS.marron);
     doc.rect(0, pageHeight - 3, pageWidth, 3, 'F');
   }
@@ -621,29 +613,14 @@ export const exportBLToPDF = async (data: BLExportData) => {
   const margin = 15;
   const contentWidth = pageWidth - (margin * 2);
   
-  const logoBase64 = await loadLogoAsBase64();
-  
   // ========== EN-TÊTE ==========
   let y = 12;
   
   doc.setFillColor(...COLORS.orange);
   doc.rect(0, 0, pageWidth, 3, 'F');
   
-  if (logoBase64) {
-    try {
-      doc.addImage(logoBase64, 'PNG', margin, y, 35, 14);
-    } catch {
-      doc.setFontSize(18);
-      doc.setTextColor(...COLORS.marron);
-      doc.setFont('helvetica', 'bold');
-      doc.text('KIMBO AFRICA', margin, y + 10);
-    }
-  } else {
-    doc.setFontSize(18);
-    doc.setTextColor(...COLORS.marron);
-    doc.setFont('helvetica', 'bold');
-    doc.text('KIMBO AFRICA', margin, y + 10);
-  }
+  // Logo KIMBO stylisé
+  drawKimboLogo(doc, margin, y, 50);
   
   // Titre et référence
   doc.setFontSize(14);
@@ -868,29 +845,14 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   const margin = 15;
   const contentWidth = pageWidth - (margin * 2);
   
-  const logoBase64 = await loadLogoAsBase64();
-  
   // EN-TÊTE
   let y = 12;
   
   doc.setFillColor(...COLORS.orange);
   doc.rect(0, 0, pageWidth, 3, 'F');
   
-  if (logoBase64) {
-    try {
-      doc.addImage(logoBase64, 'PNG', margin, y, 35, 14);
-    } catch {
-      doc.setFontSize(18);
-      doc.setTextColor(...COLORS.marron);
-      doc.setFont('helvetica', 'bold');
-      doc.text('KIMBO AFRICA', margin, y + 10);
-    }
-  } else {
-    doc.setFontSize(18);
-    doc.setTextColor(...COLORS.marron);
-    doc.setFont('helvetica', 'bold');
-    doc.text('KIMBO AFRICA', margin, y + 10);
-  }
+  // Logo KIMBO stylisé
+  drawKimboLogo(doc, margin, y, 50);
   
   doc.setFontSize(14);
   doc.setTextColor(...COLORS.marron);
