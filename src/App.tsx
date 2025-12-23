@@ -47,6 +47,9 @@ import StockDetail from "./pages/stock/StockDetail";
 // Notifications
 import Notifications from "./pages/Notifications";
 
+// Profil
+import Profile from "./pages/Profile";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -116,6 +119,9 @@ function AppRoutes() {
       
       {/* Notifications */}
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      
+      {/* Profil */}
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

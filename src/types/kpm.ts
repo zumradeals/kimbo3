@@ -110,6 +110,8 @@ export type BesoinCategory = 'materiel' | 'service' | 'maintenance' | 'urgence' 
 export type BesoinUrgency = 'normale' | 'urgente' | 'critique';
 export type BesoinStatus = 'cree' | 'pris_en_charge' | 'accepte' | 'refuse';
 
+export type BesoinType = 'article' | 'service';
+
 export interface Besoin {
   id: string;
   department_id: string;
@@ -127,6 +129,12 @@ export interface Besoin {
   taken_at: string | null;
   decided_by: string | null;
   decided_at: string | null;
+  // Nouveaux champs enrichis (sans données financières)
+  estimated_quantity: number | null;
+  besoin_type: BesoinType;
+  unit: string;
+  technical_specs: string | null;
+  intended_usage: string | null;
   created_at: string;
   updated_at: string;
   // Relations (partial types for joins)
@@ -135,6 +143,11 @@ export interface Besoin {
   taken_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   decided_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
 }
+
+export const BESOIN_TYPE_LABELS: Record<BesoinType, string> = {
+  article: 'Article',
+  service: 'Service',
+};
 
 export interface Notification {
   id: string;
@@ -240,6 +253,9 @@ export interface DemandeAchat {
   rejected_by: string | null;
   rejected_at: string | null;
   submitted_at: string | null;
+  // Pièces jointes (ajoutées par Achats)
+  attachment_url: string | null;
+  attachment_name: string | null;
   // Champs Achats
   selected_fournisseur_id: string | null;
   fournisseur_justification: string | null;
@@ -281,6 +297,7 @@ export interface DemandeAchat {
   validated_finance_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   revision_requested_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   comptabilise_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  submitted_validation_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   articles?: DAArticle[];
 }
 

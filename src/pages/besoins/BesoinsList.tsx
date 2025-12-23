@@ -83,7 +83,7 @@ export default function BesoinsList() {
         return;
       }
 
-      setBesoins(data || []);
+      setBesoins((data as Besoin[]) || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
