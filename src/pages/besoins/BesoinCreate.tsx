@@ -20,8 +20,10 @@ import { useToast } from '@/hooks/use-toast';
 import {
   BesoinCategory,
   BesoinUrgency,
+  BesoinType,
   BESOIN_CATEGORY_LABELS,
   BESOIN_URGENCY_LABELS,
+  BESOIN_TYPE_LABELS,
   ROLES_CAN_CREATE_BESOIN,
 } from '@/types/kpm';
 import { ArrowLeft, AlertTriangle, Info, Paperclip, X, Upload } from 'lucide-react';
@@ -41,6 +43,12 @@ export default function BesoinCreate() {
     category: '' as BesoinCategory | '',
     urgency: 'normale' as BesoinUrgency,
     desired_date: '',
+    // Nouveaux champs enrichis
+    estimated_quantity: '',
+    besoin_type: 'article' as BesoinType,
+    unit: 'unité',
+    technical_specs: '',
+    intended_usage: '',
   });
 
   const canCreate = roles.some((r) => ROLES_CAN_CREATE_BESOIN.includes(r));
@@ -115,6 +123,12 @@ export default function BesoinCreate() {
           department_id: profile.department_id,
           attachment_url: attachmentUrl,
           attachment_name: attachmentName,
+          // Nouveaux champs enrichis
+          estimated_quantity: form.estimated_quantity ? parseFloat(form.estimated_quantity) : null,
+          besoin_type: form.besoin_type,
+          unit: form.unit,
+          technical_specs: form.technical_specs.trim() || null,
+          intended_usage: form.intended_usage.trim() || null,
         })
         .select()
         .single();
@@ -231,24 +245,27 @@ export default function BesoinCreate() {
                 />
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description détaillée *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Décrivez précisément le besoin : contexte, spécifications, quantité si applicable..."
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={5}
-                  maxLength={2000}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {form.description.length}/2000 caractères
-                </p>
-              </div>
-
-              {/* Catégorie & Urgence */}
+              {/* Type & Catégorie */}
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="besoin_type">Type *</Label>
+                  <Select
+                    value={form.besoin_type}
+                    onValueChange={(value) => setForm({ ...form, besoin_type: value as BesoinType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(BESOIN_TYPE_LABELS) as BesoinType[]).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {BESOIN_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="category">Catégorie *</Label>
                   <Select
@@ -267,7 +284,77 @@ export default function BesoinCreate() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
+              {/* Quantité & Unité */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="estimated_quantity">Quantité estimée</Label>
+                  <Input
+                    id="estimated_quantity"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Ex: 5"
+                    value={form.estimated_quantity}
+                    onChange={(e) => setForm({ ...form, estimated_quantity: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Unité</Label>
+                  <Input
+                    id="unit"
+                    placeholder="Ex: unité, kg, litre, mètre..."
+                    value={form.unit}
+                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description détaillée *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Décrivez précisément le besoin : contexte, spécifications, quantité si applicable..."
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={4}
+                  maxLength={2000}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {form.description.length}/2000 caractères
+                </p>
+              </div>
+
+              {/* Spécifications techniques */}
+              <div className="space-y-2">
+                <Label htmlFor="technical_specs">Spécifications techniques</Label>
+                <Textarea
+                  id="technical_specs"
+                  placeholder="Caractéristiques techniques précises (dimensions, couleur, marque, modèle, etc.)"
+                  value={form.technical_specs}
+                  onChange={(e) => setForm({ ...form, technical_specs: e.target.value })}
+                  rows={3}
+                  maxLength={1000}
+                />
+              </div>
+
+              {/* Usage prévu */}
+              <div className="space-y-2">
+                <Label htmlFor="intended_usage">Usage prévu / Chantier / Service</Label>
+                <Input
+                  id="intended_usage"
+                  placeholder="Ex: Chantier Douala Nord, Service Commercial, Bureau RH..."
+                  value={form.intended_usage}
+                  onChange={(e) => setForm({ ...form, intended_usage: e.target.value })}
+                  maxLength={200}
+                />
+              </div>
+
+              {/* Urgence & Date */}
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="urgency">Niveau d'urgence *</Label>
                   <Select
@@ -286,18 +373,17 @@ export default function BesoinCreate() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              {/* Date souhaitée */}
-              <div className="space-y-2">
-                <Label htmlFor="desired_date">Date souhaitée (optionnel)</Label>
-                <Input
-                  id="desired_date"
-                  type="date"
-                  value={form.desired_date}
-                  onChange={(e) => setForm({ ...form, desired_date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="desired_date">Date souhaitée (optionnel)</Label>
+                  <Input
+                    id="desired_date"
+                    type="date"
+                    value={form.desired_date}
+                    onChange={(e) => setForm({ ...form, desired_date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
               </div>
 
               {/* Pièce jointe */}

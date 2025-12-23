@@ -110,6 +110,7 @@ export type Database = {
         Row: {
           attachment_name: string | null
           attachment_url: string | null
+          besoin_type: string | null
           category: Database["public"]["Enums"]["besoin_category"]
           created_at: string
           decided_at: string | null
@@ -117,12 +118,16 @@ export type Database = {
           department_id: string
           description: string
           desired_date: string | null
+          estimated_quantity: number | null
           id: string
+          intended_usage: string | null
           rejection_reason: string | null
           status: Database["public"]["Enums"]["besoin_status"]
           taken_at: string | null
           taken_by: string | null
+          technical_specs: string | null
           title: string
+          unit: string | null
           updated_at: string
           urgency: Database["public"]["Enums"]["besoin_urgency"]
           user_id: string
@@ -130,6 +135,7 @@ export type Database = {
         Insert: {
           attachment_name?: string | null
           attachment_url?: string | null
+          besoin_type?: string | null
           category: Database["public"]["Enums"]["besoin_category"]
           created_at?: string
           decided_at?: string | null
@@ -137,12 +143,16 @@ export type Database = {
           department_id: string
           description: string
           desired_date?: string | null
+          estimated_quantity?: number | null
           id?: string
+          intended_usage?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["besoin_status"]
           taken_at?: string | null
           taken_by?: string | null
+          technical_specs?: string | null
           title: string
+          unit?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["besoin_urgency"]
           user_id: string
@@ -150,6 +160,7 @@ export type Database = {
         Update: {
           attachment_name?: string | null
           attachment_url?: string | null
+          besoin_type?: string | null
           category?: Database["public"]["Enums"]["besoin_category"]
           created_at?: string
           decided_at?: string | null
@@ -157,12 +168,16 @@ export type Database = {
           department_id?: string
           description?: string
           desired_date?: string | null
+          estimated_quantity?: number | null
           id?: string
+          intended_usage?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["besoin_status"]
           taken_at?: string | null
           taken_by?: string | null
+          technical_specs?: string | null
           title?: string
+          unit?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["besoin_urgency"]
           user_id?: string
@@ -467,6 +482,8 @@ export type Database = {
         Row: {
           analyzed_at: string | null
           analyzed_by: string | null
+          attachment_name: string | null
+          attachment_url: string | null
           besoin_id: string
           category: Database["public"]["Enums"]["da_category"]
           comptabilise_at: string | null
@@ -511,6 +528,8 @@ export type Database = {
         Insert: {
           analyzed_at?: string | null
           analyzed_by?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
           besoin_id: string
           category: Database["public"]["Enums"]["da_category"]
           comptabilise_at?: string | null
@@ -555,6 +574,8 @@ export type Database = {
         Update: {
           analyzed_at?: string | null
           analyzed_by?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
           besoin_id?: string
           category?: Database["public"]["Enums"]["da_category"]
           comptabilise_at?: string | null

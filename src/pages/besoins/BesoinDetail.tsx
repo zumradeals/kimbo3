@@ -152,7 +152,7 @@ export default function BesoinDetail() {
         return;
       }
 
-      setBesoin(data);
+      setBesoin(data as Besoin);
       setEditForm({
         title: data.title,
         description: data.description,

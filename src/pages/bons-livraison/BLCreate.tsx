@@ -73,7 +73,7 @@ export default function BLCreate() {
         return;
       }
 
-      setBesoin(data);
+      setBesoin(data as Besoin);
     } catch (error: any) {
       console.error('Error:', error);
     } finally {

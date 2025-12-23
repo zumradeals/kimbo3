@@ -82,7 +82,7 @@ export default function DACreate() {
         return;
       }
 
-      setBesoin(data);
+      setBesoin(data as Besoin);
       setForm((prev) => ({
         ...prev,
         description: data.description,

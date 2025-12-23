@@ -254,12 +254,17 @@ export function Sidebar() {
 
         {/* User & Logout */}
         <div className="border-t border-sidebar-border p-4">
-          <div className="mb-3 px-3">
+          <Link
+            to="/profile"
+            onClick={() => setIsOpen(false)}
+            className="mb-3 block rounded-md px-3 py-2 hover:bg-sidebar-accent/50 transition-colors"
+          >
             <p className="text-sm font-medium text-sidebar-foreground">
               {profile?.first_name} {profile?.last_name}
             </p>
             <p className="text-xs text-sidebar-muted">{profile?.email}</p>
-          </div>
+            <p className="text-xs text-primary mt-1">Voir mon profil →</p>
+          </Link>
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
