@@ -13,6 +13,11 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      react: path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "react-dom/client": path.resolve(__dirname, "./node_modules/react-dom/client"),
     },
+    // Prevent "Invalid hook call" caused by duplicate React copies in dependency graph
+    dedupe: ["react", "react-dom"],
   },
 }));
