@@ -44,6 +44,15 @@ import StockList from "./pages/stock/StockList";
 import StockMovements from "./pages/stock/StockMovements";
 import StockDetail from "./pages/stock/StockDetail";
 
+// Module Projets
+import ProjetsList from "./pages/projets/ProjetsList";
+import ProjetDetail from "./pages/projets/ProjetDetail";
+
+// Module Notes de frais
+import NotesFraisList from "./pages/notes-frais/NotesFraisList";
+import NoteFraisCreate from "./pages/notes-frais/NoteFraisCreate";
+import NoteFraisDetail from "./pages/notes-frais/NoteFraisDetail";
+
 // Notifications
 import Notifications from "./pages/Notifications";
 
@@ -116,6 +125,15 @@ function AppRoutes() {
       <Route path="/stock" element={<ProtectedRoute><StockList /></ProtectedRoute>} />
       <Route path="/stock/mouvements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
       <Route path="/stock/:id" element={<ProtectedRoute><StockDetail /></ProtectedRoute>} />
+      
+      {/* Module Projets */}
+      <Route path="/projets" element={<ProtectedRoute><ProjetsList /></ProtectedRoute>} />
+      <Route path="/projets/:id" element={<ProtectedRoute><ProjetDetail /></ProtectedRoute>} />
+      
+      {/* Module Notes de frais */}
+      <Route path="/notes-frais" element={<ProtectedRoute><NotesFraisList /></ProtectedRoute>} />
+      <Route path="/notes-frais/nouveau" element={<ProtectedRoute><NoteFraisCreate /></ProtectedRoute>} />
+      <Route path="/notes-frais/:id" element={<ProtectedRoute><NoteFraisDetail /></ProtectedRoute>} />
       
       {/* Notifications */}
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

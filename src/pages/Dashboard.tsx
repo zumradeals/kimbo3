@@ -9,6 +9,7 @@ import {
   ShoppingCart, Truck, CreditCard, AlertTriangle, Clock,
   CheckCircle, XCircle, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
+import { DashboardStatsSkeleton, DashboardFinancialSkeleton, DashboardChartSkeleton } from '@/components/ui/DashboardSkeleton';
 import { LogistiqueDashboard } from '@/components/dashboard/LogistiqueDashboard';
 import { AchatsDashboard } from '@/components/dashboard/AchatsDashboard';
 import { ComptabiliteDashboard } from '@/components/dashboard/ComptabiliteDashboard';
@@ -320,6 +321,9 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards Row */}
+        {isLoading ? (
+          <DashboardStatsSkeleton />
+        ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -412,6 +416,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Financial KPIs */}
         {canViewFullDashboard && (

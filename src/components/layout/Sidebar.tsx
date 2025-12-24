@@ -18,6 +18,8 @@ import {
   Wallet,
   BarChart3,
   ChevronDown,
+  FolderKanban,
+  Receipt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -104,7 +106,23 @@ const stockNavItem: NavItem = {
   label: 'Stock',
   href: '/stock',
   icon: Package,
-  roles: ['admin', 'responsable_logistique', 'agent_logistique', 'dg', 'daf'],
+  roles: ['admin', 'responsable_logistique', 'agent_logistique', 'dg', 'daf', 'comptable'],
+};
+
+// Module Projets (actif)
+const projetsNavItem: NavItem = {
+  label: 'Projets / Chantiers',
+  href: '/projets',
+  icon: FolderKanban,
+  roles: ['admin', 'dg', 'daf', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'comptable'],
+};
+
+// Module Notes de frais (actif)
+const notesFraisNavItem: NavItem = {
+  label: 'Notes de frais',
+  href: '/notes-frais',
+  icon: Receipt,
+  roles: ['admin', 'dg', 'daf', 'comptable', 'responsable_departement', 'employe'],
 };
 
 // Modules métier (désactivés pour l'instant)
@@ -233,6 +251,8 @@ export function Sidebar() {
           {hasAccess(fournisseursNavItem) && renderNavItem(fournisseursNavItem)}
           {hasAccess(comptabiliteNavItem) && renderNavItem(comptabiliteNavItem)}
           {hasAccess(stockNavItem) && renderNavItem(stockNavItem)}
+          {hasAccess(projetsNavItem) && renderNavItem(projetsNavItem)}
+          {hasAccess(notesFraisNavItem) && renderNavItem(notesFraisNavItem)}
 
           {/* Modules métier (désactivés) */}
           <div className="mt-6 border-t border-sidebar-border pt-4">

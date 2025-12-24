@@ -67,6 +67,7 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
+import { BesoinEditLogistique } from '@/components/besoins/BesoinEditLogistique';
 
 const statusColors: Record<string, string> = {
   cree: 'bg-muted text-muted-foreground',
@@ -513,6 +514,16 @@ export default function BesoinDetail() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Édition logistique pour besoin accepté non verrouillé */}
+        {canManage && besoin.status === 'accepte' && canTransform && (
+          <BesoinEditLogistique
+            besoinId={besoin.id}
+            besoin={besoin}
+            onUpdate={fetchBesoin}
+            isLocked={besoin.is_locked}
+          />
         )}
 
         {/* Identité du besoin */}
