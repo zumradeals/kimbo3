@@ -39,24 +39,24 @@ export default function BLCreate() {
     observations: '',
   });
 
-  const [articles, setArticles] = useState<ArticleForm[]>([
-    { designation: '', quantity: '1', unit: 'unité', observations: '' },
-  ]);
+  const [articles, setArticles] = useState<ArticleForm[]>([]);
+  const [lignesLoaded, setLignesLoaded] = useState(false);
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
   const hasAccess = isLogistics || isAdmin;
 
   useEffect(() => {
     if (besoinId) {
-      fetchBesoin();
+      fetchBesoinWithLignes();
       checkCanTransform();
     } else {
       setIsLoading(false);
     }
   }, [besoinId]);
 
-  const fetchBesoin = async () => {
+  const fetchBesoinWithLignes = async () => {
     try {
+      // Fetch besoin
       const { data, error } = await supabase
         .from('besoins')
         .select(`
@@ -73,7 +73,38 @@ export default function BLCreate() {
         return;
       }
 
+      // Fetch lignes du besoin
+      const { data: lignesData } = await supabase
+        .from('besoin_lignes')
+        .select('*')
+        .eq('besoin_id', besoinId)
+        .order('created_at', { ascending: true });
+
       setBesoin(data as Besoin);
+
+      // Pre-fill delivery location from besoin if available
+      if (data.lieu_livraison) {
+        setForm((prev) => ({
+          ...prev,
+          warehouse: data.lieu_livraison || '',
+        }));
+      }
+
+      // Auto-populate articles from besoin lignes
+      if (lignesData && lignesData.length > 0 && !lignesLoaded) {
+        const articlesFromLignes: ArticleForm[] = lignesData.map((ligne) => ({
+          designation: ligne.designation,
+          quantity: String(ligne.quantity),
+          unit: ligne.unit,
+          observations: ligne.justification || '',
+        }));
+        setArticles(articlesFromLignes);
+        setLignesLoaded(true);
+      } else if (!lignesLoaded) {
+        // Fallback: create one empty article if no lignes
+        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '' }]);
+        setLignesLoaded(true);
+      }
     } catch (error: any) {
       console.error('Error:', error);
     } finally {
@@ -87,7 +118,7 @@ export default function BLCreate() {
   };
 
   const addArticle = () => {
-    setArticles([...articles, { designation: '', quantity: '1', unit: 'unité', observations: '' }]);
+    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '' }]);
   };
 
   const removeArticle = (index: number) => {
@@ -239,10 +270,10 @@ export default function BLCreate() {
           <CardContent className="flex items-start gap-3 py-4">
             <Package className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div>
-              <p className="font-medium text-foreground">Livraison depuis le stock</p>
+              <p className="font-medium text-foreground">Conversion automatique des lignes</p>
               <p className="text-sm text-muted-foreground">
-                Ce BL permet de satisfaire le besoin depuis le stock existant, sans achat externe.
-                Le stock sera décrémenté uniquement à la livraison effective.
+                Les lignes du besoin ont été automatiquement reprises. Ce BL permet de satisfaire le besoin 
+                depuis le stock existant. Le stock sera décrémenté à la livraison effective.
               </p>
             </div>
           </CardContent>
