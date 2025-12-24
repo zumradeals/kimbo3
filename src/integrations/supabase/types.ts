@@ -210,8 +210,12 @@ export type Database = {
           fournisseur_impose_nom: string | null
           id: string
           intended_usage: string | null
+          is_locked: boolean
           lieu_livraison: string | null
+          locked_at: string | null
+          locked_reason: string | null
           objet_besoin: string | null
+          projet_id: string | null
           rejection_reason: string | null
           return_comment: string | null
           site_projet: string | null
@@ -246,8 +250,12 @@ export type Database = {
           fournisseur_impose_nom?: string | null
           id?: string
           intended_usage?: string | null
+          is_locked?: boolean
           lieu_livraison?: string | null
+          locked_at?: string | null
+          locked_reason?: string | null
           objet_besoin?: string | null
+          projet_id?: string | null
           rejection_reason?: string | null
           return_comment?: string | null
           site_projet?: string | null
@@ -282,8 +290,12 @@ export type Database = {
           fournisseur_impose_nom?: string | null
           id?: string
           intended_usage?: string | null
+          is_locked?: boolean
           lieu_livraison?: string | null
+          locked_at?: string | null
+          locked_reason?: string | null
           objet_besoin?: string | null
+          projet_id?: string | null
           rejection_reason?: string | null
           return_comment?: string | null
           site_projet?: string | null
@@ -310,6 +322,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "besoins_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
             referencedColumns: ["id"]
           },
           {
@@ -397,6 +416,7 @@ export type Database = {
           department_id: string
           id: string
           observations: string | null
+          projet_id: string | null
           reference: string
           rejected_at: string | null
           rejected_by: string | null
@@ -418,6 +438,7 @@ export type Database = {
           department_id: string
           id?: string
           observations?: string | null
+          projet_id?: string | null
           reference: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -439,6 +460,7 @@ export type Database = {
           department_id?: string
           id?: string
           observations?: string | null
+          projet_id?: string | null
           reference?: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -479,6 +501,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bons_livraison_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bons_livraison_rejected_by_fkey"
             columns: ["rejected_by"]
             isOneToOne: false
@@ -493,6 +522,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      comptes_comptables: {
+        Row: {
+          classe: number
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          libelle: string
+        }
+        Insert: {
+          classe: number
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          libelle: string
+        }
+        Update: {
+          classe?: number
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          libelle?: string
+        }
+        Relationships: []
       }
       da_article_prices: {
         Row: {
@@ -618,6 +674,7 @@ export type Database = {
           priced_at: string | null
           priced_by: string | null
           priority: Database["public"]["Enums"]["da_priority"]
+          projet_id: string | null
           reference: string
           reference_paiement: string | null
           rejected_at: string | null
@@ -664,6 +721,7 @@ export type Database = {
           priced_at?: string | null
           priced_by?: string | null
           priority?: Database["public"]["Enums"]["da_priority"]
+          projet_id?: string | null
           reference: string
           reference_paiement?: string | null
           rejected_at?: string | null
@@ -710,6 +768,7 @@ export type Database = {
           priced_at?: string | null
           priced_by?: string | null
           priority?: Database["public"]["Enums"]["da_priority"]
+          projet_id?: string | null
           reference?: string
           reference_paiement?: string | null
           rejected_at?: string | null
@@ -773,6 +832,13 @@ export type Database = {
             columns: ["priced_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
             referencedColumns: ["id"]
           },
           {
@@ -980,6 +1046,178 @@ export type Database = {
           },
         ]
       }
+      note_frais_lignes: {
+        Row: {
+          created_at: string
+          date_depense: string
+          id: string
+          justificatif_name: string | null
+          justificatif_url: string | null
+          montant: number
+          motif: string
+          note_frais_id: string
+          observations: string | null
+          projet_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_depense: string
+          id?: string
+          justificatif_name?: string | null
+          justificatif_url?: string | null
+          montant: number
+          motif: string
+          note_frais_id: string
+          observations?: string | null
+          projet_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_depense?: string
+          id?: string
+          justificatif_name?: string | null
+          justificatif_url?: string | null
+          montant?: number
+          motif?: string
+          note_frais_id?: string
+          observations?: string | null
+          projet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_frais_lignes_note_frais_id_fkey"
+            columns: ["note_frais_id"]
+            isOneToOne: false
+            referencedRelation: "notes_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_frais_lignes_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes_frais: {
+        Row: {
+          created_at: string
+          currency: string
+          department_id: string
+          description: string | null
+          id: string
+          mode_paiement: string | null
+          paid_at: string | null
+          paid_by: string | null
+          projet_id: string | null
+          reference: string
+          reference_paiement: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["note_frais_status"]
+          submitted_at: string | null
+          title: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+          validated_daf_at: string | null
+          validated_daf_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          department_id: string
+          description?: string | null
+          id?: string
+          mode_paiement?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          projet_id?: string | null
+          reference: string
+          reference_paiement?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["note_frais_status"]
+          submitted_at?: string | null
+          title: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+          validated_daf_at?: string | null
+          validated_daf_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          department_id?: string
+          description?: string | null
+          id?: string
+          mode_paiement?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          projet_id?: string | null
+          reference?: string
+          reference_paiement?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["note_frais_status"]
+          submitted_at?: string | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          validated_daf_at?: string | null
+          validated_daf_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_frais_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_rejected_by_fkey"
+            columns: ["rejected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_validated_daf_by_fkey"
+            columns: ["validated_daf_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1020,6 +1258,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_methods: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       permissions: {
         Row: {
@@ -1085,6 +1353,65 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projets: {
+        Row: {
+          budget: number | null
+          client: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          client?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          client?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1158,6 +1485,7 @@ export type Database = {
           id: string
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
           observations: string | null
+          projet_id: string | null
           quantity: number
           quantity_after: number
           quantity_before: number
@@ -1172,6 +1500,7 @@ export type Database = {
           id?: string
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
           observations?: string | null
+          projet_id?: string | null
           quantity: number
           quantity_after: number
           quantity_before: number
@@ -1186,6 +1515,7 @@ export type Database = {
           id?: string
           movement_type?: Database["public"]["Enums"]["stock_movement_type"]
           observations?: string | null
+          projet_id?: string | null
           quantity?: number
           quantity_after?: number
           quantity_before?: number
@@ -1218,6 +1548,13 @@ export type Database = {
             columns: ["da_id"]
             isOneToOne: false
             referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
             referencedColumns: ["id"]
           },
         ]
@@ -1263,9 +1600,11 @@ export type Database = {
         }
         Returns: string
       }
+      dashboard_summary_by_role: { Args: { _user_id: string }; Returns: Json }
       generate_bl_reference: { Args: never; Returns: string }
       generate_da_reference: { Args: never; Returns: string }
       generate_ecriture_reference: { Args: never; Returns: string }
+      generate_ndf_reference: { Args: never; Returns: string }
       get_public_profiles: {
         Args: { _user_ids: string[] }
         Returns: {
@@ -1345,6 +1684,12 @@ export type Database = {
         | "en_revision_achats"
         | "payee"
         | "rejetee_comptabilite"
+      note_frais_status:
+        | "brouillon"
+        | "soumise"
+        | "validee_daf"
+        | "payee"
+        | "rejetee"
       stock_movement_type:
         | "entree"
         | "sortie"
@@ -1539,6 +1884,13 @@ export const Constants = {
         "en_revision_achats",
         "payee",
         "rejetee_comptabilite",
+      ],
+      note_frais_status: [
+        "brouillon",
+        "soumise",
+        "validee_daf",
+        "payee",
+        "rejetee",
       ],
       stock_movement_type: [
         "entree",

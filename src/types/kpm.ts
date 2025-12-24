@@ -104,6 +104,34 @@ export const STATUS_LABELS: Record<UserStatus, string> = {
   suspended: 'Suspendu',
 };
 
+// ==================== MODULE PROJET/CHANTIER ====================
+
+export type ProjetStatus = 'actif' | 'en_pause' | 'termine' | 'annule';
+
+export interface Projet {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  client: string | null;
+  location: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  budget: number | null;
+  status: ProjetStatus;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const PROJET_STATUS_LABELS: Record<ProjetStatus, string> = {
+  actif: 'Actif',
+  en_pause: 'En pause',
+  termine: 'Terminé',
+  annule: 'Annulé',
+};
+
 // ==================== MODULE BESOIN ====================
 
 // Types de besoin (Bloc A)
@@ -178,6 +206,12 @@ export interface Besoin {
   avance_caisse_montant: number | null;
   confirmation_engagement: boolean;
   return_comment: string | null;
+  // Verrouillage après conversion
+  is_locked: boolean;
+  locked_at: string | null;
+  locked_reason: string | null;
+  // Projet rattaché
+  projet_id: string | null;
   created_at: string;
   updated_at: string;
   // Relations (partial types for joins)
@@ -185,6 +219,7 @@ export interface Besoin {
   user?: { id: string; first_name: string | null; last_name: string | null; email: string } | null;
   taken_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   decided_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  projet?: Projet | null;
   // Nouvelles relations
   lignes?: BesoinLigne[];
   attachments?: BesoinAttachment[];
@@ -271,6 +306,18 @@ export const ROLES_CAN_CREATE_BESOIN: AppRole[] = [
   'responsable_departement',
   'responsable_logistique',
   'responsable_achats',
+];
+
+// Rôles logistique
+export const LOGISTICS_ROLES: AppRole[] = [
+  'responsable_logistique',
+  'agent_logistique',
+];
+
+// Rôles achats
+export const ACHATS_ROLES: AppRole[] = [
+  'responsable_achats',
+  'agent_achats',
 ];
 
 // ==================== MODULE DEMANDE D'ACHAT (DA) ====================
@@ -366,6 +413,8 @@ export interface DemandeAchat {
   mode_paiement: string | null;
   reference_paiement: string | null;
   comptabilite_rejection_reason: string | null;
+  // Projet rattaché
+  projet_id: string | null;
   created_at: string;
   updated_at: string;
   // Relations
@@ -380,6 +429,7 @@ export interface DemandeAchat {
   revision_requested_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   comptabilise_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   submitted_validation_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  projet?: Projet | null;
   articles?: DAArticle[];
 }
 
@@ -448,14 +498,15 @@ export const SYSCOHADA_CLASSES: Record<number, string> = {
   7: 'Comptes de produits',
 };
 
-// Modes de paiement
+// Modes de paiement (legacy - utiliser payment_methods table)
 export const MODES_PAIEMENT = [
-  'Virement bancaire',
+  'Wave',
+  'Orange Money',
+  'MTN Money',
+  'Moov Money',
+  'Virement Bancaire',
   'Chèque',
   'Espèces',
-  'Mobile Money',
-  'Traite',
-  'Lettre de crédit',
 ];
 
 // ==================== MODULE BON DE LIVRAISON (BL) ====================
@@ -495,6 +546,8 @@ export interface BonLivraison {
   rejection_reason: string | null;
   rejected_by: string | null;
   rejected_at: string | null;
+  // Projet rattaché
+  projet_id: string | null;
   created_at: string;
   updated_at: string;
   // Relations
@@ -504,12 +557,13 @@ export interface BonLivraison {
   validated_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   delivered_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  projet?: Projet | null;
   articles?: BLArticle[];
 }
 
 export const BL_STATUS_LABELS: Record<BLStatus, string> = {
   prepare: 'Préparé',
-  en_attente_validation: 'En attente de validation',
+  en_attente_validation: 'En attente validation DG',
   valide: 'Validé',
   livre: 'Livré',
   livree_partiellement: 'Livré partiellement',
@@ -518,14 +572,8 @@ export const BL_STATUS_LABELS: Record<BLStatus, string> = {
 
 export const BL_TYPE_LABELS: Record<BLType, string> = {
   fournisseur: 'Fournisseur',
-  interne: 'Interne (stock)',
+  interne: 'Stock interne',
 };
-
-// Rôles Logistique
-export const LOGISTICS_ROLES: AppRole[] = ['responsable_logistique', 'agent_logistique'];
-
-// Rôles Achats
-export const ACHATS_ROLES: AppRole[] = ['responsable_achats', 'agent_achats'];
 
 // ==================== MODULE STOCK ====================
 
@@ -540,13 +588,11 @@ export interface ArticleStock {
   quantity_available: number;
   quantity_reserved: number;
   quantity_min: number | null;
-  status: StockStatus;
   location: string | null;
+  status: StockStatus;
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  // Relations
-  created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
 }
 
 export interface StockMovement {
@@ -556,17 +602,17 @@ export interface StockMovement {
   quantity: number;
   quantity_before: number;
   quantity_after: number;
+  reference: string | null;
   bl_id: string | null;
   da_id: string | null;
-  reference: string | null;
+  projet_id: string | null;
   observations: string | null;
   created_by: string;
   created_at: string;
   // Relations
-  article_stock?: ArticleStock | null;
-  bon_livraison?: BonLivraison | null;
-  demande_achat?: DemandeAchat | null;
+  article_stock?: { id: string; designation: string } | null;
   created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  projet?: Projet | null;
 }
 
 export const STOCK_MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
@@ -582,3 +628,86 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
   reserve: 'Réservé',
   epuise: 'Épuisé',
 };
+
+// ==================== MODULE NOTES DE FRAIS ====================
+
+export type NoteFraisStatus = 'brouillon' | 'soumise' | 'validee_daf' | 'payee' | 'rejetee';
+
+export interface NoteFrais {
+  id: string;
+  reference: string;
+  user_id: string;
+  department_id: string;
+  projet_id: string | null;
+  title: string;
+  description: string | null;
+  total_amount: number;
+  currency: string;
+  status: NoteFraisStatus;
+  submitted_at: string | null;
+  validated_daf_by: string | null;
+  validated_daf_at: string | null;
+  paid_by: string | null;
+  paid_at: string | null;
+  mode_paiement: string | null;
+  reference_paiement: string | null;
+  rejection_reason: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  user?: { id: string; first_name: string | null; last_name: string | null; email: string } | null;
+  department?: { id: string; name: string } | null;
+  projet?: Projet | null;
+  validated_daf_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  paid_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  lignes?: NoteFraisLigne[];
+}
+
+export interface NoteFraisLigne {
+  id: string;
+  note_frais_id: string;
+  date_depense: string;
+  motif: string;
+  projet_id: string | null;
+  montant: number;
+  justificatif_url: string | null;
+  justificatif_name: string | null;
+  observations: string | null;
+  created_at: string;
+  // Relations
+  projet?: Projet | null;
+}
+
+export const NOTE_FRAIS_STATUS_LABELS: Record<NoteFraisStatus, string> = {
+  brouillon: 'Brouillon',
+  soumise: 'Soumise',
+  validee_daf: 'Validée DAF',
+  payee: 'Payée',
+  rejetee: 'Rejetée',
+};
+
+// ==================== MODULE PAIEMENT ====================
+
+export interface PaymentMethod {
+  id: string;
+  code: string;
+  label: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ==================== MODULE COMPTABILITE ====================
+
+export interface CompteComptable {
+  id: string;
+  code: string;
+  libelle: string;
+  classe: number;
+  is_active: boolean;
+  created_at: string;
+}

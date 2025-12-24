@@ -1,0 +1,603 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { NoteFrais, NoteFraisLigne, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS, PaymentMethod } from '@/types/kpm';
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Wallet,
+  FileCheck,
+  User,
+  Calendar,
+  FolderKanban,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const statusColors: Record<NoteFraisStatus, string> = {
+  brouillon: 'bg-muted text-muted-foreground',
+  soumise: 'bg-warning/10 text-warning border-warning/20',
+  validee_daf: 'bg-primary/10 text-primary border-primary/20',
+  payee: 'bg-success/10 text-success border-success/20',
+  rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
+};
+
+const statusIcons: Record<NoteFraisStatus, React.ElementType> = {
+  brouillon: Clock,
+  soumise: FileCheck,
+  validee_daf: CheckCircle,
+  payee: Wallet,
+  rejetee: XCircle,
+};
+
+interface NoteFraisWithRelations extends NoteFrais {
+  lignes?: NoteFraisLigne[];
+}
+
+export default function NoteFraisDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, roles, isAdmin } = useAuth();
+  const { toast } = useToast();
+
+  const [note, setNote] = useState<NoteFraisWithRelations | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showPayDialog, setShowPayDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [paymentData, setPaymentData] = useState({
+    mode_paiement: '',
+    reference_paiement: '',
+  });
+
+  const isDAF = roles.includes('daf');
+  const isComptable = roles.includes('comptable');
+  const isDG = roles.includes('dg');
+  const isCreator = note?.user_id === user?.id;
+
+  useEffect(() => {
+    if (id) {
+      fetchNote();
+      fetchPaymentMethods();
+    }
+  }, [id]);
+
+  const fetchNote = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notes_frais')
+        .select(`
+          *,
+          user:profiles!notes_frais_user_id_fkey(id, first_name, last_name, email),
+          department:departments(id, name),
+          projet:projets(id, code, name),
+          validated_daf_by_profile:profiles!notes_frais_validated_daf_by_fkey(id, first_name, last_name),
+          paid_by_profile:profiles!notes_frais_paid_by_fkey(id, first_name, last_name),
+          rejected_by_profile:profiles!notes_frais_rejected_by_fkey(id, first_name, last_name)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast({ title: 'Erreur', description: 'Note de frais introuvable.', variant: 'destructive' });
+        navigate('/notes-frais');
+        return;
+      }
+
+      // Fetch lignes
+      const { data: lignesData } = await supabase
+        .from('note_frais_lignes')
+        .select('*, projet:projets(id, code, name)')
+        .eq('note_frais_id', id)
+        .order('date_depense');
+
+      setNote({
+        ...data,
+        lignes: lignesData || [],
+      } as NoteFraisWithRelations);
+    } catch (error: any) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    const { data } = await supabase
+      .from('payment_methods')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order');
+    setPaymentMethods((data as PaymentMethod[]) || []);
+  };
+
+  const handleSubmit = async () => {
+    if (!note) return;
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'soumise',
+          submitted_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise pour validation.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleValidateDAF = async () => {
+    if (!note) return;
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'validee_daf',
+          validated_daf_by: user?.id,
+          validated_daf_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Note validée', description: 'La note de frais a été validée.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!note || !rejectionReason.trim()) return;
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'rejetee',
+          rejection_reason: rejectionReason.trim(),
+          rejected_by: user?.id,
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Note rejetée', description: 'La note de frais a été rejetée.' });
+      setShowRejectDialog(false);
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePay = async () => {
+    if (!note || !paymentData.mode_paiement) return;
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'payee',
+          mode_paiement: paymentData.mode_paiement,
+          reference_paiement: paymentData.reference_paiement || null,
+          paid_by: user?.id,
+          paid_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Paiement effectué', description: 'La note de frais a été payée.' });
+      setShowPayDialog(false);
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!note) return null;
+
+  const StatusIcon = statusIcons[note.status];
+
+  const formatAmount = (amount: number, currency: string = 'XAF') => {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + currency;
+  };
+
+  return (
+    <AppLayout>
+      <div className="mx-auto max-w-4xl space-y-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link to="/notes-frais">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="font-serif text-2xl font-bold text-foreground">
+                  {note.reference}
+                </h1>
+                <Badge className={statusColors[note.status]}>
+                  <StatusIcon className="mr-1 h-3 w-3" />
+                  {NOTE_FRAIS_STATUS_LABELS[note.status]}
+                </Badge>
+              </div>
+              <p className="text-muted-foreground">{note.title}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Rejection reason */}
+        {note.status === 'rejetee' && note.rejection_reason && (
+          <Card className="border-destructive/50 bg-destructive/5">
+            <CardContent className="flex items-start gap-3 py-4">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              <div>
+                <p className="font-medium text-destructive">Motif du rejet</p>
+                <p className="text-sm text-foreground">{note.rejection_reason}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions */}
+        {isCreator && note.status === 'brouillon' && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Brouillon</p>
+                <p className="text-sm text-muted-foreground">
+                  Soumettez cette note pour validation DAF.
+                </p>
+              </div>
+              <Button onClick={handleSubmit} disabled={isSaving}>
+                <FileCheck className="mr-2 h-4 w-4" />
+                Soumettre
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {(isDAF || isAdmin) && note.status === 'soumise' && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Validation requise</p>
+                <p className="text-sm text-muted-foreground">
+                  Validez ou rejetez cette demande de remboursement.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Rejeter
+                </Button>
+                <Button onClick={handleValidateDAF} disabled={isSaving}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Valider
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(isComptable || isAdmin) && note.status === 'validee_daf' && (
+          <Card className="border-success/50 bg-success/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Paiement requis</p>
+                <p className="text-sm text-muted-foreground">
+                  Procédez au paiement de cette note de frais validée.
+                </p>
+              </div>
+              <Button onClick={() => setShowPayDialog(true)} disabled={isSaving}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Marquer comme payée
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Info */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Demandeur</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-3">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">
+                  {note.user?.first_name} {note.user?.last_name}
+                </p>
+                <p className="text-sm text-muted-foreground">{note.department?.name}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Montant total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-primary">
+                {formatAmount(note.total_amount, note.currency)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {note.projet && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Projet rattaché</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-3">
+              <FolderKanban className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-mono font-medium">{note.projet.code}</p>
+                <p className="text-sm text-muted-foreground">{note.projet.name}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Lignes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Détail des dépenses</CardTitle>
+            <CardDescription>{note.lignes?.length || 0} ligne(s)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Motif</TableHead>
+                    <TableHead>Projet</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead>Observations</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(note.lignes || []).map((ligne) => (
+                    <TableRow key={ligne.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {format(new Date(ligne.date_depense), 'dd MMM yyyy', { locale: fr })}
+                      </TableCell>
+                      <TableCell className="font-medium">{ligne.motif}</TableCell>
+                      <TableCell>
+                        {ligne.projet ? (
+                          <span className="font-mono text-sm">{ligne.projet.code}</span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatAmount(ligne.montant)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {ligne.observations || '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Historique</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span>
+                Créée le {format(new Date(note.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+              </span>
+            </div>
+            {note.submitted_at && (
+              <div className="flex items-center gap-3 text-sm">
+                <FileCheck className="h-4 w-4 text-warning" />
+                <span>
+                  Soumise le {format(new Date(note.submitted_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                </span>
+              </div>
+            )}
+            {note.validated_daf_at && note.validated_daf_by_profile && (
+              <div className="flex items-center gap-3 text-sm">
+                <CheckCircle className="h-4 w-4 text-primary" />
+                <span>
+                  Validée par {note.validated_daf_by_profile.first_name} {note.validated_daf_by_profile.last_name} le{' '}
+                  {format(new Date(note.validated_daf_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                </span>
+              </div>
+            )}
+            {note.paid_at && note.paid_by_profile && (
+              <div className="flex items-center gap-3 text-sm">
+                <Wallet className="h-4 w-4 text-success" />
+                <span>
+                  Payée par {note.paid_by_profile.first_name} {note.paid_by_profile.last_name} le{' '}
+                  {format(new Date(note.paid_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                  {note.mode_paiement && ` (${note.mode_paiement})`}
+                </span>
+              </div>
+            )}
+            {note.rejected_at && note.rejected_by_profile && (
+              <div className="flex items-center gap-3 text-sm">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <span>
+                  Rejetée par {note.rejected_by_profile.first_name} {note.rejected_by_profile.last_name} le{' '}
+                  {format(new Date(note.rejected_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Reject Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeter la note de frais</DialogTitle>
+            <DialogDescription>
+              Indiquez le motif du rejet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rejection">Motif du rejet *</Label>
+            <Textarea
+              id="rejection"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Raison du rejet..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={isSaving || !rejectionReason.trim()}
+            >
+              Confirmer le rejet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pay Dialog */}
+      <Dialog open={showPayDialog} onOpenChange={setShowPayDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marquer comme payée</DialogTitle>
+            <DialogDescription>
+              Confirmez le paiement de {formatAmount(note.total_amount, note.currency)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="mode">Mode de paiement *</Label>
+              <Select
+                value={paymentData.mode_paiement}
+                onValueChange={(v) => setPaymentData({ ...paymentData, mode_paiement: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((pm) => (
+                    <SelectItem key={pm.id} value={pm.label}>
+                      {pm.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ref">Référence paiement</Label>
+              <Input
+                id="ref"
+                value={paymentData.reference_paiement}
+                onChange={(e) => setPaymentData({ ...paymentData, reference_paiement: e.target.value })}
+                placeholder="N° transaction, chèque..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPayDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handlePay}
+              disabled={isSaving || !paymentData.mode_paiement}
+            >
+              Confirmer le paiement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AppLayout>
+  );
+}
