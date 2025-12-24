@@ -48,24 +48,24 @@ export default function DACreate() {
     observations: '',
   });
 
-  const [articles, setArticles] = useState<ArticleForm[]>([
-    { designation: '', quantity: '1', unit: 'unité', observations: '' },
-  ]);
+  const [articles, setArticles] = useState<ArticleForm[]>([]);
+  const [lignesLoaded, setLignesLoaded] = useState(false);
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
   const hasAccess = isLogistics || isAdmin;
 
   useEffect(() => {
     if (besoinId) {
-      fetchBesoin();
+      fetchBesoinWithLignes();
       checkCanTransform();
     } else {
       setIsLoading(false);
     }
   }, [besoinId]);
 
-  const fetchBesoin = async () => {
+  const fetchBesoinWithLignes = async () => {
     try {
+      // Fetch besoin
       const { data, error } = await supabase
         .from('besoins')
         .select(`
@@ -82,12 +82,35 @@ export default function DACreate() {
         return;
       }
 
+      // Fetch lignes du besoin
+      const { data: lignesData } = await supabase
+        .from('besoin_lignes')
+        .select('*')
+        .eq('besoin_id', besoinId)
+        .order('created_at', { ascending: true });
+
       setBesoin(data as Besoin);
       setForm((prev) => ({
         ...prev,
         description: data.description,
         desired_date: data.desired_date || '',
       }));
+
+      // Auto-populate articles from besoin lignes
+      if (lignesData && lignesData.length > 0 && !lignesLoaded) {
+        const articlesFromLignes: ArticleForm[] = lignesData.map((ligne) => ({
+          designation: ligne.designation,
+          quantity: String(ligne.quantity),
+          unit: ligne.unit,
+          observations: ligne.justification || '',
+        }));
+        setArticles(articlesFromLignes);
+        setLignesLoaded(true);
+      } else if (!lignesLoaded) {
+        // Fallback: create one empty article if no lignes
+        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '' }]);
+        setLignesLoaded(true);
+      }
     } catch (error: any) {
       console.error('Error:', error);
     } finally {
@@ -101,7 +124,7 @@ export default function DACreate() {
   };
 
   const addArticle = () => {
-    setArticles([...articles, { designation: '', quantity: '1', unit: 'unité', observations: '' }]);
+    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '' }]);
   };
 
   const removeArticle = (index: number) => {
@@ -261,9 +284,9 @@ export default function DACreate() {
           <CardContent className="flex items-start gap-3 py-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div>
-              <p className="font-medium text-foreground">Document administratif uniquement</p>
+              <p className="font-medium text-foreground">Conversion automatique des lignes</p>
               <p className="text-sm text-muted-foreground">
-                Cette DA ne contient aucun prix, fournisseur ou donnée financière.
+                Les lignes du besoin ont été automatiquement reprises. Cette DA ne contient aucun prix ni fournisseur.
                 Elle sera transmise au Service Achats pour traitement.
               </p>
             </div>
