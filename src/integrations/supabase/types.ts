@@ -1151,6 +1151,15 @@ export type Database = {
       generate_bl_reference: { Args: never; Returns: string }
       generate_da_reference: { Args: never; Returns: string }
       generate_ecriture_reference: { Args: never; Returns: string }
+      get_public_profiles: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          department_name: string
+          first_name: string
+          id: string
+          last_name: string
+        }[]
+      }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

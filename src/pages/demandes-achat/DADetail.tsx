@@ -174,14 +174,6 @@ export default function DADetail() {
         .select(`
           *,
           department:departments(id, name),
-          created_by_profile:profiles!demandes_achat_created_by_fkey(id, first_name, last_name, department:departments(name)),
-          rejected_by_profile:profiles!demandes_achat_rejected_by_fkey(id, first_name, last_name, department:departments(name)),
-          analyzed_by_profile:profiles!demandes_achat_analyzed_by_fkey(id, first_name, last_name, department:departments(name)),
-          priced_by_profile:profiles!demandes_achat_priced_by_fkey(id, first_name, last_name, department:departments(name)),
-          submitted_validation_by_profile:profiles!demandes_achat_submitted_validation_by_fkey(id, first_name, last_name, department:departments(name)),
-          validated_finance_by_profile:profiles!demandes_achat_validated_finance_by_fkey(id, first_name, last_name, department:departments(name)),
-          revision_requested_by_profile:profiles!demandes_achat_revision_requested_by_fkey(id, first_name, last_name, department:departments(name)),
-          comptabilise_by_profile:profiles!demandes_achat_comptabilise_by_fkey(id, first_name, last_name, department:departments(name)),
           selected_fournisseur:fournisseurs(id, name, address, phone, email),
           besoin:besoins(id, title, user_id)
         `)
@@ -194,7 +186,7 @@ export default function DADetail() {
         return;
       }
 
-      // Fetch roles for each actor
+      // Collect all actor IDs
       const actorIds = [
         data.created_by,
         data.rejected_by,
@@ -204,8 +196,23 @@ export default function DADetail() {
         data.validated_finance_by,
         data.revision_requested_by,
         data.comptabilise_by,
-      ].filter(Boolean);
+      ].filter(Boolean) as string[];
 
+      // Fetch profiles using the security definer function (bypasses RLS)
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+        _user_ids: actorIds
+      });
+
+      const profilesById: Record<string, { first_name: string | null; last_name: string | null; department_name: string | null }> = {};
+      (profilesData || []).forEach((p: any) => {
+        profilesById[p.id] = {
+          first_name: p.first_name,
+          last_name: p.last_name,
+          department_name: p.department_name,
+        };
+      });
+
+      // Fetch roles for each actor
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -217,47 +224,45 @@ export default function DADetail() {
         rolesByUser[r.user_id].push(r.role);
       });
 
-      // Helper to extract profile data correctly (handles both object and array returns from Supabase)
-      const extractProfile = (profile: any) => {
-        if (!profile) return null;
-        // Supabase may return array for some joins
-        const p = Array.isArray(profile) ? profile[0] : profile;
+      // Helper to get profile from lookup
+      const getProfile = (userId: string | null) => {
+        if (!userId) return null;
+        const p = profilesById[userId];
         return p ? { first_name: p.first_name, last_name: p.last_name } : null;
       };
 
-      const extractDepartment = (profile: any) => {
-        if (!profile) return null;
-        const p = Array.isArray(profile) ? profile[0] : profile;
-        return p?.department?.name || null;
+      const getDepartment = (userId: string | null) => {
+        if (!userId) return null;
+        return profilesById[userId]?.department_name || null;
       };
 
-      // Enrich DA with roles and department info for timeline
+      // Enrich DA with profiles, roles and department info for timeline
       const enrichedDA = {
         ...data,
-        created_by_profile: extractProfile(data.created_by_profile),
+        created_by_profile: getProfile(data.created_by),
         created_by_roles: rolesByUser[data.created_by] || [],
-        created_by_department: extractDepartment(data.created_by_profile),
-        rejected_by_profile: extractProfile(data.rejected_by_profile),
+        created_by_department: getDepartment(data.created_by),
+        rejected_by_profile: getProfile(data.rejected_by),
         rejected_by_roles: data.rejected_by ? rolesByUser[data.rejected_by] || [] : [],
-        rejected_by_department: extractDepartment(data.rejected_by_profile),
-        analyzed_by_profile: extractProfile(data.analyzed_by_profile),
+        rejected_by_department: getDepartment(data.rejected_by),
+        analyzed_by_profile: getProfile(data.analyzed_by),
         analyzed_by_roles: data.analyzed_by ? rolesByUser[data.analyzed_by] || [] : [],
-        analyzed_by_department: extractDepartment(data.analyzed_by_profile),
-        priced_by_profile: extractProfile(data.priced_by_profile),
+        analyzed_by_department: getDepartment(data.analyzed_by),
+        priced_by_profile: getProfile(data.priced_by),
         priced_by_roles: data.priced_by ? rolesByUser[data.priced_by] || [] : [],
-        priced_by_department: extractDepartment(data.priced_by_profile),
-        submitted_validation_by_profile: extractProfile(data.submitted_validation_by_profile),
+        priced_by_department: getDepartment(data.priced_by),
+        submitted_validation_by_profile: getProfile(data.submitted_validation_by),
         submitted_validation_by_roles: data.submitted_validation_by ? rolesByUser[data.submitted_validation_by] || [] : [],
-        submitted_validation_by_department: extractDepartment(data.submitted_validation_by_profile),
-        validated_finance_by_profile: extractProfile(data.validated_finance_by_profile),
+        submitted_validation_by_department: getDepartment(data.submitted_validation_by),
+        validated_finance_by_profile: getProfile(data.validated_finance_by),
         validated_finance_by_roles: data.validated_finance_by ? rolesByUser[data.validated_finance_by] || [] : [],
-        validated_finance_by_department: extractDepartment(data.validated_finance_by_profile),
-        revision_requested_by_profile: extractProfile(data.revision_requested_by_profile),
+        validated_finance_by_department: getDepartment(data.validated_finance_by),
+        revision_requested_by_profile: getProfile(data.revision_requested_by),
         revision_requested_by_roles: data.revision_requested_by ? rolesByUser[data.revision_requested_by] || [] : [],
-        revision_requested_by_department: extractDepartment(data.revision_requested_by_profile),
-        comptabilise_by_profile: extractProfile(data.comptabilise_by_profile),
+        revision_requested_by_department: getDepartment(data.revision_requested_by),
+        comptabilise_by_profile: getProfile(data.comptabilise_by),
         comptabilise_by_roles: data.comptabilise_by ? rolesByUser[data.comptabilise_by] || [] : [],
-        comptabilise_by_department: extractDepartment(data.comptabilise_by_profile),
+        comptabilise_by_department: getDepartment(data.comptabilise_by),
       };
 
       setDA(enrichedDA as unknown as DemandeAchat);
