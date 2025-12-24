@@ -12,7 +12,8 @@ interface CreateUserRequest {
   first_name: string;
   last_name: string;
   department_id?: string;
-  role: string;
+  roles?: string[];
+  role?: string; // backward compatibility
 }
 
 serve(async (req) => {
@@ -52,10 +53,13 @@ serve(async (req) => {
       throw new Error("Only admins can create users");
     }
 
-    const { email, password, first_name, last_name, department_id, role }: CreateUserRequest = await req.json();
+    const { email, password, first_name, last_name, department_id, roles, role }: CreateUserRequest = await req.json();
+
+    // Support both single role (backward compat) and multiple roles
+    const userRoles: string[] = roles && roles.length > 0 ? roles : (role ? [role] : ['employe']);
 
     // Validate input
-    if (!email || !password || !first_name || !last_name || !role) {
+    if (!email || !password || !first_name || !last_name) {
       throw new Error("Missing required fields");
     }
 
@@ -94,26 +98,26 @@ serve(async (req) => {
       }
     }
 
-    // Update role (the trigger creates default 'employe' role, so we update if different)
-    if (role !== "employe") {
-      // Delete the default role
-      await supabaseAdmin
-        .from("user_roles")
-        .delete()
-        .eq("user_id", newUser.user.id);
+    // Update roles (the trigger creates default 'employe' role, so we update)
+    // Delete the default role first
+    await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", newUser.user.id);
 
-      // Insert the specified role
-      const { error: roleError } = await supabaseAdmin
-        .from("user_roles")
-        .insert({
-          user_id: newUser.user.id,
-          role,
-          assigned_by: caller.id,
-        });
+    // Insert all specified roles
+    const rolesToInsert = userRoles.map(r => ({
+      user_id: newUser.user.id,
+      role: r,
+      assigned_by: caller.id,
+    }));
 
-      if (roleError) {
-        console.error("Error setting role:", roleError);
-      }
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .insert(rolesToInsert);
+
+    if (roleError) {
+      console.error("Error setting roles:", roleError);
     }
 
     return new Response(

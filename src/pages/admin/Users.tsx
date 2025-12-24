@@ -69,7 +69,7 @@ export default function AdminUsers() {
     last_name: '',
     department_id: '',
     status: 'active' as UserStatus,
-    role: 'employe' as AppRole,
+    roles: ['employe'] as AppRole[],
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -81,7 +81,7 @@ export default function AdminUsers() {
     first_name: '',
     last_name: '',
     department_id: '',
-    role: 'employe' as AppRole,
+    roles: ['employe'] as AppRole[],
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -226,7 +226,7 @@ export default function AdminUsers() {
       last_name: userToEdit.last_name || '',
       department_id: userToEdit.department_id || '',
       status: userToEdit.status,
-      role: userToEdit.roles[0] || 'employe',
+      roles: userToEdit.roles.length > 0 ? userToEdit.roles : ['employe'],
     });
   };
 
@@ -237,8 +237,30 @@ export default function AdminUsers() {
       first_name: '',
       last_name: '',
       department_id: '',
-      role: 'employe',
+      roles: ['employe'],
     });
+  };
+
+  const toggleRole = (role: AppRole, formType: 'edit' | 'create') => {
+    if (formType === 'edit') {
+      const currentRoles = editForm.roles;
+      if (currentRoles.includes(role)) {
+        if (currentRoles.length > 1) {
+          setEditForm({ ...editForm, roles: currentRoles.filter(r => r !== role) });
+        }
+      } else {
+        setEditForm({ ...editForm, roles: [...currentRoles, role] });
+      }
+    } else {
+      const currentRoles = createForm.roles;
+      if (currentRoles.includes(role)) {
+        if (currentRoles.length > 1) {
+          setCreateForm({ ...createForm, roles: currentRoles.filter(r => r !== role) });
+        }
+      } else {
+        setCreateForm({ ...createForm, roles: [...currentRoles, role] });
+      }
+    }
   };
 
   const handleCreate = async () => {
@@ -272,7 +294,7 @@ export default function AdminUsers() {
           first_name: createForm.first_name,
           last_name: createForm.last_name,
           department_id: createForm.department_id || null,
-          role: createForm.role,
+          roles: createForm.roles,
         },
       });
 
@@ -310,7 +332,7 @@ export default function AdminUsers() {
       last_name: '',
       department_id: '',
       status: 'active',
-      role: 'employe',
+      roles: ['employe'],
     });
   };
 
@@ -334,7 +356,7 @@ export default function AdminUsers() {
         throw profileError;
       }
 
-      // Update role - delete existing and insert new
+      // Update roles - delete existing and insert new ones
       const { error: deleteRoleError } = await supabase
         .from('user_roles')
         .delete()
@@ -344,13 +366,16 @@ export default function AdminUsers() {
         throw deleteRoleError;
       }
 
+      // Insert all selected roles
+      const rolesToInsert = editForm.roles.map(role => ({
+        user_id: editingUser.id,
+        role,
+        assigned_by: user?.id,
+      }));
+
       const { error: insertRoleError } = await supabase
         .from('user_roles')
-        .insert({
-          user_id: editingUser.id,
-          role: editForm.role,
-          assigned_by: user?.id,
-        });
+        .insert(rolesToInsert);
 
       if (insertRoleError) {
         throw insertRoleError;
@@ -572,22 +597,30 @@ export default function AdminUsers() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Rôle</Label>
-              <Select
-                value={editForm.role}
-                onValueChange={(value) => setEditForm({ ...editForm, role: value as AppRole })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {ROLE_LABELS[role]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Rôles (sélection multiple)</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                {ALL_ROLES.map((role) => (
+                  <label
+                    key={role}
+                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+                      editForm.roles.includes(role) 
+                        ? 'bg-primary/10 border border-primary' 
+                        : 'bg-muted/50 hover:bg-muted'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editForm.roles.includes(role)}
+                      onChange={() => toggleRole(role, 'edit')}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <span className="text-sm">{ROLE_LABELS[role]}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {editForm.roles.length} rôle(s) sélectionné(s)
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -695,22 +728,30 @@ export default function AdminUsers() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="create_role">Rôle *</Label>
-              <Select
-                value={createForm.role}
-                onValueChange={(value) => setCreateForm({ ...createForm, role: value as AppRole })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {ROLE_LABELS[role]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Rôles * (sélection multiple)</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                {ALL_ROLES.map((role) => (
+                  <label
+                    key={role}
+                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+                      createForm.roles.includes(role) 
+                        ? 'bg-primary/10 border border-primary' 
+                        : 'bg-muted/50 hover:bg-muted'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={createForm.roles.includes(role)}
+                      onChange={() => toggleRole(role, 'create')}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <span className="text-sm">{ROLE_LABELS[role]}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {createForm.roles.length} rôle(s) sélectionné(s)
+              </p>
             </div>
           </div>
 
