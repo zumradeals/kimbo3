@@ -24,9 +24,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Projet } from '@/types/kpm';
 import { ArrowLeft, Plus, Trash2, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ProjetSelector } from '@/components/ui/ProjetSelector';
 
 interface LigneInput {
   id: string;
@@ -43,7 +43,6 @@ export default function NoteFraisCreate() {
   const { toast } = useToast();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [projets, setProjets] = useState<Projet[]>([]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -61,19 +60,6 @@ export default function NoteFraisCreate() {
       observations: '',
     },
   ]);
-
-  useEffect(() => {
-    fetchProjets();
-  }, []);
-
-  const fetchProjets = async () => {
-    const { data } = await supabase
-      .from('projets')
-      .select('*')
-      .eq('is_active', true)
-      .order('code');
-    setProjets((data as Projet[]) || []);
-  };
 
   const addLigne = () => {
     setLignes([
@@ -217,22 +203,11 @@ export default function NoteFraisCreate() {
 
             <div className="space-y-2">
               <Label htmlFor="projet">Projet rattaché (optionnel)</Label>
-              <Select
+              <ProjetSelector
                 value={formData.projet_id}
-                onValueChange={(v) => setFormData({ ...formData, projet_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un projet" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Aucun projet</SelectItem>
-                  {projets.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.code} - {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(id) => setFormData({ ...formData, projet_id: id })}
+                placeholder="Sélectionner un projet..."
+              />
             </div>
           </CardContent>
         </Card>
@@ -281,22 +256,11 @@ export default function NoteFraisCreate() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Select
+                        <ProjetSelector
                           value={ligne.projet_id}
-                          onValueChange={(v) => updateLigne(ligne.id, 'projet_id', v)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="-" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">-</SelectItem>
-                            {projets.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.code}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onChange={(id) => updateLigne(ligne.id, 'projet_id', id)}
+                          placeholder="-"
+                        />
                       </TableCell>
                       <TableCell>
                         <Input

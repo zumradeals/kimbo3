@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Besoin, DACategory, DAPriority, DA_CATEGORY_LABELS, DA_PRIORITY_LABELS, LOGISTICS_ROLES } from '@/types/kpm';
 import { ArrowLeft, Plus, Trash2, Info, AlertTriangle } from 'lucide-react';
 import { AccessDenied } from '@/components/ui/AccessDenied';
+import { ProjetSelector } from '@/components/ui/ProjetSelector';
 
 interface ArticleForm {
   designation: string;
@@ -46,6 +47,7 @@ export default function DACreate() {
     priority: 'normale' as DAPriority,
     desired_date: '',
     observations: '',
+    projet_id: '',
   });
 
   const [articles, setArticles] = useState<ArticleForm[]>([]);
@@ -94,6 +96,7 @@ export default function DACreate() {
         ...prev,
         description: data.description,
         desired_date: data.desired_date || '',
+        projet_id: data.projet_id || '',
       }));
 
       // Auto-populate articles from besoin lignes
@@ -175,6 +178,7 @@ export default function DACreate() {
           priority: form.priority,
           desired_date: form.desired_date || null,
           observations: form.observations.trim() || null,
+          projet_id: form.projet_id || null,
         })
         .select()
         .single();
@@ -376,13 +380,24 @@ export default function DACreate() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Date souhaitée</Label>
-              <Input
-                type="date"
-                value={form.desired_date}
-                onChange={(e) => setForm({ ...form, desired_date: e.target.value })}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Date souhaitée</Label>
+                <Input
+                  type="date"
+                  value={form.desired_date}
+                  onChange={(e) => setForm({ ...form, desired_date: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Projet rattaché</Label>
+                <ProjetSelector
+                  value={form.projet_id}
+                  onChange={(id) => setForm({ ...form, projet_id: id })}
+                  placeholder="Sélectionner un projet..."
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

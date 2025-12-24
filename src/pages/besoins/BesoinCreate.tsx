@@ -31,6 +31,7 @@ import { ArrowLeft, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
 import { BesoinAttachmentsUpload } from '@/components/besoins/BesoinAttachmentsUpload';
+import { ProjetSelector } from '@/components/ui/ProjetSelector';
 
 interface LigneInput {
   id: string;
@@ -60,6 +61,7 @@ export default function BesoinCreate() {
 
   // Bloc A - Identité du besoin
   const [siteProjet, setSiteProjet] = useState('');
+  const [projetId, setProjetId] = useState('');
   const [typeBesoin, setTypeBesoin] = useState<BesoinTypeEnum>('achat');
 
   // Bloc B - Objet clair du besoin
@@ -212,6 +214,7 @@ export default function BesoinCreate() {
           user_id: user?.id,
           department_id: profile.department_id,
           // Nouveaux champs
+          projet_id: projetId || null,
           site_projet: siteProjet.trim(),
           objet_besoin: objetBesoin.trim(),
           fournisseur_impose: fournisseurImpose,
@@ -385,7 +388,15 @@ export default function BesoinCreate() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="site_projet">Site / Projet concerné *</Label>
+                  <Label htmlFor="projet">Projet rattaché</Label>
+                  <ProjetSelector
+                    value={projetId}
+                    onChange={(id) => setProjetId(id)}
+                    placeholder="Sélectionner un projet..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="site_projet">Site / Lieu concerné *</Label>
                   <Input
                     id="site_projet"
                     placeholder="Ex: Chantier Douala Nord, Bureau DG, Atelier..."
