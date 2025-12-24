@@ -25,9 +25,10 @@ import {
 import {
   Besoin,
   BesoinStatus,
-  BESOIN_CATEGORY_LABELS,
   BESOIN_URGENCY_LABELS,
   BESOIN_STATUS_LABELS,
+  BESOIN_TYPE_ENUM_LABELS,
+  BesoinTypeEnum,
   ROLES_CAN_CREATE_BESOIN,
 } from '@/types/kpm';
 import { Plus, Search, Eye, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
@@ -183,9 +184,9 @@ export default function BesoinsList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Titre</TableHead>
+                      <TableHead>Objet</TableHead>
                       <TableHead>Département</TableHead>
-                      <TableHead>Catégorie</TableHead>
+                      <TableHead>Site/Projet</TableHead>
                       <TableHead>Urgence</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Date création</TableHead>
@@ -199,9 +200,9 @@ export default function BesoinsList() {
                         <TableRow key={besoin.id}>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{besoin.title}</p>
+                              <p className="font-medium">{besoin.objet_besoin || besoin.title}</p>
                               <p className="text-sm text-muted-foreground line-clamp-1">
-                                {besoin.description}
+                                {besoin.site_projet || besoin.description}
                               </p>
                             </div>
                           </TableCell>
@@ -209,9 +210,9 @@ export default function BesoinsList() {
                             {besoin.department?.name || 'N/A'}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">
-                              {BESOIN_CATEGORY_LABELS[besoin.category]}
-                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {besoin.site_projet || '-'}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <Badge className={urgencyColors[besoin.urgency]}>

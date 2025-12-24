@@ -106,12 +106,98 @@ export type Database = {
         }
         Relationships: []
       }
+      besoin_attachments: {
+        Row: {
+          besoin_id: string
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+        }
+        Insert: {
+          besoin_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+        }
+        Update: {
+          besoin_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "besoin_attachments_besoin_id_fkey"
+            columns: ["besoin_id"]
+            isOneToOne: false
+            referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      besoin_lignes: {
+        Row: {
+          besoin_id: string
+          category: Database["public"]["Enums"]["besoin_ligne_category"]
+          created_at: string
+          designation: string
+          id: string
+          justification: string | null
+          quantity: number
+          unit: string
+          urgency: Database["public"]["Enums"]["besoin_urgency"]
+        }
+        Insert: {
+          besoin_id: string
+          category?: Database["public"]["Enums"]["besoin_ligne_category"]
+          created_at?: string
+          designation: string
+          id?: string
+          justification?: string | null
+          quantity?: number
+          unit?: string
+          urgency?: Database["public"]["Enums"]["besoin_urgency"]
+        }
+        Update: {
+          besoin_id?: string
+          category?: Database["public"]["Enums"]["besoin_ligne_category"]
+          created_at?: string
+          designation?: string
+          id?: string
+          justification?: string | null
+          quantity?: number
+          unit?: string
+          urgency?: Database["public"]["Enums"]["besoin_urgency"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "besoin_lignes_besoin_id_fkey"
+            columns: ["besoin_id"]
+            isOneToOne: false
+            referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       besoins: {
         Row: {
           attachment_name: string | null
           attachment_url: string | null
+          avance_caisse_montant: number | null
+          besoin_avance_caisse: boolean | null
           besoin_type: string | null
+          besoin_vehicule: boolean | null
           category: Database["public"]["Enums"]["besoin_category"]
+          confirmation_engagement: boolean | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -119,9 +205,16 @@ export type Database = {
           description: string
           desired_date: string | null
           estimated_quantity: number | null
+          fournisseur_impose: boolean | null
+          fournisseur_impose_contact: string | null
+          fournisseur_impose_nom: string | null
           id: string
           intended_usage: string | null
+          lieu_livraison: string | null
+          objet_besoin: string | null
           rejection_reason: string | null
+          return_comment: string | null
+          site_projet: string | null
           status: Database["public"]["Enums"]["besoin_status"]
           taken_at: string | null
           taken_by: string | null
@@ -135,8 +228,12 @@ export type Database = {
         Insert: {
           attachment_name?: string | null
           attachment_url?: string | null
+          avance_caisse_montant?: number | null
+          besoin_avance_caisse?: boolean | null
           besoin_type?: string | null
+          besoin_vehicule?: boolean | null
           category: Database["public"]["Enums"]["besoin_category"]
+          confirmation_engagement?: boolean | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -144,9 +241,16 @@ export type Database = {
           description: string
           desired_date?: string | null
           estimated_quantity?: number | null
+          fournisseur_impose?: boolean | null
+          fournisseur_impose_contact?: string | null
+          fournisseur_impose_nom?: string | null
           id?: string
           intended_usage?: string | null
+          lieu_livraison?: string | null
+          objet_besoin?: string | null
           rejection_reason?: string | null
+          return_comment?: string | null
+          site_projet?: string | null
           status?: Database["public"]["Enums"]["besoin_status"]
           taken_at?: string | null
           taken_by?: string | null
@@ -160,8 +264,12 @@ export type Database = {
         Update: {
           attachment_name?: string | null
           attachment_url?: string | null
+          avance_caisse_montant?: number | null
+          besoin_avance_caisse?: boolean | null
           besoin_type?: string | null
+          besoin_vehicule?: boolean | null
           category?: Database["public"]["Enums"]["besoin_category"]
+          confirmation_engagement?: boolean | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -169,9 +277,16 @@ export type Database = {
           description?: string
           desired_date?: string | null
           estimated_quantity?: number | null
+          fournisseur_impose?: boolean | null
+          fournisseur_impose_contact?: string | null
+          fournisseur_impose_nom?: string | null
           id?: string
           intended_usage?: string | null
+          lieu_livraison?: string | null
+          objet_besoin?: string | null
           rejection_reason?: string | null
+          return_comment?: string | null
+          site_projet?: string | null
           status?: Database["public"]["Enums"]["besoin_status"]
           taken_at?: string | null
           taken_by?: string | null
@@ -1193,7 +1308,14 @@ export type Database = {
         | "maintenance"
         | "urgence"
         | "autre"
+      besoin_ligne_category: "materiel" | "service" | "transport" | "autre"
       besoin_status: "cree" | "pris_en_charge" | "accepte" | "refuse"
+      besoin_type_enum:
+        | "achat"
+        | "transport"
+        | "service"
+        | "reparation"
+        | "location"
       besoin_urgency: "normale" | "urgente" | "critique"
       bl_status:
         | "prepare"
@@ -1377,7 +1499,15 @@ export const Constants = {
         "urgence",
         "autre",
       ],
+      besoin_ligne_category: ["materiel", "service", "transport", "autre"],
       besoin_status: ["cree", "pris_en_charge", "accepte", "refuse"],
+      besoin_type_enum: [
+        "achat",
+        "transport",
+        "service",
+        "reparation",
+        "location",
+      ],
       besoin_urgency: ["normale", "urgente", "critique"],
       bl_status: [
         "prepare",

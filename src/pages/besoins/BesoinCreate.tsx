@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -18,56 +19,164 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import {
-  BesoinCategory,
+  BesoinTypeEnum,
+  BesoinLigneCategory,
   BesoinUrgency,
-  BesoinType,
-  BESOIN_CATEGORY_LABELS,
-  BESOIN_URGENCY_LABELS,
-  BESOIN_TYPE_LABELS,
+  BESOIN_TYPE_ENUM_LABELS,
+  OBJETS_INTERDITS,
+  OBJET_BESOIN_EXEMPLES,
   ROLES_CAN_CREATE_BESOIN,
 } from '@/types/kpm';
-import { ArrowLeft, AlertTriangle, Info, Paperclip, X, Upload } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
+import { BesoinAttachmentsUpload } from '@/components/besoins/BesoinAttachmentsUpload';
+
+interface LigneInput {
+  id: string;
+  designation: string;
+  category: BesoinLigneCategory;
+  unit: string;
+  quantity: number;
+  urgency: BesoinUrgency;
+  justification: string;
+}
+
+interface AttachmentInput {
+  id: string;
+  file?: File;
+  file_url: string;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+}
 
 export default function BesoinCreate() {
   const { user, profile, roles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attachment, setAttachment] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    category: '' as BesoinCategory | '',
-    urgency: 'normale' as BesoinUrgency,
-    desired_date: '',
-    // Nouveaux champs enrichis
-    estimated_quantity: '',
-    besoin_type: 'article' as BesoinType,
-    unit: 'unité',
-    technical_specs: '',
-    intended_usage: '',
-  });
+  // Bloc A - Identité du besoin
+  const [siteProjet, setSiteProjet] = useState('');
+  const [typeBesoin, setTypeBesoin] = useState<BesoinTypeEnum>('achat');
+
+  // Bloc B - Objet clair du besoin
+  const [objetBesoin, setObjetBesoin] = useState('');
+  const [objetError, setObjetError] = useState('');
+
+  // Bloc C - Lignes de besoin
+  const [lignes, setLignes] = useState<LigneInput[]>([
+    {
+      id: crypto.randomUUID(),
+      designation: '',
+      category: 'materiel',
+      unit: 'unité',
+      quantity: 1,
+      urgency: 'normale',
+      justification: '',
+    },
+  ]);
+
+  // Bloc D - Contraintes logistiques
+  const [fournisseurImpose, setFournisseurImpose] = useState(false);
+  const [fournisseurNom, setFournisseurNom] = useState('');
+  const [fournisseurContact, setFournisseurContact] = useState('');
+  const [dateSouhaitee, setDateSouhaitee] = useState('');
+  const [lieuLivraison, setLieuLivraison] = useState('');
+  const [besoinVehicule, setBesoinVehicule] = useState(false);
+  const [besoinAvanceCaisse, setBesoinAvanceCaisse] = useState(false);
+  const [avanceCaisseMontant, setAvanceCaisseMontant] = useState('');
+
+  // Bloc E - Pièces jointes
+  const [attachments, setAttachments] = useState<AttachmentInput[]>([]);
+
+  // Bloc F - Confirmation
+  const [confirmationEngagement, setConfirmationEngagement] = useState(false);
 
   const canCreate = roles.some((r) => ROLES_CAN_CREATE_BESOIN.includes(r));
 
-  if (!canCreate) {
-    return (
-      <AppLayout>
-        <AccessDenied message="Vous n'êtes pas autorisé à créer des besoins internes. Seuls les responsables de département peuvent exprimer un besoin." />
-      </AppLayout>
-    );
-  }
+  // Validation de l'objet du besoin
+  const validateObjet = (value: string) => {
+    const lowerValue = value.toLowerCase().trim();
+    
+    if (lowerValue.length < 10) {
+      setObjetError('L\'objet doit contenir au moins 10 caractères');
+      return false;
+    }
+
+    for (const interdit of OBJETS_INTERDITS) {
+      if (lowerValue === interdit || (lowerValue.length < 20 && lowerValue.includes(interdit))) {
+        setObjetError(`"${interdit}" n'est pas un objet valide. Soyez plus précis.`);
+        return false;
+      }
+    }
+
+    setObjetError('');
+    return true;
+  };
+
+  const handleObjetChange = (value: string) => {
+    setObjetBesoin(value);
+    if (value.length > 5) {
+      validateObjet(value);
+    } else {
+      setObjetError('');
+    }
+  };
+
+  // Validation des lignes
+  const validateLignes = (): boolean => {
+    for (const ligne of lignes) {
+      if (!ligne.designation.trim()) {
+        toast({
+          title: 'Erreur',
+          description: 'Toutes les lignes doivent avoir une désignation.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      if (ligne.quantity <= 0) {
+        toast({
+          title: 'Erreur',
+          description: 'Les quantités doivent être supérieures à 0.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      if ((ligne.urgency === 'urgente' || ligne.urgency === 'critique') && !ligne.justification.trim()) {
+        toast({
+          title: 'Justification requise',
+          description: `La ligne "${ligne.designation}" nécessite une justification pour le niveau d'urgence sélectionné.`,
+          variant: 'destructive',
+        });
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.title.trim() || !form.description.trim() || !form.category) {
+    // Validations
+    if (!siteProjet.trim()) {
+      toast({ title: 'Erreur', description: 'Le site/projet est obligatoire.', variant: 'destructive' });
+      return;
+    }
+
+    if (!validateObjet(objetBesoin)) {
+      toast({ title: 'Erreur', description: 'L\'objet du besoin n\'est pas valide.', variant: 'destructive' });
+      return;
+    }
+
+    if (!validateLignes()) return;
+
+    if (!confirmationEngagement) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez remplir tous les champs obligatoires.',
+        title: 'Confirmation requise',
+        description: 'Vous devez confirmer que ce besoin est exact et exploitable.',
         variant: 'destructive',
       });
       return;
@@ -85,64 +194,98 @@ export default function BesoinCreate() {
     setIsSubmitting(true);
 
     try {
-      let attachmentUrl: string | null = null;
-      let attachmentName: string | null = null;
+      // 1. Créer le besoin principal
+      // Calculer l'urgence maximale des lignes
+      const urgencyPriority: Record<BesoinUrgency, number> = { normale: 0, urgente: 1, critique: 2 };
+      const maxUrgency = lignes.reduce((max, l) => 
+        urgencyPriority[l.urgency] > urgencyPriority[max] ? l.urgency : max
+      , 'normale' as BesoinUrgency);
 
-      // Upload attachment if present
-      if (attachment) {
-        setIsUploading(true);
-        const fileExt = attachment.name.split('.').pop();
-        const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('besoins-attachments')
-          .upload(fileName, attachment);
-
-        if (uploadError) {
-          throw new Error('Échec de l\'upload du fichier: ' + uploadError.message);
-        }
-
-        const { data: urlData } = supabase.storage
-          .from('besoins-attachments')
-          .getPublicUrl(fileName);
-        
-        attachmentUrl = urlData.publicUrl;
-        attachmentName = attachment.name;
-        setIsUploading(false);
-      }
-
-      const { data, error } = await supabase
+      const { data: besoinData, error: besoinError } = await supabase
         .from('besoins')
         .insert({
-          title: form.title.trim(),
-          description: form.description.trim(),
-          category: form.category,
-          urgency: form.urgency,
-          desired_date: form.desired_date || null,
+          title: objetBesoin.substring(0, 200),
+          description: `Type: ${BESOIN_TYPE_ENUM_LABELS[typeBesoin]}\n${lignes.map(l => `- ${l.designation} (${l.quantity} ${l.unit})`).join('\n')}`,
+          category: 'materiel', // Legacy field
+          urgency: maxUrgency,
+          desired_date: dateSouhaitee || null,
           user_id: user?.id,
           department_id: profile.department_id,
-          attachment_url: attachmentUrl,
-          attachment_name: attachmentName,
-          // Nouveaux champs enrichis
-          estimated_quantity: form.estimated_quantity ? parseFloat(form.estimated_quantity) : null,
-          besoin_type: form.besoin_type,
-          unit: form.unit,
-          technical_specs: form.technical_specs.trim() || null,
-          intended_usage: form.intended_usage.trim() || null,
+          // Nouveaux champs
+          site_projet: siteProjet.trim(),
+          objet_besoin: objetBesoin.trim(),
+          fournisseur_impose: fournisseurImpose,
+          fournisseur_impose_nom: fournisseurImpose ? fournisseurNom.trim() : null,
+          fournisseur_impose_contact: fournisseurImpose ? fournisseurContact.trim() : null,
+          lieu_livraison: lieuLivraison.trim() || null,
+          besoin_vehicule: besoinVehicule,
+          besoin_avance_caisse: besoinAvanceCaisse,
+          avance_caisse_montant: besoinAvanceCaisse && avanceCaisseMontant ? parseFloat(avanceCaisseMontant) : null,
+          confirmation_engagement: confirmationEngagement,
         })
         .select()
         .single();
 
-      if (error) {
-        throw error;
+      if (besoinError) throw besoinError;
+
+      const besoinId = besoinData.id;
+
+      // 2. Insérer les lignes
+      const lignesInsert = lignes.map((l) => ({
+        besoin_id: besoinId,
+        designation: l.designation.trim(),
+        category: l.category,
+        unit: l.unit,
+        quantity: l.quantity,
+        urgency: l.urgency,
+        justification: l.justification.trim() || null,
+      }));
+
+      const { error: lignesError } = await supabase
+        .from('besoin_lignes')
+        .insert(lignesInsert);
+
+      if (lignesError) throw lignesError;
+
+      // 3. Upload et insérer les pièces jointes
+      if (attachments.length > 0) {
+        for (const attachment of attachments) {
+          if (attachment.file) {
+            const fileExt = attachment.file_name.split('.').pop();
+            const fileName = `${besoinId}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('besoins-attachments')
+              .upload(fileName, attachment.file);
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              continue;
+            }
+
+            const { data: urlData } = supabase.storage
+              .from('besoins-attachments')
+              .getPublicUrl(fileName);
+
+            await supabase
+              .from('besoin_attachments')
+              .insert({
+                besoin_id: besoinId,
+                file_url: urlData.publicUrl,
+                file_name: attachment.file_name,
+                file_type: attachment.file_type,
+                file_size: attachment.file_size,
+              });
+          }
+        }
       }
 
       toast({
-        title: 'Besoin créé',
-        description: 'Votre besoin a été transmis à la Logistique.',
+        title: 'Besoin créé avec succès',
+        description: 'Votre besoin a été transmis à la Logistique pour traitement.',
       });
 
-      navigate(`/besoins/${data.id}`);
+      navigate(`/besoins/${besoinId}`);
     } catch (error: any) {
       console.error('Error creating besoin:', error);
       toast({
@@ -152,33 +295,22 @@ export default function BesoinCreate() {
       });
     } finally {
       setIsSubmitting(false);
-      setIsUploading(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Max 10MB
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: 'Fichier trop volumineux',
-          description: 'La taille maximale autorisée est de 10 Mo.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      setAttachment(file);
-    }
-  };
+  if (!canCreate) {
+    return (
+      <AppLayout>
+        <AccessDenied message="Vous n'êtes pas autorisé à créer des besoins internes. Seuls les responsables de département peuvent exprimer un besoin." />
+      </AppLayout>
+    );
+  }
 
-  const removeAttachment = () => {
-    setAttachment(null);
-  };
+  const hasCriticalLine = lignes.some((l) => l.urgency === 'critique');
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link to="/besoins">
@@ -191,7 +323,7 @@ export default function BesoinCreate() {
               Nouveau besoin interne
             </h1>
             <p className="text-muted-foreground">
-              Exprimez un besoin pour votre département
+              Décrivez votre besoin de manière claire et exploitable
             </p>
           </div>
         </div>
@@ -203,243 +335,304 @@ export default function BesoinCreate() {
             <div className="text-sm">
               <p className="font-medium text-foreground">Ce besoin n'engage aucun achat ni paiement</p>
               <p className="text-muted-foreground">
-                Il s'agit d'une demande opérationnelle transmise à la Logistique pour évaluation. 
-                Seule une Demande d'Achat approuvée pourra engager des dépenses.
+                Il s'agit d'une expression formelle transmise à la Logistique. 
+                Vous n'avez pas à indiquer de prix. La conversion en Demande d'Achat sera faite par la Logistique.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informations du besoin</CardTitle>
-            <CardDescription>
-              Décrivez clairement votre besoin. Plus il est précis, plus le traitement sera rapide.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Département (auto) */}
-              <div className="space-y-2">
-                <Label>Département émetteur</Label>
-                <Input
-                  value={profile?.department?.name || 'Non assigné'}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Déduit automatiquement de votre profil
-                </p>
-              </div>
-
-              {/* Titre */}
-              <div className="space-y-2">
-                <Label htmlFor="title">Titre du besoin *</Label>
-                <Input
-                  id="title"
-                  placeholder="Ex: Ordinateur portable pour nouveau collaborateur"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  maxLength={200}
-                />
-              </div>
-
-              {/* Type & Catégorie */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* BLOC A - Identité du besoin */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  A
+                </span>
+                Identité du besoin
+              </CardTitle>
+              <CardDescription>Informations auto-remplies et contexte</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Champs auto-remplis */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="besoin_type">Type *</Label>
-                  <Select
-                    value={form.besoin_type}
-                    onValueChange={(value) => setForm({ ...form, besoin_type: value as BesoinType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(BESOIN_TYPE_LABELS) as BesoinType[]).map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {BESOIN_TYPE_LABELS[type]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Catégorie *</Label>
-                  <Select
-                    value={form.category}
-                    onValueChange={(value) => setForm({ ...form, category: value as BesoinCategory })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(BESOIN_CATEGORY_LABELS) as BesoinCategory[]).map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {BESOIN_CATEGORY_LABELS[cat]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Quantité & Unité */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="estimated_quantity">Quantité estimée</Label>
+                  <Label>Demandeur</Label>
                   <Input
-                    id="estimated_quantity"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Ex: 5"
-                    value={form.estimated_quantity}
-                    onChange={(e) => setForm({ ...form, estimated_quantity: e.target.value })}
+                    value={`${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.email || 'Inconnu'}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="unit">Unité</Label>
+                  <Label>Département</Label>
                   <Input
-                    id="unit"
-                    placeholder="Ex: unité, kg, litre, mètre..."
-                    value={form.unit}
-                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    value={profile?.department?.name || 'Non assigné'}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description détaillée *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Décrivez précisément le besoin : contexte, spécifications, quantité si applicable..."
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={4}
-                  maxLength={2000}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {form.description.length}/2000 caractères
-                </p>
-              </div>
-
-              {/* Spécifications techniques */}
-              <div className="space-y-2">
-                <Label htmlFor="technical_specs">Spécifications techniques</Label>
-                <Textarea
-                  id="technical_specs"
-                  placeholder="Caractéristiques techniques précises (dimensions, couleur, marque, modèle, etc.)"
-                  value={form.technical_specs}
-                  onChange={(e) => setForm({ ...form, technical_specs: e.target.value })}
-                  rows={3}
-                  maxLength={1000}
-                />
-              </div>
-
-              {/* Usage prévu */}
-              <div className="space-y-2">
-                <Label htmlFor="intended_usage">Usage prévu / Chantier / Service</Label>
-                <Input
-                  id="intended_usage"
-                  placeholder="Ex: Chantier Douala Nord, Service Commercial, Bureau RH..."
-                  value={form.intended_usage}
-                  onChange={(e) => setForm({ ...form, intended_usage: e.target.value })}
-                  maxLength={200}
-                />
-              </div>
-
-              {/* Urgence & Date */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="urgency">Niveau d'urgence *</Label>
-                  <Select
-                    value={form.urgency}
-                    onValueChange={(value) => setForm({ ...form, urgency: value as BesoinUrgency })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(BESOIN_URGENCY_LABELS) as BesoinUrgency[]).map((urg) => (
-                        <SelectItem key={urg} value={urg}>
-                          {BESOIN_URGENCY_LABELS[urg]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="desired_date">Date souhaitée (optionnel)</Label>
+                  <Label>Date de la demande</Label>
                   <Input
-                    id="desired_date"
+                    value={new Date().toLocaleDateString('fr-FR')}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="site_projet">Site / Projet concerné *</Label>
+                  <Input
+                    id="site_projet"
+                    placeholder="Ex: Chantier Douala Nord, Bureau DG, Atelier..."
+                    value={siteProjet}
+                    onChange={(e) => setSiteProjet(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Type de besoin */}
+              <div className="space-y-2">
+                <Label htmlFor="type_besoin">Type de besoin *</Label>
+                <Select
+                  value={typeBesoin}
+                  onValueChange={(v) => setTypeBesoin(v as BesoinTypeEnum)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(BESOIN_TYPE_ENUM_LABELS) as BesoinTypeEnum[]).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {BESOIN_TYPE_ENUM_LABELS[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Le type conditionne certains champs ultérieurs
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* BLOC B - Objet clair du besoin */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  B
+                </span>
+                Objet du besoin
+              </CardTitle>
+              <CardDescription>Résumé clair et précis (max 120 caractères)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="objet_besoin">Objet du besoin *</Label>
+                <Input
+                  id="objet_besoin"
+                  placeholder={OBJET_BESOIN_EXEMPLES[Math.floor(Math.random() * OBJET_BESOIN_EXEMPLES.length)]}
+                  value={objetBesoin}
+                  onChange={(e) => handleObjetChange(e.target.value.slice(0, 120))}
+                  maxLength={120}
+                  className={objetError ? 'border-destructive' : ''}
+                  required
+                />
+                <div className="flex items-center justify-between">
+                  <p className={`text-xs ${objetError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {objetError || `${objetBesoin.length}/120 caractères`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-md bg-muted/50 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Exemples valides :</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  {OBJET_BESOIN_EXEMPLES.map((ex, i) => (
+                    <li key={i}>• {ex}</li>
+                  ))}
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* BLOC C - Lignes de besoin */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  C
+                </span>
+                Lignes de besoin
+              </CardTitle>
+              <CardDescription>Détaillez chaque article ou service nécessaire</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BesoinLignesTable lignes={lignes} onChange={setLignes} />
+            </CardContent>
+          </Card>
+
+          {/* BLOC D - Contraintes logistiques */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  D
+                </span>
+                Contraintes logistiques
+              </CardTitle>
+              <CardDescription>Informations complémentaires pour le traitement</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Fournisseur imposé */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="fournisseur_impose"
+                    checked={fournisseurImpose}
+                    onCheckedChange={(v) => setFournisseurImpose(v === true)}
+                  />
+                  <Label htmlFor="fournisseur_impose" className="cursor-pointer">
+                    Fournisseur imposé
+                  </Label>
+                </div>
+                {fournisseurImpose && (
+                  <div className="ml-6 grid gap-3 sm:grid-cols-2">
+                    <Input
+                      placeholder="Nom du fournisseur"
+                      value={fournisseurNom}
+                      onChange={(e) => setFournisseurNom(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Contact (tél, email...)"
+                      value={fournisseurContact}
+                      onChange={(e) => setFournisseurContact(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Date souhaitée et lieu */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="date_souhaitee">Date souhaitée</Label>
+                  <Input
+                    id="date_souhaitee"
                     type="date"
-                    value={form.desired_date}
-                    onChange={(e) => setForm({ ...form, desired_date: e.target.value })}
+                    value={dateSouhaitee}
+                    onChange={(e) => setDateSouhaitee(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lieu_livraison">Lieu de livraison / exécution</Label>
+                  <Input
+                    id="lieu_livraison"
+                    placeholder="Ex: Bureau DG, Chantier Zone A..."
+                    value={lieuLivraison}
+                    onChange={(e) => setLieuLivraison(e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Pièce jointe */}
-              <div className="space-y-2">
-                <Label htmlFor="attachment">Pièce jointe (optionnel)</Label>
-                {!attachment ? (
-                  <div className="relative">
-                    <input
-                      id="attachment"
-                      type="file"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              {/* Options véhicule et avance */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="besoin_vehicule"
+                    checked={besoinVehicule}
+                    onCheckedChange={(v) => setBesoinVehicule(v === true)}
+                  />
+                  <Label htmlFor="besoin_vehicule" className="cursor-pointer">
+                    Besoin de véhicule
+                  </Label>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="besoin_avance"
+                      checked={besoinAvanceCaisse}
+                      onCheckedChange={(v) => setBesoinAvanceCaisse(v === true)}
                     />
-                    <div className="flex items-center justify-center gap-2 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 hover:border-primary/50 transition-colors cursor-pointer">
-                      <Upload className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Cliquez pour ajouter un fichier (max 10 Mo)
-                      </span>
-                    </div>
+                    <Label htmlFor="besoin_avance" className="cursor-pointer">
+                      Besoin d'avance de caisse
+                    </Label>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-3">
-                    <Paperclip className="h-4 w-4 text-primary" />
-                    <span className="flex-1 text-sm truncate">{attachment.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {(attachment.size / 1024).toFixed(0)} Ko
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={removeAttachment}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Formats acceptés : PDF, Word, Excel, Images (PNG, JPG)
-                </p>
+                  {besoinAvanceCaisse && (
+                    <Input
+                      type="number"
+                      placeholder="Montant estimatif (non engageant)"
+                      value={avanceCaisseMontant}
+                      onChange={(e) => setAvanceCaisseMontant(e.target.value)}
+                      className="ml-6"
+                    />
+                  )}
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Urgence critique warning */}
-              {form.urgency === 'critique' && (
+          {/* BLOC E - Pièces jointes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  E
+                </span>
+                Pièces jointes
+              </CardTitle>
+              <CardDescription>Images, devis, captures d'écran, documents PDF</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BesoinAttachmentsUpload attachments={attachments} onChange={setAttachments} />
+            </CardContent>
+          </Card>
+
+          {/* BLOC F - Validation & Engagement */}
+          <Card className={hasCriticalLine ? 'border-destructive/50' : ''}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  F
+                </span>
+                Validation & Engagement
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {hasCriticalLine && (
                 <Card className="border-destructive/50 bg-destructive/5">
                   <CardContent className="flex items-start gap-3 py-3">
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
                     <p className="text-sm text-destructive">
-                      <strong>Attention :</strong> Les besoins critiques doivent être exceptionnels. 
-                      Un usage abusif peut entraîner un rejet systématique.
+                      <strong>Attention :</strong> Ce besoin contient une ou plusieurs lignes marquées comme "Critiques". 
+                      Un usage abusif de ce niveau peut entraîner un rejet systématique.
                     </p>
                   </CardContent>
                 </Card>
               )}
+
+              <div className="flex items-start space-x-3 rounded-md border p-4">
+                <Checkbox
+                  id="confirmation"
+                  checked={confirmationEngagement}
+                  onCheckedChange={(v) => setConfirmationEngagement(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="confirmation" className="cursor-pointer font-medium">
+                    Je confirme que ce besoin est exact et exploitable par la logistique
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    En cochant cette case, vous attestez que les informations fournies sont complètes et sincères.
+                  </p>
+                </div>
+              </div>
 
               {/* Actions */}
               <div className="flex gap-3 pt-4">
@@ -448,13 +641,24 @@ export default function BesoinCreate() {
                     Annuler
                   </Button>
                 </Link>
-                <Button type="submit" disabled={isSubmitting || isUploading} className="flex-1 sm:flex-none">
-                  {isUploading ? 'Upload du fichier...' : isSubmitting ? 'Envoi en cours...' : 'Soumettre le besoin'}
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !confirmationEngagement}
+                  className="flex-1 sm:flex-none"
+                >
+                  {isSubmitting ? (
+                    'Envoi en cours...'
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Soumettre le besoin
+                    </>
+                  )}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </form>
       </div>
     </AppLayout>
   );

@@ -106,11 +106,41 @@ export const STATUS_LABELS: Record<UserStatus, string> = {
 
 // ==================== MODULE BESOIN ====================
 
+// Types de besoin (Bloc A)
+export type BesoinTypeEnum = 'achat' | 'transport' | 'service' | 'reparation' | 'location';
+
+// Catégorie des lignes (Bloc C)
+export type BesoinLigneCategory = 'materiel' | 'service' | 'transport' | 'autre';
+
+// Legacy types (pour compatibilité)
 export type BesoinCategory = 'materiel' | 'service' | 'maintenance' | 'urgence' | 'autre';
 export type BesoinUrgency = 'normale' | 'urgente' | 'critique';
 export type BesoinStatus = 'cree' | 'pris_en_charge' | 'accepte' | 'refuse';
-
 export type BesoinType = 'article' | 'service';
+
+// Interface Ligne de Besoin (Bloc C)
+export interface BesoinLigne {
+  id: string;
+  besoin_id: string;
+  designation: string;
+  category: BesoinLigneCategory;
+  unit: string;
+  quantity: number;
+  urgency: BesoinUrgency;
+  justification: string | null;
+  created_at: string;
+}
+
+// Interface Pièce Jointe Besoin (Bloc E)
+export interface BesoinAttachment {
+  id: string;
+  besoin_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+  created_at: string;
+}
 
 export interface Besoin {
   id: string;
@@ -121,6 +151,7 @@ export interface Besoin {
   category: BesoinCategory;
   urgency: BesoinUrgency;
   desired_date: string | null;
+  // Legacy single attachment (pour compatibilité)
   attachment_url: string | null;
   attachment_name: string | null;
   status: BesoinStatus;
@@ -135,6 +166,18 @@ export interface Besoin {
   unit: string;
   technical_specs: string | null;
   intended_usage: string | null;
+  // Nouveaux champs Bloc A-D
+  site_projet: string | null;
+  objet_besoin: string | null;
+  fournisseur_impose: boolean;
+  fournisseur_impose_nom: string | null;
+  fournisseur_impose_contact: string | null;
+  lieu_livraison: string | null;
+  besoin_vehicule: boolean;
+  besoin_avance_caisse: boolean;
+  avance_caisse_montant: number | null;
+  confirmation_engagement: boolean;
+  return_comment: string | null;
   created_at: string;
   updated_at: string;
   // Relations (partial types for joins)
@@ -142,8 +185,29 @@ export interface Besoin {
   user?: { id: string; first_name: string | null; last_name: string | null; email: string } | null;
   taken_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   decided_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  // Nouvelles relations
+  lignes?: BesoinLigne[];
+  attachments?: BesoinAttachment[];
 }
 
+// Labels pour le nouveau type de besoin
+export const BESOIN_TYPE_ENUM_LABELS: Record<BesoinTypeEnum, string> = {
+  achat: 'Achat',
+  transport: 'Transport',
+  service: 'Service',
+  reparation: 'Réparation',
+  location: 'Location',
+};
+
+// Labels pour la catégorie des lignes
+export const BESOIN_LIGNE_CATEGORY_LABELS: Record<BesoinLigneCategory, string> = {
+  materiel: 'Matériel',
+  service: 'Service',
+  transport: 'Transport',
+  autre: 'Autre',
+};
+
+// Legacy labels (pour compatibilité)
 export const BESOIN_TYPE_LABELS: Record<BesoinType, string> = {
   article: 'Article',
   service: 'Service',
@@ -169,9 +233,9 @@ export const BESOIN_CATEGORY_LABELS: Record<BesoinCategory, string> = {
 };
 
 export const BESOIN_URGENCY_LABELS: Record<BesoinUrgency, string> = {
-  normale: 'Normale',
-  urgente: 'Urgente',
-  critique: 'Critique',
+  normale: 'Normale (standard)',
+  urgente: 'Urgente (48h)',
+  critique: 'Critique (immédiat)',
 };
 
 export const BESOIN_STATUS_LABELS: Record<BesoinStatus, string> = {
@@ -180,6 +244,24 @@ export const BESOIN_STATUS_LABELS: Record<BesoinStatus, string> = {
   accepte: 'Accepté',
   refuse: 'Refusé',
 };
+
+// Objets interdits dans le champ objet_besoin
+export const OBJETS_INTERDITS = [
+  'besoin urgent',
+  'transport',
+  'dépense',
+  'depense',
+  'achat',
+  'urgent',
+];
+
+// Exemples pour le placeholder objet_besoin
+export const OBJET_BESOIN_EXEMPLES = [
+  'Achat de câbles RJ45 Cat6 pour installation UIPA',
+  'Transport du personnel pour achat de matériel',
+  'Réparation climatisation bureau DG',
+  'Location véhicule pour mission terrain',
+];
 
 // Rôles autorisés à créer des besoins
 export const ROLES_CAN_CREATE_BESOIN: AppRole[] = [
