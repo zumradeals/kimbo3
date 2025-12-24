@@ -108,22 +108,11 @@ export default function AuditLogs() {
           .rpc('get_public_profiles', { _user_ids: userIds });
 
         if (!profilesError && profilesData) {
-          // Also fetch emails from profiles table for current user (will get own profile at least)
-          const { data: emailsData } = await supabase
-            .from('profiles')
-            .select('id, email')
-            .in('id', userIds);
-          
-          const emailsMap: Record<string, string> = {};
-          if (emailsData) {
-            emailsData.forEach(p => { emailsMap[p.id] = p.email; });
-          }
-
-          profilesData.forEach((p: { id: string; first_name: string | null; last_name: string | null }) => {
+          profilesData.forEach((p: { id: string; first_name: string | null; last_name: string | null; email: string }) => {
             profilesMap[p.id] = {
               first_name: p.first_name,
               last_name: p.last_name,
-              email: emailsMap[p.id] || '',
+              email: p.email || '',
             };
           });
         }
