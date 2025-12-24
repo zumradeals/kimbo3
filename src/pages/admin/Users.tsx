@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus } from '@/types/kpm';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Mail, Key } from 'lucide-react';
 
 const ALL_ROLES: AppRole[] = [
   'admin', 'dg', 'daf', 'comptable', 'responsable_logistique',
@@ -89,6 +89,15 @@ export default function AdminUsers() {
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Admin actions modal
+  const [showAdminActionModal, setShowAdminActionModal] = useState(false);
+  const [adminActionUser, setAdminActionUser] = useState<UserWithRoles | null>(null);
+  const [adminActionType, setAdminActionType] = useState<'email' | 'password'>('email');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [adminActionReason, setAdminActionReason] = useState('');
+  const [isAdminActing, setIsAdminActing] = useState(false);
+
   const handleDelete = async () => {
     if (!userToDelete) return;
     
@@ -99,31 +108,61 @@ export default function AdminUsers() {
         body: { user_id: userToDelete.id },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data.success) throw new Error(response.data.error || 'Erreur lors de la suppression');
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Erreur lors de la suppression');
-      }
-
-      toast({
-        title: 'Utilisateur supprimé',
-        description: `${userToDelete.first_name} ${userToDelete.last_name} a été supprimé.`,
-      });
-
+      toast({ title: 'Utilisateur supprimé', description: `${userToDelete.first_name} ${userToDelete.last_name} a été supprimé.` });
       setUserToDelete(null);
       fetchData();
     } catch (error: any) {
-      console.error('Error deleting user:', error);
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de supprimer l\'utilisateur.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleAdminAction = async () => {
+    if (!adminActionUser || !adminActionReason.trim()) return;
+    setIsAdminActing(true);
+
+    try {
+      const body: any = { user_id: adminActionUser.id, reason: adminActionReason.trim() };
+      if (adminActionType === 'email' && newEmail) body.email = newEmail;
+      if (adminActionType === 'password' && newPassword) body.password = newPassword;
+
+      const response = await supabase.functions.invoke('admin-update-user', { body });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data.success) throw new Error(response.data.error || 'Erreur');
+
+      toast({ 
+        title: adminActionType === 'email' ? 'Email modifié' : 'Mot de passe réinitialisé',
+        description: `Action effectuée pour ${adminActionUser.first_name} ${adminActionUser.last_name}.`
+      });
+      closeAdminActionModal();
+      fetchData();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsAdminActing(false);
+    }
+  };
+
+  const openAdminActionModal = (userToEdit: UserWithRoles, type: 'email' | 'password') => {
+    setAdminActionUser(userToEdit);
+    setAdminActionType(type);
+    setNewEmail(type === 'email' ? userToEdit.email : '');
+    setNewPassword('');
+    setAdminActionReason('');
+    setShowAdminActionModal(true);
+  };
+
+  const closeAdminActionModal = () => {
+    setShowAdminActionModal(false);
+    setAdminActionUser(null);
+    setNewEmail('');
+    setNewPassword('');
+    setAdminActionReason('');
   };
 
   const fetchData = async () => {
@@ -452,12 +491,14 @@ export default function AdminUsers() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditModal(u)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => openEditModal(u)}>
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openAdminActionModal(u, 'email')} disabled={u.id === user?.id}>
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openAdminActionModal(u, 'password')}>
+                              <Key className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
