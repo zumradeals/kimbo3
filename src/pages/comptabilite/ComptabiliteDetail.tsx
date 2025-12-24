@@ -107,12 +107,6 @@ export default function ComptabiliteDetail() {
         .select(`
           *,
           department:departments(id, name),
-          created_by_profile:profiles!demandes_achat_created_by_fkey(id, first_name, last_name),
-          analyzed_by_profile:profiles!demandes_achat_analyzed_by_fkey(id, first_name, last_name),
-          priced_by_profile:profiles!demandes_achat_priced_by_fkey(id, first_name, last_name),
-          submitted_validation_by_profile:profiles!demandes_achat_submitted_validation_by_fkey(id, first_name, last_name),
-          validated_finance_by_profile:profiles!demandes_achat_validated_finance_by_fkey(id, first_name, last_name),
-          comptabilise_by_profile:profiles!demandes_achat_comptabilise_by_fkey(id, first_name, last_name),
           selected_fournisseur:fournisseurs(id, name, address, phone, email),
           besoin:besoins(id, title, user_id)
         `)
@@ -131,7 +125,41 @@ export default function ComptabiliteDetail() {
         return;
       }
 
-      setDA(data as unknown as DemandeAchat);
+      // Collect all actor IDs
+      const actorIds = [
+        data.created_by,
+        data.analyzed_by,
+        data.priced_by,
+        data.submitted_validation_by,
+        data.validated_finance_by,
+        data.comptabilise_by,
+      ].filter(Boolean) as string[];
+
+      // Fetch profiles using the security definer function (bypasses RLS)
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+        _user_ids: actorIds
+      });
+
+      const profilesById: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      (profilesData || []).forEach((p: any) => {
+        profilesById[p.id] = {
+          first_name: p.first_name,
+          last_name: p.last_name,
+        };
+      });
+
+      // Enrich DA with profile data
+      const enrichedDA = {
+        ...data,
+        created_by_profile: profilesById[data.created_by] || null,
+        analyzed_by_profile: data.analyzed_by ? profilesById[data.analyzed_by] || null : null,
+        priced_by_profile: data.priced_by ? profilesById[data.priced_by] || null : null,
+        submitted_validation_by_profile: data.submitted_validation_by ? profilesById[data.submitted_validation_by] || null : null,
+        validated_finance_by_profile: data.validated_finance_by ? profilesById[data.validated_finance_by] || null : null,
+        comptabilise_by_profile: data.comptabilise_by ? profilesById[data.comptabilise_by] || null : null,
+      };
+
+      setDA(enrichedDA as unknown as DemandeAchat);
       
       // Pré-remplir le formulaire si déjà enregistré
       if (data.syscohada_classe) {

@@ -122,9 +122,6 @@ export default function BLDetail() {
         .select(`
           *,
           department:departments(id, name),
-          created_by_profile:profiles!bons_livraison_created_by_fkey(id, first_name, last_name),
-          validated_by_profile:profiles!bons_livraison_validated_by_fkey(id, first_name, last_name),
-          delivered_by_profile:profiles!bons_livraison_delivered_by_fkey(id, first_name, last_name),
           besoin:besoins(id, title)
         `)
         .eq('id', id)
@@ -136,7 +133,37 @@ export default function BLDetail() {
         return;
       }
 
-      setBL(data as BonLivraison);
+      // Collect all actor IDs
+      const actorIds = [
+        data.created_by,
+        data.validated_by,
+        data.delivered_by,
+        data.rejected_by,
+      ].filter(Boolean) as string[];
+
+      // Fetch profiles using the security definer function (bypasses RLS)
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+        _user_ids: actorIds
+      });
+
+      const profilesById: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      (profilesData || []).forEach((p: any) => {
+        profilesById[p.id] = {
+          first_name: p.first_name,
+          last_name: p.last_name,
+        };
+      });
+
+      // Enrich BL with profile data
+      const enrichedBL = {
+        ...data,
+        created_by_profile: profilesById[data.created_by] || null,
+        validated_by_profile: data.validated_by ? profilesById[data.validated_by] || null : null,
+        delivered_by_profile: data.delivered_by ? profilesById[data.delivered_by] || null : null,
+        rejected_by_profile: data.rejected_by ? profilesById[data.rejected_by] || null : null,
+      };
+
+      setBL(enrichedBL as BonLivraison);
     } catch (error: any) {
       console.error('Error:', error);
     } finally {

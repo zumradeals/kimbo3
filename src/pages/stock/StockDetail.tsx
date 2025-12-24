@@ -177,17 +177,38 @@ export default function StockDetail() {
     try {
       const { data, error } = await supabase
         .from('stock_movements')
-        .select(`
-          *,
-          created_by_profile:profiles!stock_movements_created_by_fkey(id, first_name, last_name)
-        `)
+        .select('*')
         .eq('article_stock_id', id)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
 
-      const mvts = (data as StockMovement[]) || [];
+      const rawMvts = data || [];
+      
+      // Collect all actor IDs
+      const actorIds = rawMvts.map(m => m.created_by).filter(Boolean) as string[];
+      
+      // Fetch profiles using the security definer function (bypasses RLS)
+      let profilesById: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      if (actorIds.length > 0) {
+        const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+          _user_ids: [...new Set(actorIds)] // dedupe
+        });
+        (profilesData || []).forEach((p: any) => {
+          profilesById[p.id] = {
+            first_name: p.first_name,
+            last_name: p.last_name,
+          };
+        });
+      }
+
+      // Enrich movements with profile data
+      const mvts = rawMvts.map(m => ({
+        ...m,
+        created_by_profile: m.created_by ? profilesById[m.created_by] || null : null,
+      })) as StockMovement[];
+      
       setMovements(mvts);
 
       // Build chart data from movements (reverse to get chronological order)
