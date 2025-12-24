@@ -1270,6 +1270,7 @@ export type Database = {
         Args: { _user_ids: string[] }
         Returns: {
           department_name: string
+          email: string
           first_name: string
           id: string
           last_name: string
