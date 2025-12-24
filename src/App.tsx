@@ -146,18 +146,20 @@ function AppRoutes() {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+}
 
 export default App;
