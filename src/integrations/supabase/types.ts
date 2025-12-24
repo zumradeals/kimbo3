@@ -1656,6 +1656,7 @@ export type Database = {
         | "service"
         | "reparation"
         | "location"
+        | "main_oeuvre"
       besoin_urgency: "normale" | "urgente" | "critique"
       bl_status:
         | "prepare"
@@ -1853,6 +1854,7 @@ export const Constants = {
         "service",
         "reparation",
         "location",
+        "main_oeuvre",
       ],
       besoin_urgency: ["normale", "urgente", "critique"],
       bl_status: [

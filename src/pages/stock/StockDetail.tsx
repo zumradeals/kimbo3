@@ -124,6 +124,7 @@ const STOCK_UNITS = [
   { value: 'sac', label: 'Sac' },
   { value: 'bidon', label: 'Bidon' },
   { value: 'paquet', label: 'Paquet' },
+  { value: 'paquets', label: 'Paquets' },
   { value: 'lot', label: 'Lot' },
 ];
 
