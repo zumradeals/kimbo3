@@ -135,7 +135,7 @@ export const PROJET_STATUS_LABELS: Record<ProjetStatus, string> = {
 // ==================== MODULE BESOIN ====================
 
 // Types de besoin (Bloc A)
-export type BesoinTypeEnum = 'achat' | 'transport' | 'service' | 'reparation' | 'location';
+export type BesoinTypeEnum = 'achat' | 'transport' | 'service' | 'reparation' | 'location' | 'main_oeuvre';
 
 // Catégorie des lignes (Bloc C)
 export type BesoinLigneCategory = 'materiel' | 'service' | 'transport' | 'autre';
@@ -232,6 +232,7 @@ export const BESOIN_TYPE_ENUM_LABELS: Record<BesoinTypeEnum, string> = {
   service: 'Service',
   reparation: 'Réparation',
   location: 'Location',
+  main_oeuvre: 'Main d\'oeuvres',
 };
 
 // Labels pour la catégorie des lignes
