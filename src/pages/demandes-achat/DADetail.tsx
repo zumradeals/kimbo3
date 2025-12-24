@@ -217,25 +217,47 @@ export default function DADetail() {
         rolesByUser[r.user_id].push(r.role);
       });
 
+      // Helper to extract profile data correctly (handles both object and array returns from Supabase)
+      const extractProfile = (profile: any) => {
+        if (!profile) return null;
+        // Supabase may return array for some joins
+        const p = Array.isArray(profile) ? profile[0] : profile;
+        return p ? { first_name: p.first_name, last_name: p.last_name } : null;
+      };
+
+      const extractDepartment = (profile: any) => {
+        if (!profile) return null;
+        const p = Array.isArray(profile) ? profile[0] : profile;
+        return p?.department?.name || null;
+      };
+
       // Enrich DA with roles and department info for timeline
       const enrichedDA = {
         ...data,
+        created_by_profile: extractProfile(data.created_by_profile),
         created_by_roles: rolesByUser[data.created_by] || [],
-        created_by_department: (data.created_by_profile as any)?.department?.name,
+        created_by_department: extractDepartment(data.created_by_profile),
+        rejected_by_profile: extractProfile(data.rejected_by_profile),
         rejected_by_roles: data.rejected_by ? rolesByUser[data.rejected_by] || [] : [],
-        rejected_by_department: (data.rejected_by_profile as any)?.department?.name,
+        rejected_by_department: extractDepartment(data.rejected_by_profile),
+        analyzed_by_profile: extractProfile(data.analyzed_by_profile),
         analyzed_by_roles: data.analyzed_by ? rolesByUser[data.analyzed_by] || [] : [],
-        analyzed_by_department: (data.analyzed_by_profile as any)?.department?.name,
+        analyzed_by_department: extractDepartment(data.analyzed_by_profile),
+        priced_by_profile: extractProfile(data.priced_by_profile),
         priced_by_roles: data.priced_by ? rolesByUser[data.priced_by] || [] : [],
-        priced_by_department: (data.priced_by_profile as any)?.department?.name,
+        priced_by_department: extractDepartment(data.priced_by_profile),
+        submitted_validation_by_profile: extractProfile(data.submitted_validation_by_profile),
         submitted_validation_by_roles: data.submitted_validation_by ? rolesByUser[data.submitted_validation_by] || [] : [],
-        submitted_validation_by_department: (data.submitted_validation_by_profile as any)?.department?.name,
+        submitted_validation_by_department: extractDepartment(data.submitted_validation_by_profile),
+        validated_finance_by_profile: extractProfile(data.validated_finance_by_profile),
         validated_finance_by_roles: data.validated_finance_by ? rolesByUser[data.validated_finance_by] || [] : [],
-        validated_finance_by_department: (data.validated_finance_by_profile as any)?.department?.name,
+        validated_finance_by_department: extractDepartment(data.validated_finance_by_profile),
+        revision_requested_by_profile: extractProfile(data.revision_requested_by_profile),
         revision_requested_by_roles: data.revision_requested_by ? rolesByUser[data.revision_requested_by] || [] : [],
-        revision_requested_by_department: (data.revision_requested_by_profile as any)?.department?.name,
+        revision_requested_by_department: extractDepartment(data.revision_requested_by_profile),
+        comptabilise_by_profile: extractProfile(data.comptabilise_by_profile),
         comptabilise_by_roles: data.comptabilise_by ? rolesByUser[data.comptabilise_by] || [] : [],
-        comptabilise_by_department: (data.comptabilise_by_profile as any)?.department?.name,
+        comptabilise_by_department: extractDepartment(data.comptabilise_by_profile),
       };
 
       setDA(enrichedDA as unknown as DemandeAchat);
