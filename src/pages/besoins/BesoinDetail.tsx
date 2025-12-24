@@ -10,13 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -37,11 +30,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   Besoin,
-  BesoinCategory,
-  BesoinUrgency,
-  BESOIN_CATEGORY_LABELS,
+  BesoinLigne,
+  BesoinAttachment,
   BESOIN_URGENCY_LABELS,
   BESOIN_STATUS_LABELS,
+  BESOIN_LIGNE_CATEGORY_LABELS,
+  BESOIN_TYPE_ENUM_LABELS,
+  BesoinTypeEnum,
 } from '@/types/kpm';
 import {
   ArrowLeft,
@@ -57,12 +52,21 @@ import {
   FileText,
   Package,
   FolderOpen,
-  Paperclip,
+  MessageSquareWarning,
+  MapPin,
+  Truck,
+  Wallet,
+  Building2,
+  Calendar,
+  User,
+  FileImage,
+  File,
   Download,
   ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
 
 const statusColors: Record<string, string> = {
   cree: 'bg-muted text-muted-foreground',
@@ -78,28 +82,26 @@ const statusIcons: Record<string, React.ElementType> = {
   refuse: XCircle,
 };
 
+interface BesoinWithRelations extends Besoin {
+  lignes?: BesoinLigne[];
+  attachments?: BesoinAttachment[];
+}
+
 export default function BesoinDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
   const { toast } = useToast();
 
-  const [besoin, setBesoin] = useState<Besoin | null>(null);
+  const [besoin, setBesoin] = useState<BesoinWithRelations | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [returnComment, setReturnComment] = useState('');
   const [canTransform, setCanTransform] = useState(false);
-
-  const [editForm, setEditForm] = useState({
-    title: '',
-    description: '',
-    category: '' as BesoinCategory,
-    urgency: 'normale' as BesoinUrgency,
-    desired_date: '',
-  });
 
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
   const isDG = roles.includes('dg');
@@ -127,6 +129,7 @@ export default function BesoinDetail() {
 
   const fetchBesoin = async () => {
     try {
+      // Fetch besoin with relations
       const { data, error } = await supabase
         .from('besoins')
         .select(`
@@ -139,59 +142,35 @@ export default function BesoinDetail() {
         .eq('id', id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error:', error);
+      if (error || !data) {
         toast({ title: 'Erreur', description: 'Besoin introuvable.', variant: 'destructive' });
         navigate('/besoins');
         return;
       }
 
-      if (!data) {
-        toast({ title: 'Erreur', description: 'Besoin introuvable.', variant: 'destructive' });
-        navigate('/besoins');
-        return;
-      }
+      // Fetch lignes
+      const { data: lignesData } = await supabase
+        .from('besoin_lignes')
+        .select('*')
+        .eq('besoin_id', id)
+        .order('created_at', { ascending: true });
 
-      setBesoin(data as Besoin);
-      setEditForm({
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        urgency: data.urgency,
-        desired_date: data.desired_date || '',
-      });
+      // Fetch attachments
+      const { data: attachmentsData } = await supabase
+        .from('besoin_attachments')
+        .select('*')
+        .eq('besoin_id', id)
+        .order('created_at', { ascending: true });
+
+      setBesoin({
+        ...data,
+        lignes: lignesData || [],
+        attachments: attachmentsData || [],
+      } as BesoinWithRelations);
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!besoin) return;
-    setIsSaving(true);
-
-    try {
-      const { error } = await supabase
-        .from('besoins')
-        .update({
-          title: editForm.title.trim(),
-          description: editForm.description.trim(),
-          category: editForm.category,
-          urgency: editForm.urgency,
-          desired_date: editForm.desired_date || null,
-        })
-        .eq('id', besoin.id);
-
-      if (error) throw error;
-
-      toast({ title: 'Besoin modifié', description: 'Les modifications ont été enregistrées.' });
-      setIsEditing(false);
-      fetchBesoin();
-    } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -236,7 +215,7 @@ export default function BesoinDetail() {
 
       if (error) throw error;
 
-      toast({ title: 'Besoin accepté', description: 'Ce besoin peut désormais faire l\'objet d\'une Demande d\'Achat.' });
+      toast({ title: 'Besoin accepté', description: 'Ce besoin peut désormais être transformé en DA ou BL.' });
       fetchBesoin();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -272,6 +251,38 @@ export default function BesoinDetail() {
     }
   };
 
+  // Nouvelle fonction: Retourner le besoin (mal formulé)
+  const handleReturn = async () => {
+    if (!besoin || !returnComment.trim()) return;
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('besoins')
+        .update({
+          status: 'refuse',
+          rejection_reason: `⚠️ BESOIN MAL FORMULÉ - À corriger\n\n${returnComment.trim()}`,
+          return_comment: returnComment.trim(),
+          decided_by: user?.id,
+          decided_at: new Date().toISOString(),
+        })
+        .eq('id', besoin.id);
+
+      if (error) throw error;
+
+      toast({ 
+        title: 'Besoin retourné au demandeur', 
+        description: 'Le demandeur a été notifié et devra soumettre un nouveau besoin corrigé.' 
+      });
+      setShowReturnDialog(false);
+      fetchBesoin();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!besoin) return;
     setIsSaving(true);
@@ -293,6 +304,20 @@ export default function BesoinDetail() {
     }
   };
 
+  const getFileIcon = (type: string | null) => {
+    if (!type) return File;
+    if (type.startsWith('image/')) return FileImage;
+    if (type === 'application/pdf') return FileText;
+    return File;
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -306,10 +331,22 @@ export default function BesoinDetail() {
   if (!besoin) return null;
 
   const StatusIcon = statusIcons[besoin.status];
+  const isReturnedBesoin = besoin.return_comment || besoin.rejection_reason?.includes('BESOIN MAL FORMULÉ');
+
+  // Transform lignes to the format expected by BesoinLignesTable
+  const lignesForDisplay = (besoin.lignes || []).map(l => ({
+    id: l.id,
+    designation: l.designation,
+    category: l.category,
+    unit: l.unit,
+    quantity: l.quantity,
+    urgency: l.urgency,
+    justification: l.justification || '',
+  }));
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -321,7 +358,7 @@ export default function BesoinDetail() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="font-serif text-2xl font-bold text-foreground">
-                  {besoin.title}
+                  {besoin.objet_besoin || besoin.title}
                 </h1>
                 <Badge className={statusColors[besoin.status]}>
                   <StatusIcon className="mr-1 h-3 w-3" />
@@ -338,15 +375,9 @@ export default function BesoinDetail() {
             <Link to={`/besoins/${id}/dossier`}>
               <Button variant="outline" size="sm">
                 <FolderOpen className="mr-2 h-4 w-4" />
-                Dossier complet
+                Dossier
               </Button>
             </Link>
-            {canEdit && !isEditing && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Modifier
-              </Button>
-            )}
             {canDelete && (
               <Button
                 variant="outline"
@@ -361,20 +392,26 @@ export default function BesoinDetail() {
           </div>
         </div>
 
-        {/* Rejection reason */}
+        {/* Rejection/Return reason */}
         {besoin.status === 'refuse' && besoin.rejection_reason && (
-          <Card className="border-destructive/50 bg-destructive/5">
+          <Card className={`${isReturnedBesoin ? 'border-warning/50 bg-warning/5' : 'border-destructive/50 bg-destructive/5'}`}>
             <CardContent className="flex items-start gap-3 py-4">
-              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              {isReturnedBesoin ? (
+                <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+              ) : (
+                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              )}
               <div>
-                <p className="font-medium text-destructive">Motif du refus</p>
-                <p className="text-sm text-foreground">{besoin.rejection_reason}</p>
+                <p className={`font-medium ${isReturnedBesoin ? 'text-warning' : 'text-destructive'}`}>
+                  {isReturnedBesoin ? 'Besoin à corriger' : 'Motif du refus'}
+                </p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{besoin.rejection_reason}</p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Logistics actions */}
+        {/* Logistics actions - Créé */}
         {canManage && besoin.status === 'cree' && (
           <Card className="border-warning/50 bg-warning/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -392,16 +429,26 @@ export default function BesoinDetail() {
           </Card>
         )}
 
+        {/* Logistics actions - Pris en charge */}
         {canManage && besoin.status === 'pris_en_charge' && (
           <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardContent className="py-4 space-y-4">
               <div>
                 <p className="font-medium text-foreground">Décision requise</p>
                 <p className="text-sm text-muted-foreground">
-                  Accepter ce besoin pour transformation en Demande d'Achat, ou le refuser.
+                  Accepter ce besoin pour transformation, le refuser, ou le retourner au demandeur si mal formulé.
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="text-warning hover:bg-warning/10 border-warning/50"
+                  onClick={() => setShowReturnDialog(true)}
+                  disabled={isSaving}
+                >
+                  <MessageSquareWarning className="mr-2 h-4 w-4" />
+                  Besoin mal formulé
+                </Button>
                 <Button
                   variant="outline"
                   className="text-destructive hover:bg-destructive/10"
@@ -425,9 +472,9 @@ export default function BesoinDetail() {
           <Card className="border-success/50 bg-success/5">
             <CardContent className="py-4">
               <div className="mb-3">
-                <p className="font-medium text-foreground">Transformation requise</p>
+                <p className="font-medium text-foreground">Conversion requise</p>
                 <p className="text-sm text-muted-foreground">
-                  Ce besoin a été accepté. Choisissez comment le traiter :
+                  Ce besoin a été accepté. Convertissez-le en DA ou BL.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -435,7 +482,7 @@ export default function BesoinDetail() {
                   <Button variant="outline" className="w-full justify-start">
                     <FileText className="mr-2 h-4 w-4" />
                     <div className="text-left">
-                      <p className="font-medium">Transformer en DA</p>
+                      <p className="font-medium">Convertir en DA</p>
                       <p className="text-xs text-muted-foreground">Achat requis auprès d'un fournisseur</p>
                     </div>
                   </Button>
@@ -444,7 +491,7 @@ export default function BesoinDetail() {
                   <Button variant="outline" className="w-full justify-start">
                     <Package className="mr-2 h-4 w-4" />
                     <div className="text-left">
-                      <p className="font-medium">Transformer en BL</p>
+                      <p className="font-medium">Convertir en BL</p>
                       <p className="text-xs text-muted-foreground">Livraison depuis le stock existant</p>
                     </div>
                   </Button>
@@ -467,179 +514,171 @@ export default function BesoinDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Identité du besoin */}
         <Card>
           <CardHeader>
-            <CardTitle>Détails du besoin</CardTitle>
+            <CardTitle>Identité du besoin</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {isEditing ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Titre</Label>
-                  <Input
-                    value={editForm.title}
-                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    rows={5}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Catégorie</Label>
-                    <Select
-                      value={editForm.category}
-                      onValueChange={(v) => setEditForm({ ...editForm, category: v as BesoinCategory })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(BESOIN_CATEGORY_LABELS) as BesoinCategory[]).map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {BESOIN_CATEGORY_LABELS[cat]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Urgence</Label>
-                    <Select
-                      value={editForm.urgency}
-                      onValueChange={(v) => setEditForm({ ...editForm, urgency: v as BesoinUrgency })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(BESOIN_URGENCY_LABELS) as BesoinUrgency[]).map((urg) => (
-                          <SelectItem key={urg} value={urg}>
-                            {BESOIN_URGENCY_LABELS[urg]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Date souhaitée</Label>
-                  <Input
-                    type="date"
-                    value={editForm.desired_date}
-                    onChange={(e) => setEditForm({ ...editForm, desired_date: e.target.value })}
-                  />
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                    Annuler
-                  </Button>
-                  <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? 'Enregistrement...' : 'Enregistrer'}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Département</p>
-                    <p className="font-medium">{besoin.department?.name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Créé par</p>
-                    <p className="font-medium">
-                      {besoin.user?.first_name} {besoin.user?.last_name}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Catégorie</p>
-                    <Badge variant="outline">{BESOIN_CATEGORY_LABELS[besoin.category]}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Urgence</p>
-                    <Badge
-                      className={
-                        besoin.urgency === 'critique'
-                          ? 'bg-destructive/10 text-destructive'
-                          : besoin.urgency === 'urgente'
-                          ? 'bg-warning/10 text-warning'
-                          : 'bg-muted text-muted-foreground'
-                      }
-                    >
-                      {BESOIN_URGENCY_LABELS[besoin.urgency]}
-                    </Badge>
-                  </div>
-                  {besoin.desired_date && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Date souhaitée</p>
-                      <p className="font-medium">
-                        {format(new Date(besoin.desired_date), 'dd MMMM yyyy', { locale: fr })}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex items-start gap-3">
+                <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="mb-2 text-sm text-muted-foreground">Description</p>
-                  <p className="whitespace-pre-wrap text-foreground">{besoin.description}</p>
+                  <p className="text-sm text-muted-foreground">Demandeur</p>
+                  <p className="font-medium">
+                    {besoin.user?.first_name} {besoin.user?.last_name}
+                  </p>
                 </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Département</p>
+                  <p className="font-medium">{besoin.department?.name || 'N/A'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Site / Projet</p>
+                  <p className="font-medium">{besoin.site_projet || besoin.intended_usage || 'Non spécifié'}</p>
+                </div>
+              </div>
+              {besoin.desired_date && (
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date souhaitée</p>
+                    <p className="font-medium">
+                      {format(new Date(besoin.desired_date), 'dd MMMM yyyy', { locale: fr })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {besoin.lieu_livraison && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Lieu de livraison</p>
+                    <p className="font-medium">{besoin.lieu_livraison}</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
+            {/* Contraintes */}
+            <div className="flex flex-wrap gap-2 pt-2">
+              {besoin.fournisseur_impose && (
+                <Badge variant="outline" className="bg-muted">
+                  Fournisseur imposé: {besoin.fournisseur_impose_nom}
+                </Badge>
+              )}
+              {besoin.besoin_vehicule && (
+                <Badge variant="outline" className="bg-muted">
+                  <Truck className="mr-1 h-3 w-3" />
+                  Véhicule requis
+                </Badge>
+              )}
+              {besoin.besoin_avance_caisse && (
+                <Badge variant="outline" className="bg-muted">
+                  <Wallet className="mr-1 h-3 w-3" />
+                  Avance de caisse: {besoin.avance_caisse_montant?.toLocaleString('fr-FR')} XOF
+                </Badge>
+              )}
+            </div>
+
+            {/* Suivi */}
+            {(besoin.taken_by_profile || besoin.decided_by_profile) && (
+              <div className="border-t pt-4 mt-4 space-y-2">
                 {besoin.taken_by_profile && (
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-muted-foreground">Pris en charge par</p>
-                    <p className="font-medium">
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Pris en charge par </span>
+                    <span className="font-medium">
                       {besoin.taken_by_profile.first_name} {besoin.taken_by_profile.last_name}
-                      {besoin.taken_at && (
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          le {format(new Date(besoin.taken_at), 'dd MMM yyyy', { locale: fr })}
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                    </span>
+                    {besoin.taken_at && (
+                      <span className="text-muted-foreground">
+                        {' '}le {format(new Date(besoin.taken_at), 'dd MMM yyyy', { locale: fr })}
+                      </span>
+                    )}
+                  </p>
                 )}
-
                 {besoin.decided_by_profile && (
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-muted-foreground">Décision prise par</p>
-                    <p className="font-medium">
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Décision par </span>
+                    <span className="font-medium">
                       {besoin.decided_by_profile.first_name} {besoin.decided_by_profile.last_name}
-                      {besoin.decided_at && (
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          le {format(new Date(besoin.decided_at), 'dd MMM yyyy', { locale: fr })}
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                    </span>
+                    {besoin.decided_at && (
+                      <span className="text-muted-foreground">
+                        {' '}le {format(new Date(besoin.decided_at), 'dd MMM yyyy', { locale: fr })}
+                      </span>
+                    )}
+                  </p>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-                {/* Pièce jointe */}
-                {besoin.attachment_url && (
-                  <div className="border-t pt-4">
-                    <p className="mb-2 text-sm text-muted-foreground">Pièce jointe</p>
-                    <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+        {/* Lignes de besoin */}
+        {lignesForDisplay.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Lignes de besoin ({lignesForDisplay.length})</CardTitle>
+              <CardDescription>Articles et services demandés</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BesoinLignesTable lignes={lignesForDisplay} onChange={() => {}} readOnly />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Legacy description if no lignes */}
+        {lignesForDisplay.length === 0 && besoin.description && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-foreground">{besoin.description}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pièces jointes multiples */}
+        {((besoin.attachments && besoin.attachments.length > 0) || besoin.attachment_url) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Pièces jointes ({(besoin.attachments?.length || 0) + (besoin.attachment_url && !besoin.attachments?.length ? 1 : 0)})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {/* New attachments table */}
+              {besoin.attachments && besoin.attachments.length > 0 && (
+                besoin.attachments.map((attachment) => {
+                  const FileIcon = getFileIcon(attachment.file_type);
+                  return (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3"
+                    >
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <Paperclip className="h-5 w-5 text-primary" />
+                        <FileIcon className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {besoin.attachment_name || 'Fichier joint'}
-                        </p>
+                        <p className="font-medium truncate">{attachment.file_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Document attaché au besoin
+                          {formatFileSize(attachment.file_size)}
                         </p>
                       </div>
                       <div className="flex gap-2">
                         <a
-                          href={besoin.attachment_url}
+                          href={attachment.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex"
                         >
                           <Button variant="outline" size="sm">
                             <ExternalLink className="mr-2 h-4 w-4" />
@@ -647,9 +686,8 @@ export default function BesoinDetail() {
                           </Button>
                         </a>
                         <a
-                          href={besoin.attachment_url}
-                          download={besoin.attachment_name || 'fichier'}
-                          className="inline-flex"
+                          href={attachment.file_url}
+                          download={attachment.file_name}
                         >
                           <Button variant="default" size="sm">
                             <Download className="mr-2 h-4 w-4" />
@@ -658,12 +696,46 @@ export default function BesoinDetail() {
                         </a>
                       </div>
                     </div>
+                  );
+                })
+              )}
+
+              {/* Legacy single attachment */}
+              {besoin.attachment_url && (!besoin.attachments || besoin.attachments.length === 0) && (
+                <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <File className="h-5 w-5 text-primary" />
                   </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{besoin.attachment_name || 'Fichier joint'}</p>
+                    <p className="text-xs text-muted-foreground">Document attaché au besoin</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a
+                      href={besoin.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Ouvrir
+                      </Button>
+                    </a>
+                    <a
+                      href={besoin.attachment_url}
+                      download={besoin.attachment_name || 'fichier'}
+                    >
+                      <Button variant="default" size="sm">
+                        <Download className="mr-2 h-4 w-4" />
+                        Télécharger
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Reject Dialog */}
@@ -694,6 +766,44 @@ export default function BesoinDetail() {
               disabled={!rejectionReason.trim() || isSaving}
             >
               Confirmer le refus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Return Dialog (Besoin mal formulé) */}
+      <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareWarning className="h-5 w-5 text-warning" />
+              Besoin mal formulé
+            </DialogTitle>
+            <DialogDescription>
+              Retournez ce besoin au demandeur pour qu'il le corrige. 
+              Un commentaire obligatoire sera joint pour l'aider.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Commentaire explicatif *</Label>
+            <Textarea
+              placeholder="Indiquez ce qui doit être corrigé ou précisé (ex: désignation trop vague, quantité manquante, site non précisé...)"
+              value={returnComment}
+              onChange={(e) => setReturnComment(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReturnDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="default"
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+              onClick={handleReturn}
+              disabled={!returnComment.trim() || isSaving}
+            >
+              Retourner au demandeur
             </Button>
           </DialogFooter>
         </DialogContent>
