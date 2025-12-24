@@ -76,6 +76,8 @@ import {
   Banknote,
   BookX,
   Download,
+  Upload,
+  Paperclip,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -133,6 +135,7 @@ export default function DADetail() {
   const [justification, setJustification] = useState('');
   const [financeComment, setFinanceComment] = useState('');
   const [revisionComment, setRevisionComment] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const [priceForm, setPriceForm] = useState({
     fournisseur_id: '',
@@ -154,6 +157,7 @@ export default function DADetail() {
   const canSubmitToValidation = (isAchats || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   const canDelete = isAdmin;
+  const canUploadAttachment = (isAchats || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
 
   useEffect(() => {
     if (id) {
@@ -170,15 +174,15 @@ export default function DADetail() {
         .select(`
           *,
           department:departments(id, name),
-          created_by_profile:profiles!demandes_achat_created_by_fkey(id, first_name, last_name),
-          rejected_by_profile:profiles!demandes_achat_rejected_by_fkey(id, first_name, last_name),
-          analyzed_by_profile:profiles!demandes_achat_analyzed_by_fkey(id, first_name, last_name),
-          priced_by_profile:profiles!demandes_achat_priced_by_fkey(id, first_name, last_name),
-          submitted_validation_by_profile:profiles!demandes_achat_submitted_validation_by_fkey(id, first_name, last_name),
-          validated_finance_by_profile:profiles!demandes_achat_validated_finance_by_fkey(id, first_name, last_name),
-          revision_requested_by_profile:profiles!demandes_achat_revision_requested_by_fkey(id, first_name, last_name),
-          comptabilise_by_profile:profiles!demandes_achat_comptabilise_by_fkey(id, first_name, last_name),
-          selected_fournisseur:fournisseurs(id, name),
+          created_by_profile:profiles!demandes_achat_created_by_fkey(id, first_name, last_name, department:departments(name)),
+          rejected_by_profile:profiles!demandes_achat_rejected_by_fkey(id, first_name, last_name, department:departments(name)),
+          analyzed_by_profile:profiles!demandes_achat_analyzed_by_fkey(id, first_name, last_name, department:departments(name)),
+          priced_by_profile:profiles!demandes_achat_priced_by_fkey(id, first_name, last_name, department:departments(name)),
+          submitted_validation_by_profile:profiles!demandes_achat_submitted_validation_by_fkey(id, first_name, last_name, department:departments(name)),
+          validated_finance_by_profile:profiles!demandes_achat_validated_finance_by_fkey(id, first_name, last_name, department:departments(name)),
+          revision_requested_by_profile:profiles!demandes_achat_revision_requested_by_fkey(id, first_name, last_name, department:departments(name)),
+          comptabilise_by_profile:profiles!demandes_achat_comptabilise_by_fkey(id, first_name, last_name, department:departments(name)),
+          selected_fournisseur:fournisseurs(id, name, address, phone, email),
           besoin:besoins(id, title, user_id)
         `)
         .eq('id', id)
@@ -190,7 +194,51 @@ export default function DADetail() {
         return;
       }
 
-      setDA(data as unknown as DemandeAchat);
+      // Fetch roles for each actor
+      const actorIds = [
+        data.created_by,
+        data.rejected_by,
+        data.analyzed_by,
+        data.priced_by,
+        data.submitted_validation_by,
+        data.validated_finance_by,
+        data.revision_requested_by,
+        data.comptabilise_by,
+      ].filter(Boolean);
+
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', actorIds);
+
+      const rolesByUser: Record<string, string[]> = {};
+      (rolesData || []).forEach((r) => {
+        if (!rolesByUser[r.user_id]) rolesByUser[r.user_id] = [];
+        rolesByUser[r.user_id].push(r.role);
+      });
+
+      // Enrich DA with roles and department info for timeline
+      const enrichedDA = {
+        ...data,
+        created_by_roles: rolesByUser[data.created_by] || [],
+        created_by_department: (data.created_by_profile as any)?.department?.name,
+        rejected_by_roles: data.rejected_by ? rolesByUser[data.rejected_by] || [] : [],
+        rejected_by_department: (data.rejected_by_profile as any)?.department?.name,
+        analyzed_by_roles: data.analyzed_by ? rolesByUser[data.analyzed_by] || [] : [],
+        analyzed_by_department: (data.analyzed_by_profile as any)?.department?.name,
+        priced_by_roles: data.priced_by ? rolesByUser[data.priced_by] || [] : [],
+        priced_by_department: (data.priced_by_profile as any)?.department?.name,
+        submitted_validation_by_roles: data.submitted_validation_by ? rolesByUser[data.submitted_validation_by] || [] : [],
+        submitted_validation_by_department: (data.submitted_validation_by_profile as any)?.department?.name,
+        validated_finance_by_roles: data.validated_finance_by ? rolesByUser[data.validated_finance_by] || [] : [],
+        validated_finance_by_department: (data.validated_finance_by_profile as any)?.department?.name,
+        revision_requested_by_roles: data.revision_requested_by ? rolesByUser[data.revision_requested_by] || [] : [],
+        revision_requested_by_department: (data.revision_requested_by_profile as any)?.department?.name,
+        comptabilise_by_roles: data.comptabilise_by ? rolesByUser[data.comptabilise_by] || [] : [],
+        comptabilise_by_department: (data.comptabilise_by_profile as any)?.department?.name,
+      };
+
+      setDA(enrichedDA as unknown as DemandeAchat);
       setJustification(data.fournisseur_justification || '');
     } catch (error: any) {
       console.error('Error:', error);
@@ -515,6 +563,84 @@ export default function DADetail() {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!da || !e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: 'Erreur', description: 'Format non supporté. Utilisez PDF ou image.', variant: 'destructive' });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Erreur', description: 'Fichier trop volumineux (max 5 Mo).', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${da.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('da-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('da-attachments')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from('demandes_achat')
+        .update({
+          attachment_url: urlData.publicUrl,
+          attachment_name: file.name,
+        })
+        .eq('id', da.id);
+
+      if (updateError) throw updateError;
+
+      toast({ title: 'Pièce jointe ajoutée', description: file.name });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = async () => {
+    if (!da || !da.attachment_url) return;
+    setIsUploading(true);
+    try {
+      // Extract file path from URL
+      const url = new URL(da.attachment_url);
+      const pathParts = url.pathname.split('/da-attachments/');
+      if (pathParts.length > 1) {
+        await supabase.storage.from('da-attachments').remove([pathParts[1]]);
+      }
+
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({ attachment_url: null, attachment_name: null })
+        .eq('id', da.id);
+
+      if (error) throw error;
+      toast({ title: 'Pièce jointe supprimée' });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -972,6 +1098,70 @@ export default function DADetail() {
               <div className="border-t pt-4">
                 <p className="mb-2 text-sm text-muted-foreground">Justification fournisseur</p>
                 <p className="whitespace-pre-wrap text-foreground">{da.fournisseur_justification}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pièces jointes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Paperclip className="h-5 w-5" />
+              Pièces jointes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {da.attachment_url ? (
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="font-medium">{da.attachment_name || 'Pièce jointe'}</p>
+                    <a 
+                      href={da.attachment_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Télécharger
+                    </a>
+                  </div>
+                </div>
+                {canUploadAttachment && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={handleRemoveAttachment}
+                    disabled={isUploading}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Aucune pièce jointe.</p>
+            )}
+
+            {canUploadAttachment && !da.attachment_url && (
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer">
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept=".pdf,.jpg,.jpeg,.png,.gif"
+                    onChange={handleUploadAttachment}
+                    disabled={isUploading}
+                  />
+                  <Button variant="outline" asChild disabled={isUploading}>
+                    <span>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {isUploading ? 'Envoi...' : 'Ajouter une pièce jointe'}
+                    </span>
+                  </Button>
+                </label>
+                <p className="text-xs text-muted-foreground">PDF ou image (max 5 Mo)</p>
               </div>
             )}
           </CardContent>

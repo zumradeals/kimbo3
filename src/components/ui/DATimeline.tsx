@@ -12,18 +12,32 @@ import {
   XCircle,
   Banknote,
   BookX,
-  CheckCircle,
   User,
   Clock,
+  Building2,
+  Briefcase,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ROLE_LABELS, AppRole } from '@/types/kpm';
+
+interface ActorProfile {
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+interface ActorWithDetails {
+  profile?: ActorProfile | null;
+  roles?: AppRole[];
+  department?: string | null;
+}
 
 interface TimelineEvent {
   id: string;
   action: string;
   date: string | null;
-  actorName?: string;
+  actor?: ActorWithDetails;
   description?: string;
   status: 'completed' | 'current' | 'pending';
   icon: React.ElementType;
@@ -33,22 +47,38 @@ interface TimelineEvent {
 interface DATimelineProps {
   da: {
     created_at: string;
-    created_by_profile?: { first_name?: string; last_name?: string } | null;
+    created_by_profile?: ActorProfile | null;
+    created_by_roles?: AppRole[];
+    created_by_department?: string | null;
     submitted_at?: string | null;
     analyzed_at?: string | null;
-    analyzed_by_profile?: { first_name?: string; last_name?: string } | null;
+    analyzed_by_profile?: ActorProfile | null;
+    analyzed_by_roles?: AppRole[];
+    analyzed_by_department?: string | null;
     priced_at?: string | null;
-    priced_by_profile?: { first_name?: string; last_name?: string } | null;
+    priced_by_profile?: ActorProfile | null;
+    priced_by_roles?: AppRole[];
+    priced_by_department?: string | null;
     submitted_validation_at?: string | null;
-    submitted_validation_by_profile?: { first_name?: string; last_name?: string } | null;
+    submitted_validation_by_profile?: ActorProfile | null;
+    submitted_validation_by_roles?: AppRole[];
+    submitted_validation_by_department?: string | null;
     validated_finance_at?: string | null;
-    validated_finance_by_profile?: { first_name?: string; last_name?: string } | null;
+    validated_finance_by_profile?: ActorProfile | null;
+    validated_finance_by_roles?: AppRole[];
+    validated_finance_by_department?: string | null;
     comptabilise_at?: string | null;
-    comptabilise_by_profile?: { first_name?: string; last_name?: string } | null;
+    comptabilise_by_profile?: ActorProfile | null;
+    comptabilise_by_roles?: AppRole[];
+    comptabilise_by_department?: string | null;
     rejected_at?: string | null;
-    rejected_by_profile?: { first_name?: string; last_name?: string } | null;
+    rejected_by_profile?: ActorProfile | null;
+    rejected_by_roles?: AppRole[];
+    rejected_by_department?: string | null;
     revision_requested_at?: string | null;
-    revision_requested_by_profile?: { first_name?: string; last_name?: string } | null;
+    revision_requested_by_profile?: ActorProfile | null;
+    revision_requested_by_roles?: AppRole[];
+    revision_requested_by_department?: string | null;
     status: string;
     rejection_reason?: string | null;
     revision_comment?: string | null;
@@ -57,10 +87,15 @@ interface DATimelineProps {
   };
 }
 
-const formatActorName = (profile?: { first_name?: string; last_name?: string } | null): string => {
+const formatActorName = (profile?: ActorProfile | null): string => {
   if (!profile) return 'Système';
   const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
   return name || 'Utilisateur';
+};
+
+const formatRoles = (roles?: AppRole[]): string => {
+  if (!roles || roles.length === 0) return '';
+  return roles.map(r => ROLE_LABELS[r] || r).join(', ');
 };
 
 export function DATimeline({ da }: DATimelineProps) {
@@ -71,7 +106,11 @@ export function DATimeline({ da }: DATimelineProps) {
     id: 'created',
     action: 'Création de la DA',
     date: da.created_at,
-    actorName: formatActorName(da.created_by_profile),
+    actor: {
+      profile: da.created_by_profile,
+      roles: da.created_by_roles,
+      department: da.created_by_department,
+    },
     status: 'completed',
     icon: FileText,
     color: 'text-primary',
@@ -83,7 +122,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'submitted',
       action: 'Soumise aux Achats',
       date: da.submitted_at,
-      actorName: formatActorName(da.created_by_profile),
+      actor: {
+        profile: da.created_by_profile,
+        roles: da.created_by_roles,
+        department: da.created_by_department,
+      },
       status: 'completed',
       icon: Send,
       color: 'text-primary',
@@ -96,7 +139,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'analyzed',
       action: 'Prise en charge Achats',
       date: da.analyzed_at,
-      actorName: formatActorName(da.analyzed_by_profile),
+      actor: {
+        profile: da.analyzed_by_profile,
+        roles: da.analyzed_by_roles,
+        department: da.analyzed_by_department,
+      },
       status: 'completed',
       icon: BarChart3,
       color: 'text-warning',
@@ -109,7 +156,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'priced',
       action: 'Chiffrage effectué',
       date: da.priced_at,
-      actorName: formatActorName(da.priced_by_profile),
+      actor: {
+        profile: da.priced_by_profile,
+        roles: da.priced_by_roles,
+        department: da.priced_by_department,
+      },
       status: 'completed',
       icon: Calculator,
       color: 'text-success',
@@ -122,7 +173,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'submitted_validation',
       action: 'Soumise à validation DAF/DG',
       date: da.submitted_validation_at,
-      actorName: formatActorName(da.submitted_validation_by_profile),
+      actor: {
+        profile: da.submitted_validation_by_profile,
+        roles: da.submitted_validation_by_roles,
+        department: da.submitted_validation_by_department,
+      },
       status: 'completed',
       icon: FileCheck,
       color: 'text-accent',
@@ -135,7 +190,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'revision',
       action: 'Révision demandée',
       date: da.revision_requested_at,
-      actorName: formatActorName(da.revision_requested_by_profile),
+      actor: {
+        profile: da.revision_requested_by_profile,
+        roles: da.revision_requested_by_roles,
+        department: da.revision_requested_by_department,
+      },
       description: da.revision_comment || undefined,
       status: 'current',
       icon: RotateCcw,
@@ -149,7 +208,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'validated_finance',
       action: 'Validée financièrement',
       date: da.validated_finance_at,
-      actorName: formatActorName(da.validated_finance_by_profile),
+      actor: {
+        profile: da.validated_finance_by_profile,
+        roles: da.validated_finance_by_roles,
+        department: da.validated_finance_by_department,
+      },
       description: da.finance_decision_comment || undefined,
       status: 'completed',
       icon: ShieldCheck,
@@ -163,7 +226,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'refused_finance',
       action: 'Refusée par DAF/DG',
       date: da.validated_finance_at,
-      actorName: formatActorName(da.validated_finance_by_profile),
+      actor: {
+        profile: da.validated_finance_by_profile,
+        roles: da.validated_finance_by_roles,
+        department: da.validated_finance_by_department,
+      },
       description: da.finance_decision_comment || undefined,
       status: 'current',
       icon: Ban,
@@ -177,7 +244,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'rejected',
       action: 'Rejetée par les Achats',
       date: da.rejected_at,
-      actorName: formatActorName(da.rejected_by_profile),
+      actor: {
+        profile: da.rejected_by_profile,
+        roles: da.rejected_by_roles,
+        department: da.rejected_by_department,
+      },
       description: da.rejection_reason || undefined,
       status: 'current',
       icon: XCircle,
@@ -191,7 +262,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'paid',
       action: 'Paiement enregistré',
       date: da.comptabilise_at,
-      actorName: formatActorName(da.comptabilise_by_profile),
+      actor: {
+        profile: da.comptabilise_by_profile,
+        roles: da.comptabilise_by_roles,
+        department: da.comptabilise_by_department,
+      },
       status: 'completed',
       icon: Banknote,
       color: 'text-success',
@@ -204,7 +279,11 @@ export function DATimeline({ da }: DATimelineProps) {
       id: 'rejected_comptabilite',
       action: 'Rejetée par la Comptabilité',
       date: da.comptabilise_at,
-      actorName: formatActorName(da.comptabilise_by_profile),
+      actor: {
+        profile: da.comptabilise_by_profile,
+        roles: da.comptabilise_by_roles,
+        department: da.comptabilise_by_department,
+      },
       description: da.comptabilite_rejection_reason || undefined,
       status: 'current',
       icon: BookX,
@@ -239,6 +318,9 @@ export function DATimeline({ da }: DATimelineProps) {
             {events.map((event, index) => {
               const IconComponent = event.icon;
               const isLast = index === events.length - 1;
+              const actorName = formatActorName(event.actor?.profile);
+              const actorRoles = formatRoles(event.actor?.roles);
+              const actorDepartment = event.actor?.department;
               
               return (
                 <div key={event.id} className="relative flex gap-4 pl-0">
@@ -265,12 +347,29 @@ export function DATimeline({ da }: DATimelineProps) {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      <span>{event.actorName}</span>
+                    
+                    {/* Actor details with role and department */}
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <User className="h-3 w-3" />
+                        <span className="font-medium text-foreground">{actorName}</span>
+                      </div>
+                      {actorRoles && (
+                        <Badge variant="outline" className="h-5 gap-1 text-xs">
+                          <Briefcase className="h-3 w-3" />
+                          {actorRoles}
+                        </Badge>
+                      )}
+                      {actorDepartment && (
+                        <Badge variant="secondary" className="h-5 gap-1 text-xs">
+                          <Building2 className="h-3 w-3" />
+                          {actorDepartment}
+                        </Badge>
+                      )}
                     </div>
+
                     {event.description && (
-                      <p className="mt-1 text-sm text-muted-foreground italic">
+                      <p className="mt-2 rounded-md bg-muted/50 p-2 text-sm text-muted-foreground italic">
                         "{event.description}"
                       </p>
                     )}
