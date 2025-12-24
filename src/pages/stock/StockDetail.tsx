@@ -104,10 +104,33 @@ interface ChartData {
   quantity: number;
 }
 
+// Unités prédéfinies
+const STOCK_UNITS = [
+  { value: 'unité', label: 'Unité' },
+  { value: 'pièce', label: 'Pièce' },
+  { value: 'kg', label: 'Kilogramme (kg)' },
+  { value: 'g', label: 'Gramme (g)' },
+  { value: 't', label: 'Tonne (t)' },
+  { value: 'm', label: 'Mètre (m)' },
+  { value: 'cm', label: 'Centimètre (cm)' },
+  { value: 'm²', label: 'Mètre carré (m²)' },
+  { value: 'm³', label: 'Mètre cube (m³)' },
+  { value: 'L', label: 'Litre (L)' },
+  { value: 'mL', label: 'Millilitre (mL)' },
+  { value: 'boîte', label: 'Boîte' },
+  { value: 'carton', label: 'Carton' },
+  { value: 'palette', label: 'Palette' },
+  { value: 'rouleau', label: 'Rouleau' },
+  { value: 'sac', label: 'Sac' },
+  { value: 'bidon', label: 'Bidon' },
+  { value: 'paquet', label: 'Paquet' },
+  { value: 'lot', label: 'Lot' },
+];
+
 export default function StockDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, roles, isAdmin } = useAuth();
+  const { user, roles, isAdmin, hasRole } = useAuth();
   const { toast } = useToast();
 
   const [article, setArticle] = useState<ArticleStock | null>(null);
@@ -117,6 +140,7 @@ export default function StockDetail() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAdjustDialog, setShowAdjustDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [customUnit, setCustomUnit] = useState(false);
 
   // Adjustment form
   const [adjustForm, setAdjustForm] = useState({
@@ -125,17 +149,19 @@ export default function StockDetail() {
     observations: '',
   });
 
-  // Edit form
+  // Edit form - now includes quantity_available
   const [editForm, setEditForm] = useState({
     designation: '',
     description: '',
     unit: '',
+    quantity_available: 0,
     quantity_min: 0,
     location: '',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
-  const canManage = isLogistics || isAdmin;
+  const isDAF = hasRole('daf');
+  const canManage = isLogistics || isAdmin || isDAF;
 
   useEffect(() => {
     if (id) {
@@ -163,9 +189,12 @@ export default function StockDetail() {
         designation: data.designation,
         description: data.description || '',
         unit: data.unit,
+        quantity_available: data.quantity_available,
         quantity_min: data.quantity_min || 0,
         location: data.location || '',
       });
+      // Check if unit is custom
+      setCustomUnit(!STOCK_UNITS.find(u => u.value === data.unit));
     } catch (error: any) {
       console.error('Error:', error);
     } finally {
@@ -306,14 +335,23 @@ export default function StockDetail() {
       return;
     }
 
+    if (!editForm.unit.trim()) {
+      toast({ title: 'Erreur', description: 'L\'unité est requise.', variant: 'destructive' });
+      return;
+    }
+
     setIsSaving(true);
     try {
+      const quantityChanged = editForm.quantity_available !== article.quantity_available;
+      
+      // Update article
       const { error } = await supabase
         .from('articles_stock')
         .update({
           designation: editForm.designation,
           description: editForm.description || null,
           unit: editForm.unit,
+          quantity_available: editForm.quantity_available,
           quantity_min: editForm.quantity_min || null,
           location: editForm.location || null,
         })
@@ -321,9 +359,27 @@ export default function StockDetail() {
 
       if (error) throw error;
 
+      // If quantity changed, create a movement record for traceability
+      if (quantityChanged) {
+        const { error: movementError } = await supabase.from('stock_movements').insert({
+          article_stock_id: article.id,
+          movement_type: 'ajustement',
+          quantity: Math.abs(editForm.quantity_available - article.quantity_available),
+          quantity_before: article.quantity_available,
+          quantity_after: editForm.quantity_available,
+          observations: 'Modification via édition article',
+          created_by: user?.id,
+        });
+
+        if (movementError) {
+          console.error('Error creating movement:', movementError);
+        }
+      }
+
       toast({ title: 'Article mis à jour' });
       setShowEditDialog(false);
       fetchArticle();
+      if (quantityChanged) fetchMovements();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -671,61 +727,146 @@ export default function StockDetail() {
 
       {/* Dialog Édition */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Modifier l'article</DialogTitle>
             <DialogDescription>
-              Mettre à jour les informations de l'article
+              Mettre à jour les informations de l'article. Les modifications de quantité seront tracées.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
+            {/* Désignation */}
             <div className="space-y-2">
-              <Label>Désignation *</Label>
+              <Label className="text-sm font-medium">
+                Désignation <span className="text-destructive">*</span>
+              </Label>
               <Input
                 value={editForm.designation}
                 onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                className="h-11"
               />
             </div>
+
+            {/* Description */}
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label className="text-sm font-medium">Description</Label>
               <Textarea
                 value={editForm.description}
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                rows={2}
+                rows={3}
+                placeholder="Caractéristiques, références, spécifications..."
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Unité</Label>
-                <Input
-                  value={editForm.unit}
-                  onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Emplacement</Label>
-                <Input
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                />
-              </div>
-            </div>
+
+            {/* Unité */}
             <div className="space-y-2">
-              <Label>Seuil d'alerte (stock minimum)</Label>
+              <Label className="text-sm font-medium">
+                Unité de mesure <span className="text-destructive">*</span>
+              </Label>
+              {!customUnit ? (
+                <div className="flex gap-2">
+                  <Select
+                    value={STOCK_UNITS.find(u => u.value === editForm.unit) ? editForm.unit : ''}
+                    onValueChange={(v) => setEditForm({ ...editForm, unit: v })}
+                  >
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="Sélectionner une unité" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STOCK_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => { setCustomUnit(true); }}
+                    className="h-11"
+                  >
+                    Autre
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={editForm.unit}
+                    onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
+                    placeholder="Entrer une unité personnalisée"
+                    className="h-11 flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => { setCustomUnit(false); setEditForm({ ...editForm, unit: 'unité' }); }}
+                    className="h-11"
+                  >
+                    Liste
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Quantité disponible */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Quantité disponible <span className="text-destructive">*</span>
+              </Label>
               <Input
                 type="number"
                 min={0}
-                value={editForm.quantity_min}
-                onChange={(e) => setEditForm({ ...editForm, quantity_min: Number(e.target.value) })}
+                step="0.01"
+                value={editForm.quantity_available}
+                onChange={(e) => setEditForm({ ...editForm, quantity_available: Number(e.target.value) })}
+                className="h-11"
               />
+              {article && editForm.quantity_available !== article.quantity_available && (
+                <p className="text-xs text-warning">
+                  Modification: {article.quantity_available} → {editForm.quantity_available} 
+                  ({editForm.quantity_available > article.quantity_available ? '+' : ''}{editForm.quantity_available - article.quantity_available})
+                  — Un mouvement d'ajustement sera créé
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Seuil d'alerte */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Seuil d'alerte</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editForm.quantity_min}
+                  onChange={(e) => setEditForm({ ...editForm, quantity_min: Number(e.target.value) })}
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">Alerte si stock ≤ seuil</p>
+              </div>
+
+              {/* Emplacement */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Emplacement</Label>
+                <Input
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  placeholder="Entrepôt, rayon..."
+                  className="h-11"
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleEdit} disabled={isSaving}>
-              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+            <Button 
+              onClick={handleEdit} 
+              disabled={isSaving || !editForm.designation.trim() || !editForm.unit.trim()}
+            >
+              {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
             </Button>
           </DialogFooter>
         </DialogContent>

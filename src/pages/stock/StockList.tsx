@@ -61,8 +61,31 @@ const statusIcons: Record<StockStatus, React.ElementType> = {
   epuise: XCircle,
 };
 
+// Unités prédéfinies
+const STOCK_UNITS = [
+  { value: 'unité', label: 'Unité' },
+  { value: 'pièce', label: 'Pièce' },
+  { value: 'kg', label: 'Kilogramme (kg)' },
+  { value: 'g', label: 'Gramme (g)' },
+  { value: 't', label: 'Tonne (t)' },
+  { value: 'm', label: 'Mètre (m)' },
+  { value: 'cm', label: 'Centimètre (cm)' },
+  { value: 'm²', label: 'Mètre carré (m²)' },
+  { value: 'm³', label: 'Mètre cube (m³)' },
+  { value: 'L', label: 'Litre (L)' },
+  { value: 'mL', label: 'Millilitre (mL)' },
+  { value: 'boîte', label: 'Boîte' },
+  { value: 'carton', label: 'Carton' },
+  { value: 'palette', label: 'Palette' },
+  { value: 'rouleau', label: 'Rouleau' },
+  { value: 'sac', label: 'Sac' },
+  { value: 'bidon', label: 'Bidon' },
+  { value: 'paquet', label: 'Paquet' },
+  { value: 'lot', label: 'Lot' },
+];
+
 export default function StockList() {
-  const { user, roles, isAdmin } = useAuth();
+  const { user, roles, isAdmin, hasRole } = useAuth();
   const { toast } = useToast();
 
   const [articles, setArticles] = useState<ArticleStock[]>([]);
@@ -71,6 +94,7 @@ export default function StockList() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [customUnit, setCustomUnit] = useState(false);
 
   // Form state
   const [newArticle, setNewArticle] = useState({
@@ -83,7 +107,8 @@ export default function StockList() {
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
-  const canManage = isLogistics || isAdmin;
+  const isDAF = hasRole('daf');
+  const canManage = isLogistics || isAdmin || isDAF;
 
   useEffect(() => {
     fetchArticles();
@@ -136,12 +161,25 @@ export default function StockList() {
         quantity_min: 0,
         location: '',
       });
+      setCustomUnit(false);
       fetchArticles();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const resetForm = () => {
+    setNewArticle({
+      designation: '',
+      description: '',
+      unit: 'unité',
+      quantity_available: 0,
+      quantity_min: 0,
+      location: '',
+    });
+    setCustomUnit(false);
   };
 
   const filteredArticles = articles.filter((art) => {
@@ -344,83 +382,148 @@ export default function StockList() {
       </div>
 
       {/* Add Article Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+      <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Ajouter un article au stock</DialogTitle>
             <DialogDescription>
-              Créez un nouvel article dans l'inventaire.
+              Créez un nouvel article dans l'inventaire avec sa quantité initiale.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
+            {/* Désignation */}
             <div className="space-y-2">
-              <Label htmlFor="designation">Désignation *</Label>
+              <Label htmlFor="designation" className="text-sm font-medium">
+                Désignation <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="designation"
                 value={newArticle.designation}
                 onChange={(e) => setNewArticle({ ...newArticle, designation: e.target.value })}
-                placeholder="Nom de l'article"
+                placeholder="Ex: Câble électrique 2.5mm²"
+                className="h-11"
               />
             </div>
+
+            {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium">
+                Description
+              </Label>
               <Textarea
                 id="description"
                 value={newArticle.description}
                 onChange={(e) => setNewArticle({ ...newArticle, description: e.target.value })}
-                placeholder="Description optionnelle"
-                rows={2}
+                placeholder="Caractéristiques, références, spécifications..."
+                rows={3}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unité</Label>
-                <Input
-                  id="unit"
-                  value={newArticle.unit}
-                  onChange={(e) => setNewArticle({ ...newArticle, unit: e.target.value })}
-                  placeholder="unité, kg, m..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location">Emplacement</Label>
-                <Input
-                  id="location"
-                  value={newArticle.location}
-                  onChange={(e) => setNewArticle({ ...newArticle, location: e.target.value })}
-                  placeholder="A1, Rayon 3..."
-                />
-              </div>
+
+            {/* Unité */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Unité de mesure <span className="text-destructive">*</span>
+              </Label>
+              {!customUnit ? (
+                <div className="flex gap-2">
+                  <Select
+                    value={STOCK_UNITS.find(u => u.value === newArticle.unit) ? newArticle.unit : ''}
+                    onValueChange={(v) => setNewArticle({ ...newArticle, unit: v })}
+                  >
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="Sélectionner une unité" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STOCK_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => { setCustomUnit(true); setNewArticle({ ...newArticle, unit: '' }); }}
+                    className="h-11"
+                  >
+                    Autre
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={newArticle.unit}
+                    onChange={(e) => setNewArticle({ ...newArticle, unit: e.target.value })}
+                    placeholder="Entrer une unité personnalisée"
+                    className="h-11 flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => { setCustomUnit(false); setNewArticle({ ...newArticle, unit: 'unité' }); }}
+                    className="h-11"
+                  >
+                    Liste
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {/* Quantités */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantité initiale</Label>
+                <Label htmlFor="quantity" className="text-sm font-medium">
+                  Quantité initiale <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="quantity"
                   type="number"
                   min={0}
+                  step="0.01"
                   value={newArticle.quantity_available}
                   onChange={(e) => setNewArticle({ ...newArticle, quantity_available: Number(e.target.value) })}
+                  className="h-11"
                 />
+                <p className="text-xs text-muted-foreground">Stock disponible à la création</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quantity_min">Stock minimum (alerte)</Label>
+                <Label htmlFor="quantity_min" className="text-sm font-medium">
+                  Seuil d'alerte
+                </Label>
                 <Input
                   id="quantity_min"
                   type="number"
                   min={0}
+                  step="0.01"
                   value={newArticle.quantity_min}
                   onChange={(e) => setNewArticle({ ...newArticle, quantity_min: Number(e.target.value) })}
+                  className="h-11"
                 />
+                <p className="text-xs text-muted-foreground">Alerte si stock ≤ ce seuil</p>
               </div>
             </div>
+
+            {/* Emplacement */}
+            <div className="space-y-2">
+              <Label htmlFor="location" className="text-sm font-medium">
+                Emplacement
+              </Label>
+              <Input
+                id="location"
+                value={newArticle.location}
+                onChange={(e) => setNewArticle({ ...newArticle, location: e.target.value })}
+                placeholder="Ex: Entrepôt A - Rayon 3 - Étagère B"
+                className="h-11"
+              />
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
               Annuler
             </Button>
-            <Button onClick={handleAddArticle} disabled={isSaving}>
-              {isSaving ? 'Enregistrement...' : 'Ajouter'}
+            <Button onClick={handleAddArticle} disabled={isSaving || !newArticle.designation.trim() || !newArticle.unit.trim()}>
+              {isSaving ? 'Enregistrement...' : 'Créer l\'article'}
             </Button>
           </DialogFooter>
         </DialogContent>
