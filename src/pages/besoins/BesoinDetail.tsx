@@ -63,6 +63,8 @@ import {
   File,
   Download,
   ExternalLink,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -100,8 +102,10 @@ export default function BesoinDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [showLockDialog, setShowLockDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [returnComment, setReturnComment] = useState('');
+  const [lockReason, setLockReason] = useState('');
   const [canTransform, setCanTransform] = useState(false);
 
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
@@ -305,6 +309,45 @@ export default function BesoinDetail() {
     }
   };
 
+  const handleToggleLock = async () => {
+    if (!besoin) return;
+    
+    const isLocking = !besoin.is_locked;
+    if (isLocking && !lockReason.trim()) {
+      toast({ title: 'Erreur', description: 'Veuillez indiquer un motif de verrouillage.', variant: 'destructive' });
+      return;
+    }
+    
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('besoins')
+        .update({
+          is_locked: isLocking,
+          locked_at: isLocking ? new Date().toISOString() : null,
+          locked_reason: isLocking ? lockReason.trim() : null,
+        })
+        .eq('id', besoin.id);
+
+      if (error) throw error;
+
+      toast({ 
+        title: isLocking ? 'Besoin verrouillé' : 'Besoin déverrouillé', 
+        description: isLocking 
+          ? 'Ce besoin ne peut plus être modifié ou converti.' 
+          : 'Ce besoin peut maintenant être modifié ou converti.'
+      });
+      setShowLockDialog(false);
+      setLockReason('');
+      fetchBesoin();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const getFileIcon = (type: string | null) => {
     if (!type) return File;
     if (type.startsWith('image/')) return FileImage;
@@ -372,13 +415,33 @@ export default function BesoinDetail() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link to={`/besoins/${id}/dossier`}>
               <Button variant="outline" size="sm">
                 <FolderOpen className="mr-2 h-4 w-4" />
                 Dossier
               </Button>
             </Link>
+            {canManage && besoin.status === 'accepte' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className={besoin.is_locked ? 'text-success hover:bg-success/10' : 'text-warning hover:bg-warning/10'}
+                onClick={() => setShowLockDialog(true)}
+              >
+                {besoin.is_locked ? (
+                  <>
+                    <Unlock className="mr-2 h-4 w-4" />
+                    Déverrouiller
+                  </>
+                ) : (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Verrouiller
+                  </>
+                )}
+              </Button>
+            )}
             {canDelete && (
               <Button
                 variant="outline"
@@ -815,6 +878,68 @@ export default function BesoinDetail() {
               disabled={!returnComment.trim() || isSaving}
             >
               Retourner au demandeur
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lock/Unlock Dialog */}
+      <Dialog open={showLockDialog} onOpenChange={setShowLockDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {besoin?.is_locked ? (
+                <>
+                  <Unlock className="h-5 w-5 text-success" />
+                  Déverrouiller ce besoin
+                </>
+              ) : (
+                <>
+                  <Lock className="h-5 w-5 text-warning" />
+                  Verrouiller ce besoin
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {besoin?.is_locked 
+                ? 'Le déverrouillage permettra à nouveau de modifier ou convertir ce besoin.'
+                : 'Le verrouillage empêchera toute modification ou conversion ultérieure.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          {!besoin?.is_locked && (
+            <div className="space-y-2">
+              <Label>Motif du verrouillage *</Label>
+              <Textarea
+                placeholder="Ex: Besoin déjà converti en DA-2025-001, correction terminée..."
+                value={lockReason}
+                onChange={(e) => setLockReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
+          {besoin?.is_locked && besoin.locked_reason && (
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm text-muted-foreground">Motif du verrouillage actuel :</p>
+              <p className="text-sm font-medium">{besoin.locked_reason}</p>
+              {besoin.locked_at && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Verrouillé le {format(new Date(besoin.locked_at), 'dd MMM yyyy à HH:mm', { locale: fr })}
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowLockDialog(false); setLockReason(''); }}>
+              Annuler
+            </Button>
+            <Button
+              variant={besoin?.is_locked ? 'default' : 'secondary'}
+              className={besoin?.is_locked ? '' : 'bg-warning text-warning-foreground hover:bg-warning/90'}
+              onClick={handleToggleLock}
+              disabled={(!besoin?.is_locked && !lockReason.trim()) || isSaving}
+            >
+              {besoin?.is_locked ? 'Déverrouiller' : 'Verrouiller'}
             </Button>
           </DialogFooter>
         </DialogContent>
