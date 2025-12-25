@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -263,11 +264,11 @@ export default function CaisseList() {
   const totalSolde = caisses.filter(c => c.is_active).reduce((sum, c) => sum + c.solde_actuel, 0);
 
   if (authLoading) {
-    return <div className="p-8">Chargement...</div>;
+    return <AppLayout><div className="p-8">Chargement...</div></AppLayout>;
   }
 
   if (!canView) {
-    return <AccessDenied />;
+    return <AppLayout><AccessDenied /></AppLayout>;
   }
 
   const formatMoney = (amount: number, devise: string = 'XAF') => {
@@ -275,6 +276,7 @@ export default function CaisseList() {
   };
 
   return (
+    <AppLayout>
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -643,5 +645,6 @@ export default function CaisseList() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppLayout>
   );
 }
