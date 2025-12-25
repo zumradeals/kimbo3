@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Download,
+  Wallet,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -83,6 +85,12 @@ export default function ComptabiliteDetail() {
     method_id: '',
     details: {} as Record<string, string>,
   });
+  
+  // Caisse sélectionnée pour le paiement
+  const [selectedCaisseId, setSelectedCaisseId] = useState('');
+  
+  // Liste des caisses
+  const [caisses, setCaisses] = useState<Array<{id: string; code: string; name: string; type: string; solde_actuel: number; devise: string}>>([]);
 
   const isComptable = roles.includes('comptable');
   const isDG = roles.includes('dg');
@@ -93,10 +101,26 @@ export default function ComptabiliteDetail() {
   useEffect(() => {
     if (id && canAccess) {
       fetchDA();
+      fetchCaisses();
     } else if (!canAccess) {
       setIsLoading(false);
     }
   }, [id, canAccess]);
+
+  const fetchCaisses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('caisses')
+        .select('id, code, name, type, solde_actuel, devise')
+        .eq('is_active', true)
+        .order('type')
+        .order('name');
+      if (error) throw error;
+      setCaisses(data || []);
+    } catch (error) {
+      console.error('Error fetching caisses:', error);
+    }
+  };
 
   const fetchDA = async () => {
     try {
@@ -227,6 +251,7 @@ export default function ComptabiliteDetail() {
           payment_category_id: paymentForm.category_id || null,
           payment_method_id: paymentForm.method_id || null,
           payment_details: paymentForm.details,
+          caisse_id: selectedCaisseId && selectedCaisseId !== '_none' ? selectedCaisseId : null,
           comptabilise_by: user?.id,
           comptabilise_at: new Date().toISOString(),
         })
@@ -446,6 +471,40 @@ export default function ComptabiliteDetail() {
                   onChange={setPaymentForm}
                   disabled={false}
                 />
+              </div>
+
+              {/* Sélection de la caisse */}
+              <div className="rounded-lg border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Source des fonds (optionnel)</h3>
+                </div>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Sélectionnez une caisse pour enregistrer automatiquement le mouvement de sortie.
+                </p>
+                <Select value={selectedCaisseId} onValueChange={setSelectedCaisseId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une caisse..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Aucune (paiement externe)</SelectItem>
+                    {caisses.map((caisse) => (
+                      <SelectItem key={caisse.id} value={caisse.id}>
+                        <span className="flex items-center gap-2">
+                          {caisse.code} - {caisse.name}
+                          <span className="text-xs text-muted-foreground">
+                            ({new Intl.NumberFormat('fr-FR').format(caisse.solde_actuel)} {caisse.devise})
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedCaisseId && selectedCaisseId !== '_none' && da?.total_amount && (
+                  <p className="mt-2 text-sm text-warning">
+                    ⚠️ Un mouvement de sortie de {da.total_amount.toLocaleString()} {da.currency} sera créé automatiquement.
+                  </p>
+                )}
               </div>
 
               {/* Message d'avertissement */}

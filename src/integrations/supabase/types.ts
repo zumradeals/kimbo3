@@ -796,6 +796,7 @@ export type Database = {
           attachment_name: string | null
           attachment_url: string | null
           besoin_id: string
+          caisse_id: string | null
           category: Database["public"]["Enums"]["da_category"]
           comptabilise_at: string | null
           comptabilise_by: string | null
@@ -846,6 +847,7 @@ export type Database = {
           attachment_name?: string | null
           attachment_url?: string | null
           besoin_id: string
+          caisse_id?: string | null
           category: Database["public"]["Enums"]["da_category"]
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -896,6 +898,7 @@ export type Database = {
           attachment_name?: string | null
           attachment_url?: string | null
           besoin_id?: string
+          caisse_id?: string | null
           category?: Database["public"]["Enums"]["da_category"]
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -953,6 +956,13 @@ export type Database = {
             columns: ["besoin_id"]
             isOneToOne: false
             referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_caisse_id_fkey"
+            columns: ["caisse_id"]
+            isOneToOne: false
+            referencedRelation: "caisses"
             referencedColumns: ["id"]
           },
           {
