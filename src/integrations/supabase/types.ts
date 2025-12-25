@@ -523,6 +523,146 @@ export type Database = {
           },
         ]
       }
+      caisse_mouvements: {
+        Row: {
+          caisse_id: string
+          created_at: string
+          created_by: string
+          da_id: string | null
+          id: string
+          montant: number
+          motif: string
+          note_frais_id: string | null
+          observations: string | null
+          reference: string | null
+          solde_apres: number
+          solde_avant: number
+          type: string
+        }
+        Insert: {
+          caisse_id: string
+          created_at?: string
+          created_by: string
+          da_id?: string | null
+          id?: string
+          montant: number
+          motif: string
+          note_frais_id?: string | null
+          observations?: string | null
+          reference?: string | null
+          solde_apres: number
+          solde_avant: number
+          type: string
+        }
+        Update: {
+          caisse_id?: string
+          created_at?: string
+          created_by?: string
+          da_id?: string | null
+          id?: string
+          montant?: number
+          motif?: string
+          note_frais_id?: string | null
+          observations?: string | null
+          reference?: string | null
+          solde_apres?: number
+          solde_avant?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caisse_mouvements_caisse_id_fkey"
+            columns: ["caisse_id"]
+            isOneToOne: false
+            referencedRelation: "caisses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caisse_mouvements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caisse_mouvements_da_id_fkey"
+            columns: ["da_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caisse_mouvements_note_frais_id_fkey"
+            columns: ["note_frais_id"]
+            isOneToOne: false
+            referencedRelation: "notes_frais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caisses: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          devise: string
+          id: string
+          is_active: boolean
+          name: string
+          responsable_id: string | null
+          solde_actuel: number
+          solde_initial: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          devise?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          responsable_id?: string | null
+          solde_actuel?: number
+          solde_initial?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          devise?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          responsable_id?: string | null
+          solde_actuel?: number
+          solde_initial?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caisses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caisses_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comptes_comptables: {
         Row: {
           classe: number

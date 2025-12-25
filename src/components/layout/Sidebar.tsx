@@ -130,6 +130,14 @@ const notesFraisNavItem: NavItem = {
   roles: ['admin', 'dg', 'daf', 'comptable', 'responsable_departement', 'employe'],
 };
 
+// Module Caisse (actif)
+const caisseNavItem: NavItem = {
+  label: 'Caisse',
+  href: '/caisse',
+  icon: Wallet,
+  roles: ['admin', 'dg', 'daf', 'comptable'],
+};
+
 // Modules métier (désactivés pour l'instant)
 const businessModules: NavItem[] = [];
 
@@ -258,6 +266,7 @@ export function Sidebar() {
           {hasAccess(stockNavItem) && renderNavItem(stockNavItem)}
           {hasAccess(projetsNavItem) && renderNavItem(projetsNavItem)}
           {hasAccess(notesFraisNavItem) && renderNavItem(notesFraisNavItem)}
+          {hasAccess(caisseNavItem) && renderNavItem(caisseNavItem)}
 
           {/* Modules métier (désactivés) */}
           <div className="mt-6 border-t border-sidebar-border pt-4">

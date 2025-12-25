@@ -62,6 +62,9 @@ import Notifications from "./pages/Notifications";
 // Profil
 import Profile from "./pages/Profile";
 
+// Module Caisse
+import CaisseList from "./pages/caisse/CaisseList";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -143,6 +146,9 @@ function AppRoutes() {
       
       {/* Notifications */}
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      
+      {/* Module Caisse */}
+      <Route path="/caisse" element={<ProtectedRoute><CaisseList /></ProtectedRoute>} />
       
       {/* Profil */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
