@@ -41,6 +41,9 @@ const SYSCOHADA_CLASSES: Record<number, string> = {
   7: 'Comptes de produits',
 };
 
+// Liste de toutes les classes SYSCOHADA (1 à 7)
+const ALL_CLASSES = [1, 2, 3, 4, 5, 6, 7];
+
 export function SyscohadaFormDynamic({ value, onChange, disabled = false }: SyscohadaFormDynamicProps) {
   const [comptes, setComptes] = useState<CompteComptable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,8 +76,10 @@ export function SyscohadaFormDynamic({ value, onChange, disabled = false }: Sysc
     ? comptes.filter(c => c.classe === parseInt(value.classe))
     : comptes;
 
-  // Get unique classes from comptes
-  const availableClasses = [...new Set(comptes.map(c => c.classe))].sort();
+  // Compter les comptes par classe pour afficher un indicateur
+  const comptesCountByClasse = (classe: number) => {
+    return comptes.filter(c => c.classe === classe).length;
+  };
 
   // Handle classe change - filter comptes, auto-select if only one
   const handleClasseChange = useCallback((newClasse: string) => {
@@ -157,13 +162,26 @@ export function SyscohadaFormDynamic({ value, onChange, disabled = false }: Sysc
             <SelectValue placeholder="Sélectionner une classe" />
           </SelectTrigger>
           <SelectContent>
-            {availableClasses.map((classe) => (
-              <SelectItem key={classe} value={classe.toString()}>
-                Classe {classe} - {SYSCOHADA_CLASSES[classe] || ''}
-              </SelectItem>
-            ))}
+            {ALL_CLASSES.map((classe) => {
+              const count = comptesCountByClasse(classe);
+              return (
+                <SelectItem key={classe} value={classe.toString()}>
+                  <span className="flex items-center gap-2">
+                    <span>Classe {classe} - {SYSCOHADA_CLASSES[classe] || ''}</span>
+                    {count === 0 && (
+                      <span className="text-xs text-muted-foreground">(aucun compte)</span>
+                    )}
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
+        {value.classe && comptesCountByClasse(parseInt(value.classe)) === 0 && (
+          <p className="text-xs text-warning">
+            Aucun compte configuré pour cette classe. Contactez l'admin pour ajouter des comptes.
+          </p>
+        )}
       </div>
 
       {/* Compte comptable */}
