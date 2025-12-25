@@ -99,7 +99,7 @@ export default function AdminRoles() {
 
   // Check if a role has a permission
   const hasRolePermission = (role: AppRole, permissionId: string): boolean => {
-    const key = `${role}-${permissionId}`;
+    const key = `${role}::${permissionId}`;
     if (pendingChanges.has(key)) {
       return pendingChanges.get(key)!;
     }
@@ -113,7 +113,7 @@ export default function AdminRoles() {
       return;
     }
 
-    const key = `${role}-${permissionId}`;
+    const key = `${role}::${permissionId}`;
     const currentValue = hasRolePermission(role, permissionId);
     
     setPendingChanges(prev => {
@@ -136,7 +136,7 @@ export default function AdminRoles() {
       const toRemove: { role: AppRole; permission_id: string }[] = [];
 
       pendingChanges.forEach((newValue, key) => {
-        const [role, permissionId] = key.split('-') as [AppRole, string];
+        const [role, permissionId] = key.split('::') as [AppRole, string];
         const currentlyHas = rolePermissions.some(
           rp => rp.role === role && rp.permission_id === permissionId
         );
