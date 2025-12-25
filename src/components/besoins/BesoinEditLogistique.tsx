@@ -94,16 +94,19 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
       if (besoinError) throw besoinError;
 
       // Update lignes - delete removed, update existing, insert new
-      const existingIds = lignes.filter(l => l.id && !l.id.startsWith('temp-')).map(l => l.id);
-      
+      const existingIds = lignes
+        .filter((l) => l.id && !l.id.startsWith('temp-'))
+        .map((l) => l.id);
+
       // Delete removed lignes
       if (besoin.lignes) {
         const removedIds = besoin.lignes
           .filter((l: any) => !existingIds.includes(l.id))
           .map((l: any) => l.id);
-        
+
         if (removedIds.length > 0) {
-          await supabase.from('besoin_lignes').delete().in('id', removedIds);
+          const { error: deleteError } = await supabase.from('besoin_lignes').delete().in('id', removedIds);
+          if (deleteError) throw deleteError;
         }
       }
 
@@ -111,7 +114,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
       for (const ligne of lignes) {
         if (ligne.id && !ligne.id.startsWith('temp-')) {
           // Update existing
-          await supabase
+          const { error: updateError } = await supabase
             .from('besoin_lignes')
             .update({
               designation: ligne.designation,
@@ -122,9 +125,10 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
               justification: ligne.justification || null,
             })
             .eq('id', ligne.id);
+          if (updateError) throw updateError;
         } else {
           // Insert new
-          await supabase.from('besoin_lignes').insert({
+          const { error: insertError } = await supabase.from('besoin_lignes').insert({
             besoin_id: besoinId,
             designation: ligne.designation,
             category: ligne.category,
@@ -133,6 +137,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
             urgency: ligne.urgency,
             justification: ligne.justification || null,
           });
+          if (insertError) throw insertError;
         }
       }
 

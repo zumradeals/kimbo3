@@ -469,7 +469,7 @@ export default function BesoinDetail() {
         )}
 
         {/* Transformation actions for accepted besoins */}
-        {canManage && besoin.status === 'accepte' && canTransform && (
+        {canManage && besoin.status === 'accepte' && !besoin.is_locked && canTransform && (
           <Card className="border-success/50 bg-success/5">
             <CardContent className="py-4">
               <div className="mb-3">
@@ -502,7 +502,7 @@ export default function BesoinDetail() {
           </Card>
         )}
 
-        {canManage && besoin.status === 'accepte' && !canTransform && (
+        {canManage && besoin.status === 'accepte' && besoin.is_locked && (
           <Card className="border-muted bg-muted/30">
             <CardContent className="flex items-start gap-3 py-4">
               <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-success" />
@@ -516,8 +516,8 @@ export default function BesoinDetail() {
           </Card>
         )}
 
-        {/* Édition logistique pour besoin pris en charge ou accepté non verrouillé */}
-        {canManage && (besoin.status === 'pris_en_charge' || (besoin.status === 'accepte' && canTransform)) && (
+        {/* Édition logistique pour besoin pris en charge ou accepté */}
+        {canManage && (besoin.status === 'pris_en_charge' || besoin.status === 'accepte') && (
           <BesoinEditLogistique
             besoinId={besoin.id}
             besoin={besoin}

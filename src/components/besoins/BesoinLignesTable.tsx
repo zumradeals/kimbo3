@@ -48,7 +48,7 @@ const UNITS = ['pc', 'lot', 'jour', 'course', 'heure', 'unité', 'kg', 'litre', 
 export function BesoinLignesTable({ lignes, onChange, readOnly = false }: BesoinLignesTableProps) {
   const addLigne = () => {
     const newLigne: BesoinLigneInput = {
-      id: crypto.randomUUID(),
+      id: `temp-${crypto.randomUUID()}`,
       designation: '',
       category: 'materiel',
       unit: 'unité',
