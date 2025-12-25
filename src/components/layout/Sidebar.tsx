@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { AppRole } from '@/types/kpm';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   LayoutDashboard,
   Users,
@@ -29,7 +29,8 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  roles?: AppRole[];
+  module?: string; // Permission module to check
+  permission?: string; // Specific permission code to check
   children?: NavItem[];
 }
 
@@ -38,118 +39,117 @@ const navItems: NavItem[] = [
     label: 'Tableau de bord',
     href: '/dashboard',
     icon: LayoutDashboard,
+    module: 'dashboard',
   },
   {
     label: 'Administration',
     href: '/admin',
     icon: Shield,
-    roles: ['admin'],
+    module: 'administration',
     children: [
-      { label: 'Utilisateurs', href: '/admin/users', icon: Users, roles: ['admin'] },
-      { label: 'Départements', href: '/admin/departments', icon: Building2, roles: ['admin'] },
-      { label: 'Rôles & Permissions', href: '/admin/roles', icon: Shield, roles: ['admin'] },
-      { label: 'Unités de mesure', href: '/admin/units', icon: Ruler, roles: ['admin'] },
-      { label: 'Modes paiement', href: '/admin/payment-categories', icon: Wallet, roles: ['admin'] },
-      { label: 'Plan comptable', href: '/admin/comptes-comptables', icon: BookOpen, roles: ['admin'] },
-      { label: 'Paramètres', href: '/admin/settings', icon: Settings, roles: ['admin'] },
+      { label: 'Utilisateurs', href: '/admin/users', icon: Users, permission: 'administration.gerer_users' },
+      { label: 'Départements', href: '/admin/departments', icon: Building2, permission: 'administration.gerer_departements' },
+      { label: 'Rôles & Permissions', href: '/admin/roles', icon: Shield, permission: 'administration.gerer_roles' },
+      { label: 'Unités de mesure', href: '/admin/units', icon: Ruler, permission: 'administration.gerer_unites' },
+      { label: 'Modes paiement', href: '/admin/payment-categories', icon: Wallet, permission: 'administration.gerer_modes_paiement' },
+      { label: 'Plan comptable', href: '/admin/comptes-comptables', icon: BookOpen, permission: 'administration.gerer_plan_comptable' },
+      { label: 'Paramètres', href: '/admin/settings', icon: Settings, permission: 'administration.gerer_parametres' },
     ],
   },
   {
     label: 'Journal d\'audit',
     href: '/audit',
     icon: FileText,
-    roles: ['admin', 'dg', 'daf', 'comptable'],
+    module: 'audit',
   },
   {
     label: 'Rapports',
     href: '/reports',
     icon: BarChart3,
-    roles: ['admin', 'dg', 'daf'],
+    module: 'rapports',
   },
 ];
 
-// Module Besoins (actif)
-const besoinNavItem: NavItem = {
-  label: 'Besoins internes',
-  href: '/besoins',
-  icon: ClipboardList,
-  roles: ['admin', 'dg', 'daf', 'responsable_departement', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'employe'],
-};
-
-// Modules DA et BL (actifs)
-const daNavItem: NavItem = {
-  label: 'Demandes d\'achat',
-  href: '/demandes-achat',
-  icon: FileText,
-  roles: ['admin', 'dg', 'daf', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats'],
-};
-
-const blNavItem: NavItem = {
-  label: 'Bons de livraison',
-  href: '/bons-livraison',
-  icon: Package,
-  roles: ['admin', 'dg', 'responsable_logistique', 'agent_logistique'],
-};
-
-const fournisseursNavItem: NavItem = {
-  label: 'Fournisseurs',
-  href: '/fournisseurs',
-  icon: Building2,
-  roles: ['admin', 'responsable_achats', 'agent_achats'],
-};
-
-// Module Comptabilité (actif)
-const comptabiliteNavItem: NavItem = {
-  label: 'Comptabilité',
-  href: '/comptabilite',
-  icon: Wallet,
-  roles: ['admin', 'comptable', 'daf'],
-};
-
-// Module Stock (actif)
-const stockNavItem: NavItem = {
-  label: 'Stock',
-  href: '/stock',
-  icon: Package,
-  roles: ['admin', 'responsable_logistique', 'agent_logistique', 'dg', 'daf', 'comptable'],
-};
-
-// Module Projets (actif)
-const projetsNavItem: NavItem = {
-  label: 'Projets / Chantiers',
-  href: '/projets',
-  icon: FolderKanban,
-  roles: ['admin', 'dg', 'daf', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'comptable'],
-};
-
-// Module Notes de frais (actif)
-const notesFraisNavItem: NavItem = {
-  label: 'Notes de frais',
-  href: '/notes-frais',
-  icon: Receipt,
-  roles: ['admin', 'dg', 'daf', 'comptable', 'responsable_departement', 'employe'],
-};
-
-// Module Caisse (actif)
-const caisseNavItem: NavItem = {
-  label: 'Caisse',
-  href: '/caisse',
-  icon: Wallet,
-  roles: ['admin', 'dg', 'daf', 'comptable'],
-};
-
-// Modules métier (désactivés pour l'instant)
-const businessModules: NavItem[] = [];
+// Module navigation items
+const moduleNavItems: NavItem[] = [
+  {
+    label: 'Besoins internes',
+    href: '/besoins',
+    icon: ClipboardList,
+    module: 'besoins',
+  },
+  {
+    label: 'Demandes d\'achat',
+    href: '/demandes-achat',
+    icon: FileText,
+    module: 'da',
+  },
+  {
+    label: 'Bons de livraison',
+    href: '/bons-livraison',
+    icon: Package,
+    module: 'bl',
+  },
+  {
+    label: 'Fournisseurs',
+    href: '/fournisseurs',
+    icon: Building2,
+    module: 'fournisseurs',
+  },
+  {
+    label: 'Comptabilité',
+    href: '/comptabilite',
+    icon: Wallet,
+    module: 'comptabilite',
+  },
+  {
+    label: 'Stock',
+    href: '/stock',
+    icon: Package,
+    module: 'stock',
+  },
+  {
+    label: 'Projets / Chantiers',
+    href: '/projets',
+    icon: FolderKanban,
+    module: 'projets',
+  },
+  {
+    label: 'Notes de frais',
+    href: '/notes-frais',
+    icon: Receipt,
+    module: 'notes_frais',
+  },
+  {
+    label: 'Caisse',
+    href: '/caisse',
+    icon: Wallet,
+    module: 'caisse',
+  },
+];
 
 export function Sidebar() {
-  const { profile, roles, isAdmin, signOut } = useAuth();
+  const { profile, signOut, isAdmin } = useAuth();
+  const { canViewModule, hasPermission, isLoading: permissionsLoading } = usePermissions();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['/admin']);
 
   const hasAccess = (item: NavItem): boolean => {
-    if (!item.roles) return true;
-    return item.roles.some((role) => roles.includes(role));
+    // Admin always has access
+    if (isAdmin) return true;
+    
+    // Check specific permission first
+    if (item.permission) {
+      return hasPermission(item.permission);
+    }
+    
+    // Check module access
+    if (item.module) {
+      return canViewModule(item.module);
+    }
+    
+    return true;
   };
 
   const toggleExpanded = (href: string) => {
@@ -164,8 +164,14 @@ export function Sidebar() {
     if (!hasAccess(item)) return null;
 
     const hasChildren = item.children && item.children.length > 0;
+    const visibleChildren = hasChildren 
+      ? item.children!.filter(child => hasAccess(child))
+      : [];
     const isExpanded = expandedItems.includes(item.href);
     const active = isActive(item.href);
+
+    // Don't show parent if no children are accessible
+    if (hasChildren && visibleChildren.length === 0) return null;
 
     return (
       <div key={item.href}>
@@ -206,12 +212,15 @@ export function Sidebar() {
         )}
         {hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
-            {item.children!.map((child) => renderNavItem(child, depth + 1))}
+            {visibleChildren.map((child) => renderNavItem(child, depth + 1))}
           </div>
         )}
       </div>
     );
   };
+
+  // Filter module items based on permissions
+  const visibleModuleItems = moduleNavItems.filter(item => hasAccess(item));
 
   return (
     <>
@@ -257,33 +266,17 @@ export function Sidebar() {
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {navItems.map((item) => renderNavItem(item))}
           
-          {/* Modules actifs */}
-          {hasAccess(besoinNavItem) && renderNavItem(besoinNavItem)}
-          {hasAccess(daNavItem) && renderNavItem(daNavItem)}
-          {hasAccess(blNavItem) && renderNavItem(blNavItem)}
-          {hasAccess(fournisseursNavItem) && renderNavItem(fournisseursNavItem)}
-          {hasAccess(comptabiliteNavItem) && renderNavItem(comptabiliteNavItem)}
-          {hasAccess(stockNavItem) && renderNavItem(stockNavItem)}
-          {hasAccess(projetsNavItem) && renderNavItem(projetsNavItem)}
-          {hasAccess(notesFraisNavItem) && renderNavItem(notesFraisNavItem)}
-          {hasAccess(caisseNavItem) && renderNavItem(caisseNavItem)}
-
-          {/* Modules métier (désactivés) */}
-          <div className="mt-6 border-t border-sidebar-border pt-4">
-            <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-sidebar-muted">
-              Modules métier
-            </p>
-            {businessModules.map((item) => (
-              <div
-                key={item.href}
-                className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-muted/50"
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-                <span className="ml-auto text-xs">(bientôt)</span>
+          {/* Module items */}
+          {visibleModuleItems.length > 0 && (
+            <>
+              <div className="mt-4 mb-2 px-3">
+                <p className="text-xs font-medium uppercase tracking-wider text-sidebar-muted">
+                  Modules métier
+                </p>
               </div>
-            ))}
-          </div>
+              {visibleModuleItems.map((item) => renderNavItem(item))}
+            </>
+          )}
         </nav>
 
         {/* User & Logout */}

@@ -1895,6 +1895,24 @@ export type Database = {
         }[]
       }
       get_user_department: { Args: { _user_id: string }; Returns: string }
+      get_user_modules: {
+        Args: { _user_id: string }
+        Returns: {
+          module: string
+        }[]
+      }
+      get_user_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          module: string
+          name: string
+          permission_code: string
+        }[]
+      }
+      has_permission: {
+        Args: { _permission_code: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
