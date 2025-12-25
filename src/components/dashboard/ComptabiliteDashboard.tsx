@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  Calculator, CreditCard, Clock, ArrowRight, 
-  CheckCircle, FileText, AlertCircle
+  Calculator, CreditCard, ArrowRight, 
+  CheckCircle, FileText, AlertCircle, Wallet, TrendingUp, TrendingDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -31,11 +31,23 @@ interface DAenAttentePaiement {
   department: { name: string } | null;
 }
 
+interface Caisse {
+  id: string;
+  code: string;
+  name: string;
+  solde_actuel: number;
+  solde_initial: number;
+  devise: string;
+  type: string;
+  is_active: boolean;
+}
+
 export function ComptabiliteDashboard() {
   const navigate = useNavigate();
   const [ecrituresAValider, setEcrituresAValider] = useState<EcritureAValider[]>([]);
   const [daEnAttente, setDaEnAttente] = useState<DAenAttentePaiement[]>([]);
-  const [totaux, setTotaux] = useState({ debit: 0, credit: 0, enAttente: 0 });
+  const [caisses, setCaisses] = useState<Caisse[]>([]);
+  const [totaux, setTotaux] = useState({ debit: 0, credit: 0, enAttente: 0, soldeTotalCaisses: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -75,7 +87,19 @@ export function ComptabiliteDashboard() {
         // Calculate total en attente
         const totalEnAttente = (daData || []).reduce((sum, d) => sum + (d.total_amount || 0), 0);
 
-        setTotaux({ debit: totalDebit, credit: totalCredit, enAttente: totalEnAttente });
+        // Fetch caisses
+        const { data: caissesData } = await supabase
+          .from('caisses')
+          .select('id, code, name, solde_actuel, solde_initial, devise, type, is_active')
+          .eq('is_active', true)
+          .order('code');
+
+        setCaisses(caissesData || []);
+
+        // Calculate total solde caisses
+        const soldeTotalCaisses = (caissesData || []).reduce((sum, c) => sum + (c.solde_actuel || 0), 0);
+
+        setTotaux({ debit: totalDebit, credit: totalCredit, enAttente: totalEnAttente, soldeTotalCaisses });
 
       } catch (error) {
         console.error('Error fetching comptabilite data:', error);
@@ -116,6 +140,10 @@ export function ComptabiliteDashboard() {
     );
   }
 
+  const getSoldeVariation = (caisse: Caisse) => {
+    return caisse.solde_actuel - caisse.solde_initial;
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -124,7 +152,18 @@ export function ComptabiliteDashboard() {
       </h2>
 
       {/* Totaux */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Solde total caisses</p>
+                <p className="text-xl font-bold text-emerald-600">{formatMontant(totaux.soldeTotalCaisses)}</p>
+              </div>
+              <Wallet className="h-8 w-8 text-emerald-500/20" />
+            </div>
+          </CardContent>
+        </Card>
         <Card className="border-l-4 border-l-warning">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -159,6 +198,64 @@ export function ComptabiliteDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Vue consolidée des caisses */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-emerald-500" />
+            Soldes des caisses ({caisses.length})
+          </CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate('/caisse')}
+            className="text-xs"
+          >
+            Gérer <ArrowRight className="ml-1 h-3 w-3" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {caisses.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <Wallet className="mx-auto h-8 w-8 mb-2 text-muted-foreground/50" />
+              <p className="text-sm">Aucune caisse configurée</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {caisses.map((caisse) => {
+                const variation = getSoldeVariation(caisse);
+                return (
+                  <div 
+                    key={caisse.id} 
+                    className="p-3 rounded-lg border bg-card hover:bg-accent/5 cursor-pointer transition-colors"
+                    onClick={() => navigate('/caisse')}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {caisse.code}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground capitalize">{caisse.type}</span>
+                      </div>
+                      {variation !== 0 && (
+                        <div className={`flex items-center text-xs ${variation > 0 ? 'text-success' : 'text-destructive'}`}>
+                          {variation > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                          {variation > 0 ? '+' : ''}{formatMontant(variation, caisse.devise)}
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-medium text-sm truncate">{caisse.name}</p>
+                    <p className="text-lg font-bold text-foreground mt-1">
+                      {formatMontant(caisse.solde_actuel, caisse.devise)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Écritures à valider */}
