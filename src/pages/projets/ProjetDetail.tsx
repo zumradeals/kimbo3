@@ -18,6 +18,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -39,6 +49,7 @@ import {
   FileText,
   Package,
   Wallet,
+  AlertTriangle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -76,6 +87,8 @@ export default function ProjetDetail() {
     start_date: '',
     end_date: '',
   });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [linkedItems, setLinkedItems] = useState({
     besoins: 0,
@@ -182,7 +195,26 @@ export default function ProjetDetail() {
 
   const handleDelete = async () => {
     if (!projet) return;
+    
+    // Vérifier les rattachements
+    const totalLinked = linkedItems.besoins + linkedItems.da + linkedItems.bl + linkedItems.mouvements;
+    if (totalLinked > 0) {
+      const details = [];
+      if (linkedItems.besoins > 0) details.push(`${linkedItems.besoins} besoin(s)`);
+      if (linkedItems.da > 0) details.push(`${linkedItems.da} DA`);
+      if (linkedItems.bl > 0) details.push(`${linkedItems.bl} BL`);
+      if (linkedItems.mouvements > 0) details.push(`${linkedItems.mouvements} mouvement(s)`);
+      
+      toast({ 
+        title: 'Suppression impossible', 
+        description: `Ce projet est rattaché à : ${details.join(', ')}. Veuillez d'abord détacher ces éléments.`,
+        variant: 'destructive' 
+      });
+      setShowDeleteDialog(false);
+      return;
+    }
 
+    setIsDeleting(true);
     try {
       const { error } = await supabase.from('projets').delete().eq('id', projet.id);
       if (error) throw error;
@@ -191,6 +223,9 @@ export default function ProjetDetail() {
       navigate('/projets');
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -243,7 +278,7 @@ export default function ProjetDetail() {
                 variant="outline"
                 size="sm"
                 className="text-destructive hover:bg-destructive/10"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteDialog(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Supprimer
@@ -459,6 +494,44 @@ export default function ProjetDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Supprimer ce projet ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {linkedItems.besoins + linkedItems.da + linkedItems.bl + linkedItems.mouvements > 0 ? (
+                <span className="text-destructive">
+                  Ce projet est rattaché à : 
+                  {linkedItems.besoins > 0 && ` ${linkedItems.besoins} besoin(s),`}
+                  {linkedItems.da > 0 && ` ${linkedItems.da} DA,`}
+                  {linkedItems.bl > 0 && ` ${linkedItems.bl} BL,`}
+                  {linkedItems.mouvements > 0 && ` ${linkedItems.mouvements} mouvement(s)`}
+                  . La suppression est impossible.
+                </span>
+              ) : (
+                'Cette action est irréversible. Le projet sera définitivement supprimé.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            {linkedItems.besoins + linkedItems.da + linkedItems.bl + linkedItems.mouvements === 0 && (
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Suppression...' : 'Supprimer'}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

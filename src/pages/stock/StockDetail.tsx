@@ -395,6 +395,26 @@ export default function StockDetail() {
     
     setIsSaving(true);
     try {
+      // Vérifier s'il y a des mouvements validés (pas d'ajustement initial)
+      const { count, error: countError } = await supabase
+        .from('stock_movements')
+        .select('id', { count: 'exact', head: true })
+        .eq('article_stock_id', article.id)
+        .not('movement_type', 'eq', 'ajustement');
+      
+      if (countError) throw countError;
+      
+      if (count && count > 0) {
+        toast({ 
+          title: 'Suppression impossible', 
+          description: `Cet article a ${count} mouvement(s) validé(s). Impossible de le supprimer.`,
+          variant: 'destructive' 
+        });
+        setIsSaving(false);
+        setShowDeleteDialog(false);
+        return;
+      }
+
       // Delete associated stock movements first
       const { error: movementsError } = await supabase
         .from('stock_movements')

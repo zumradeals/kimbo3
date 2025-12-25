@@ -17,11 +17,12 @@ import {
 } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 
-interface Projet {
+export interface Projet {
   id: string;
   code: string;
   name: string;
   client: string | null;
+  location: string | null;
   status: string;
 }
 
@@ -53,7 +54,7 @@ export function ProjetSelector({
     try {
       const { data, error } = await supabase
         .from('projets')
-        .select('id, code, name, client, status')
+        .select('id, code, name, client, location, status')
         .eq('is_active', true)
         .order('code', { ascending: true });
 

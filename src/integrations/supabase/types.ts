@@ -1002,6 +1002,8 @@ export type Database = {
           contact_name: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           id: string
           is_active: boolean
@@ -1015,6 +1017,8 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           id?: string
           is_active?: boolean
@@ -1028,6 +1032,8 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           id?: string
           is_active?: boolean
@@ -1558,6 +1564,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      units: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

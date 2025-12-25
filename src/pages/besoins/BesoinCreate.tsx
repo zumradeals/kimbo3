@@ -163,11 +163,6 @@ export default function BesoinCreate() {
     e.preventDefault();
 
     // Validations
-    if (!siteProjet.trim()) {
-      toast({ title: 'Erreur', description: 'Le site/projet est obligatoire.', variant: 'destructive' });
-      return;
-    }
-
     if (!validateObjet(objetBesoin)) {
       toast({ title: 'Erreur', description: 'L\'objet du besoin n\'est pas valide.', variant: 'destructive' });
       return;
@@ -387,24 +382,32 @@ export default function BesoinCreate() {
                     className="bg-muted"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="projet">Projet rattaché</Label>
-                  <ProjetSelector
-                    value={projetId}
-                    onChange={(id) => setProjetId(id)}
-                    placeholder="Sélectionner un projet..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="site_projet">Site / Lieu concerné *</Label>
-                  <Input
-                    id="site_projet"
-                    placeholder="Ex: Chantier Douala Nord, Bureau DG, Atelier..."
-                    value={siteProjet}
-                    onChange={(e) => setSiteProjet(e.target.value)}
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="projet">Projet rattaché</Label>
+                <ProjetSelector
+                  value={projetId}
+                  onChange={(id, projet) => {
+                    setProjetId(id);
+                    // Auto-compléter le site si un projet avec location est sélectionné
+                    if (projet?.location && !siteProjet.trim()) {
+                      setSiteProjet(projet.location);
+                    }
+                  }}
+                  placeholder="Sélectionner un projet..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="site_projet">Site / Lieu concerné</Label>
+                <Input
+                  id="site_projet"
+                  placeholder="Ex: Chantier Douala Nord, Bureau DG, Atelier..."
+                  value={siteProjet}
+                  onChange={(e) => setSiteProjet(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  S'auto-complète si un projet avec localisation est sélectionné
+                </p>
+              </div>
               </div>
 
               {/* Type de besoin */}

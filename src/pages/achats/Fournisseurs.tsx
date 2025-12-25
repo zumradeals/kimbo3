@@ -73,6 +73,7 @@ export default function Fournisseurs() {
       const { data, error } = await supabase
         .from('fournisseurs')
         .select('*')
+        .is('deleted_at', null)
         .order('name');
 
       if (error) throw error;
@@ -151,9 +152,17 @@ export default function Fournisseurs() {
     if (!deletingId) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('fournisseurs').delete().eq('id', deletingId);
+      // Soft delete - marquer comme supprimé au lieu de supprimer
+      const { error } = await supabase
+        .from('fournisseurs')
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.id,
+          is_active: false
+        })
+        .eq('id', deletingId);
       if (error) throw error;
-      toast({ title: 'Fournisseur supprimé' });
+      toast({ title: 'Fournisseur supprimé', description: 'Le fournisseur a été archivé.' });
       setShowDeleteDialog(false);
       setDeletingId(null);
       fetchFournisseurs();
@@ -270,7 +279,7 @@ export default function Fournisseurs() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            {isAdmin && (
+                            {(isAchats || isAdmin) && (
                               <Button
                                 variant="ghost"
                                 size="icon"

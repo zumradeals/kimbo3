@@ -20,6 +20,7 @@ import {
   ChevronDown,
   FolderKanban,
   Receipt,
+  Ruler,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -46,6 +47,7 @@ const navItems: NavItem[] = [
       { label: 'Utilisateurs', href: '/admin/users', icon: Users, roles: ['admin'] },
       { label: 'Départements', href: '/admin/departments', icon: Building2, roles: ['admin'] },
       { label: 'Rôles & Permissions', href: '/admin/roles', icon: Shield, roles: ['admin'] },
+      { label: 'Unités de mesure', href: '/admin/units', icon: Ruler, roles: ['admin'] },
       { label: 'Paramètres', href: '/admin/settings', icon: Settings, roles: ['admin'] },
     ],
   },

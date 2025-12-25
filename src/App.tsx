@@ -14,6 +14,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminDepartments from "./pages/admin/Departments";
 import AdminSettings from "./pages/admin/Settings";
 import AdminRoles from "./pages/admin/Roles";
+import AdminUnits from "./pages/admin/Units";
 import NotFound from "./pages/NotFound";
 
 // Module Besoins
@@ -96,6 +97,7 @@ function AppRoutes() {
       <Route path="/admin/departments" element={<ProtectedRoute><AdminDepartments /></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
       <Route path="/admin/roles" element={<ProtectedRoute><AdminRoles /></ProtectedRoute>} />
+      <Route path="/admin/units" element={<ProtectedRoute><AdminUnits /></ProtectedRoute>} />
       <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
       
       {/* Module Besoins */}
