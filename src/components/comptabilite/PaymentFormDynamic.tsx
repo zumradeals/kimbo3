@@ -25,10 +25,19 @@ interface PaymentMethod {
   category_id: string;
 }
 
+interface Caisse {
+  id: string;
+  code: string;
+  name: string;
+  solde_actuel: number;
+  devise: string;
+}
+
 interface PaymentFormData {
   category_id: string;
   method_id: string;
   details: Record<string, string>;
+  caisse_id?: string;
 }
 
 interface PaymentFormDynamicProps {
@@ -57,6 +66,7 @@ const FIELD_LABELS: Record<string, string> = {
 export function PaymentFormDynamic({ value, onChange, disabled = false }: PaymentFormDynamicProps) {
   const [categories, setCategories] = useState<PaymentCategory[]>([]);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const [caisses, setCaisses] = useState<Caisse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -66,7 +76,7 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [catRes, methRes] = await Promise.all([
+      const [catRes, methRes, caisseRes] = await Promise.all([
         supabase
           .from('payment_categories')
           .select('id, code, label, required_fields')
@@ -77,6 +87,11 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
           .select('id, code, label, category_id')
           .eq('is_active', true)
           .order('sort_order'),
+        supabase
+          .from('caisses')
+          .select('id, code, name, solde_actuel, devise')
+          .eq('is_active', true)
+          .order('code'),
       ]);
 
       if (catRes.data) {
@@ -88,6 +103,7 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
         })));
       }
       if (methRes.data) setMethods(methRes.data);
+      if (caisseRes.data) setCaisses(caisseRes.data);
     } catch (error) {
       console.error('Error fetching payment data:', error);
     } finally {
@@ -98,13 +114,22 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
   const selectedCategory = categories.find(c => c.id === value.category_id);
   const filteredMethods = methods.filter(m => m.category_id === value.category_id);
   const selectedMethod = methods.find(m => m.id === value.method_id);
+  const isCashPayment = selectedCategory?.code === 'especes';
 
   const handleCategoryChange = (categoryId: string) => {
     const newMethods = methods.filter(m => m.category_id === categoryId);
+    const newCategory = categories.find(c => c.id === categoryId);
+    
+    // If cash payment, pre-select default caisse if only one exists
+    const defaultCaisseId = newCategory?.code === 'especes' && caisses.length === 1 
+      ? caisses[0].id 
+      : undefined;
+    
     onChange({
       category_id: categoryId,
       method_id: newMethods.length === 1 ? newMethods[0].id : '',
       details: {},
+      caisse_id: defaultCaisseId,
     });
   };
 
@@ -113,6 +138,13 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
       ...value,
       method_id: methodId,
       details: {},
+    });
+  };
+
+  const handleCaisseChange = (caisseId: string) => {
+    onChange({
+      ...value,
+      caisse_id: caisseId,
     });
   };
 
@@ -139,10 +171,14 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
       fields.push('nom_banque');
     }
     
-    // Add category-level required fields
-    fields.push(...selectedCategory.required_fields);
+    // Add category-level required fields (but not 'caisse' since we handle it separately)
+    fields.push(...selectedCategory.required_fields.filter(f => f !== 'caisse'));
     
     return fields;
+  };
+
+  const formatMoney = (amount: number, devise: string = 'XOF') => {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + devise;
   };
 
   if (isLoading) {
@@ -194,6 +230,44 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
           </SelectContent>
         </Select>
       </div>
+
+      {/* Sélection de caisse pour paiement espèces */}
+      {isCashPayment && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Banknote className="h-4 w-4 text-muted-foreground" />
+            Caisse *
+          </Label>
+          {caisses.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-3 text-center text-muted-foreground">
+              <p className="text-sm">Aucune caisse active.</p>
+              <p className="text-xs mt-1">Configurez une caisse dans l'administration.</p>
+            </div>
+          ) : (
+            <Select
+              value={value.caisse_id || ''}
+              onValueChange={handleCaisseChange}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une caisse" />
+              </SelectTrigger>
+              <SelectContent>
+                {caisses.map((caisse) => (
+                  <SelectItem key={caisse.id} value={caisse.id}>
+                    <div className="flex items-center justify-between gap-4">
+                      <span>{caisse.code} - {caisse.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Solde: {formatMoney(caisse.solde_actuel, caisse.devise)}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
 
       {/* Méthode spécifique (si plusieurs dans la catégorie) */}
       {value.category_id && filteredMethods.length > 1 && (

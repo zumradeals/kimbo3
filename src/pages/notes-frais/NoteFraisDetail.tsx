@@ -266,7 +266,7 @@ export default function NoteFraisDetail() {
 
   const StatusIcon = statusIcons[note.status];
 
-  const formatAmount = (amount: number, currency: string = 'XAF') => {
+  const formatAmount = (amount: number, currency: string = 'XOF') => {
     return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + currency;
   };
 

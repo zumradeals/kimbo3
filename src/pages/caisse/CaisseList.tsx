@@ -69,11 +69,11 @@ export default function CaisseList() {
     code: '',
     name: '',
     type: 'principale',
-    responsable_id: '',
-    solde_initial: 0,
-    devise: 'XAF',
-    description: '',
-  });
+      responsable_id: '',
+      solde_initial: 0,
+      devise: 'XOF',
+      description: '',
+    });
 
   const canManage = roles.some(r => ['admin', 'daf'].includes(r));
   const canView = roles.some(r => ['admin', 'daf', 'dg', 'comptable'].includes(r));
@@ -235,7 +235,7 @@ export default function CaisseList() {
       type: 'principale',
       responsable_id: '',
       solde_initial: 0,
-      devise: 'XAF',
+      devise: 'XOF',
       description: '',
     });
   };
@@ -271,7 +271,7 @@ export default function CaisseList() {
     return <AppLayout><AccessDenied /></AppLayout>;
   }
 
-  const formatMoney = (amount: number, devise: string = 'XAF') => {
+  const formatMoney = (amount: number, devise: string = 'XOF') => {
     return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + devise;
   };
 
@@ -365,9 +365,9 @@ export default function CaisseList() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="XAF">XAF</SelectItem>
-                        <SelectItem value="XOF">XOF</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="XOF">XOF (Franc CFA BCEAO)</SelectItem>
+                        <SelectItem value="XAF">XAF (Franc CFA BEAC)</SelectItem>
+                        <SelectItem value="EUR">EUR (Euro)</SelectItem>
                         <SelectItem value="USD">USD</SelectItem>
                       </SelectContent>
                     </Select>
@@ -623,9 +623,9 @@ export default function CaisseList() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="XAF">XAF</SelectItem>
-                  <SelectItem value="XOF">XOF</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="XOF">XOF (Franc CFA BCEAO)</SelectItem>
+                  <SelectItem value="XAF">XAF (Franc CFA BEAC)</SelectItem>
+                  <SelectItem value="EUR">EUR (Euro)</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                 </SelectContent>
               </Select>

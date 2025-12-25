@@ -447,7 +447,7 @@ export default function ProjetsList() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget (XAF)</Label>
+              <Label htmlFor="budget">Budget (XOF)</Label>
               <Input
                 id="budget"
                 type="number"

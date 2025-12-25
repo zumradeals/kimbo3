@@ -516,8 +516,8 @@ export default function BesoinDetail() {
           </Card>
         )}
 
-        {/* Édition logistique pour besoin accepté non verrouillé */}
-        {canManage && besoin.status === 'accepte' && canTransform && (
+        {/* Édition logistique pour besoin pris en charge ou accepté non verrouillé */}
+        {canManage && (besoin.status === 'pris_en_charge' || (besoin.status === 'accepte' && canTransform)) && (
           <BesoinEditLogistique
             besoinId={besoin.id}
             besoin={besoin}
