@@ -581,6 +581,22 @@ export const BL_TYPE_LABELS: Record<BLType, string> = {
 export type StockMovementType = 'entree' | 'sortie' | 'ajustement' | 'reservation' | 'liberation';
 export type StockStatus = 'disponible' | 'reserve' | 'epuise';
 
+export interface StockCategory {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  code: string | null;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  // Relations
+  parent?: StockCategory | null;
+  children?: StockCategory[];
+  articles_count?: number;
+}
+
 export interface ArticleStock {
   id: string;
   designation: string;
@@ -591,9 +607,12 @@ export interface ArticleStock {
   quantity_min: number | null;
   location: string | null;
   status: StockStatus;
+  category_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Relations
+  category?: StockCategory | null;
 }
 
 export interface StockMovement {

@@ -33,11 +33,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { CategorySelector } from '@/components/stock/CategorySelector';
 import {
   ArticleStock,
   StockStatus,
   STOCK_STATUS_LABELS,
   LOGISTICS_ROLES,
+  StockCategory,
 } from '@/types/kpm';
 import {
   Package,
@@ -47,6 +49,7 @@ import {
   AlertTriangle,
   XCircle,
   Warehouse,
+  FolderTree,
 } from 'lucide-react';
 
 const statusColors: Record<StockStatus, string> = {
@@ -85,14 +88,20 @@ const STOCK_UNITS = [
   { value: 'lot', label: 'Lot' },
 ];
 
+interface ArticleWithCategory extends ArticleStock {
+  category?: StockCategory | null;
+}
+
 export default function StockList() {
   const { user, roles, isAdmin, hasRole } = useAuth();
   const { toast } = useToast();
 
-  const [articles, setArticles] = useState<ArticleStock[]>([]);
+  const [articles, setArticles] = useState<ArticleWithCategory[]>([]);
+  const [categories, setCategories] = useState<StockCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [customUnit, setCustomUnit] = useState(false);
@@ -105,6 +114,7 @@ export default function StockList() {
     quantity_available: 0,
     quantity_min: 0,
     location: '',
+    category_id: null as string | null,
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -112,18 +122,30 @@ export default function StockList() {
   const canManage = isLogistics || isAdmin || isDAF;
 
   useEffect(() => {
-    fetchArticles();
+    fetchData();
   }, []);
 
-  const fetchArticles = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch articles with category
+      const { data: articlesData, error: articlesError } = await supabase
         .from('articles_stock')
-        .select('*')
+        .select('*, category:stock_categories(*)')
         .order('designation');
 
-      if (error) throw error;
-      setArticles((data as ArticleStock[]) || []);
+      if (articlesError) throw articlesError;
+
+      // Fetch categories for filter
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('stock_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (categoriesError) throw categoriesError;
+
+      setArticles((articlesData as ArticleWithCategory[]) || []);
+      setCategories((categoriesData as StockCategory[]) || []);
     } catch (error: any) {
       console.error('Error fetching stock:', error);
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -147,6 +169,7 @@ export default function StockList() {
         quantity_available: newArticle.quantity_available,
         quantity_min: newArticle.quantity_min || null,
         location: newArticle.location || null,
+        category_id: newArticle.category_id,
         created_by: user?.id,
       });
 
@@ -161,9 +184,10 @@ export default function StockList() {
         quantity_available: 0,
         quantity_min: 0,
         location: '',
+        category_id: null,
       });
       setCustomUnit(false);
-      fetchArticles();
+      fetchData();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -179,9 +203,19 @@ export default function StockList() {
       quantity_available: 0,
       quantity_min: 0,
       location: '',
+      category_id: null,
     });
     setCustomUnit(false);
   };
+
+  const filteredArticles = articles.filter((art) => {
+    const matchesSearch =
+      art.designation.toLowerCase().includes(search.toLowerCase()) ||
+      (art.location || '').toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || art.status === statusFilter;
+    const matchesCategory = !categoryFilter || art.category_id === categoryFilter;
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
   const filteredArticles = articles.filter((art) => {
     const matchesSearch =
