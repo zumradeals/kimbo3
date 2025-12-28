@@ -156,6 +156,7 @@ export interface BesoinLigne {
   quantity: number;
   urgency: BesoinUrgency;
   justification: string | null;
+  article_stock_id?: string | null;
   created_at: string;
 }
 
