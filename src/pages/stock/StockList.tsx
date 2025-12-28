@@ -217,14 +217,6 @@ export default function StockList() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const filteredArticles = articles.filter((art) => {
-    const matchesSearch =
-      art.designation.toLowerCase().includes(search.toLowerCase()) ||
-      (art.location || '').toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || art.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
   const stats = {
     total: articles.length,
     disponible: articles.filter((a) => a.status === 'disponible').length,
