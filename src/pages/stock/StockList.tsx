@@ -355,6 +355,7 @@ export default function StockList() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Désignation</TableHead>
+                      <TableHead>Catégorie</TableHead>
                       <TableHead className="text-right">Qté disponible</TableHead>
                       <TableHead className="text-right">Qté réservée</TableHead>
                       <TableHead>Unité</TableHead>
@@ -373,6 +374,16 @@ export default function StockList() {
                             <div className="font-medium">{art.designation}</div>
                             {art.description && (
                               <div className="text-xs text-muted-foreground">{art.description}</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {art.category ? (
+                              <Badge variant="outline" className="text-xs">
+                                <FolderTree className="mr-1 h-3 w-3" />
+                                {art.category.name}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
                           <TableCell className="text-right font-mono">
@@ -529,6 +540,18 @@ export default function StockList() {
                 />
                 <p className="text-xs text-muted-foreground">Alerte si stock ≤ ce seuil</p>
               </div>
+            </div>
+
+            {/* Catégorie */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Catégorie
+              </Label>
+              <CategorySelector
+                value={newArticle.category_id}
+                onChange={(v) => setNewArticle({ ...newArticle, category_id: v })}
+                placeholder="Sélectionner une catégorie"
+              />
             </div>
 
             {/* Emplacement */}

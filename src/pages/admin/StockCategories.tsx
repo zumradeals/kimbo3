@@ -102,7 +102,8 @@ export default function StockCategories() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithCount | null>(null);
 
   const isDAF = hasRole('daf');
-  const canManage = isAdmin || isDAF;
+  const isLogistics = hasRole('responsable_logistique') || hasRole('agent_logistique');
+  const canManage = isAdmin || isDAF || isLogistics;
 
   useEffect(() => {
     fetchCategories();

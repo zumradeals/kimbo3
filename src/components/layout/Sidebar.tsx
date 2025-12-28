@@ -22,6 +22,7 @@ import {
   Receipt,
   Ruler,
   BookOpen,
+  Warehouse,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -51,7 +52,6 @@ const navItems: NavItem[] = [
       { label: 'Départements', href: '/admin/departments', icon: Building2, permission: 'administration.gerer_departements' },
       { label: 'Rôles & Permissions', href: '/admin/roles', icon: Shield, permission: 'administration.gerer_roles' },
       { label: 'Unités de mesure', href: '/admin/units', icon: Ruler, permission: 'administration.gerer_unites' },
-      { label: 'Catégories stock', href: '/stock/categories', icon: FolderKanban, permission: 'administration.gerer_parametres' },
       { label: 'Modes paiement', href: '/admin/payment-categories', icon: Wallet, permission: 'administration.gerer_modes_paiement' },
       { label: 'Plan comptable', href: '/admin/comptes-comptables', icon: BookOpen, permission: 'administration.gerer_plan_comptable' },
       { label: 'Paramètres', href: '/admin/settings', icon: Settings, permission: 'administration.gerer_parametres' },
@@ -108,6 +108,11 @@ const moduleNavItems: NavItem[] = [
     href: '/stock',
     icon: Package,
     module: 'stock',
+    children: [
+      { label: 'Articles', href: '/stock', icon: Package },
+      { label: 'Mouvements', href: '/stock/mouvements', icon: Warehouse },
+      { label: 'Catégories', href: '/stock/categories', icon: FolderKanban },
+    ],
   },
   {
     label: 'Projets / Chantiers',
