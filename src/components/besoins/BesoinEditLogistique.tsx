@@ -67,6 +67,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
         quantity: l.quantity,
         urgency: l.urgency,
         justification: l.justification || '',
+        article_stock_id: l.article_stock_id || null,
       })));
     }
   }, [besoin.lignes]);
@@ -123,6 +124,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
               quantity: ligne.quantity,
               urgency: ligne.urgency,
               justification: ligne.justification || null,
+              article_stock_id: ligne.article_stock_id || null,
             })
             .eq('id', ligne.id);
           if (updateError) throw updateError;
@@ -136,6 +138,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
             quantity: ligne.quantity,
             urgency: ligne.urgency,
             justification: ligne.justification || null,
+            article_stock_id: ligne.article_stock_id || null,
           });
           if (insertError) throw insertError;
         }

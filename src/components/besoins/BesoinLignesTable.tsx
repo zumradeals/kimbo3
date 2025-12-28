@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Package, Link2 } from 'lucide-react';
 import {
   BesoinLigne,
   BesoinLigneCategory,
@@ -26,8 +26,9 @@ import {
   BESOIN_LIGNE_CATEGORY_LABELS,
   BESOIN_URGENCY_LABELS,
 } from '@/types/kpm';
+import { BesoinStockSelector } from './BesoinStockSelector';
 
-interface BesoinLigneInput {
+export interface BesoinLigneInput {
   id: string;
   designation: string;
   category: BesoinLigneCategory;
@@ -35,17 +36,19 @@ interface BesoinLigneInput {
   quantity: number;
   urgency: BesoinUrgency;
   justification: string;
+  article_stock_id?: string | null;
 }
 
 interface BesoinLignesTableProps {
   lignes: BesoinLigneInput[];
   onChange: (lignes: BesoinLigneInput[]) => void;
   readOnly?: boolean;
+  showStockSelector?: boolean;
 }
 
 const UNITS = ['pc', 'lot', 'jour', 'course', 'heure', 'unité', 'kg', 'litre', 'mètre', 'boîte'];
 
-export function BesoinLignesTable({ lignes, onChange, readOnly = false }: BesoinLignesTableProps) {
+export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStockSelector = true }: BesoinLignesTableProps) {
   const addLigne = () => {
     const newLigne: BesoinLigneInput = {
       id: `temp-${crypto.randomUUID()}`,
@@ -55,6 +58,21 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false }: Besoin
       quantity: 1,
       urgency: 'normale',
       justification: '',
+      article_stock_id: null,
+    };
+    onChange([...lignes, newLigne]);
+  };
+
+  const addLigneFromStock = (article: { id: string; designation: string; unit: string; description?: string | null }) => {
+    const newLigne: BesoinLigneInput = {
+      id: `temp-${crypto.randomUUID()}`,
+      designation: article.designation,
+      category: 'materiel',
+      unit: article.unit, // Utilise l'unité de l'article stock
+      quantity: 1,
+      urgency: 'normale',
+      justification: '',
+      article_stock_id: article.id,
     };
     onChange([...lignes, newLigne]);
   };
@@ -70,6 +88,17 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false }: Besoin
       onChange(lignes.filter((l) => l.id !== id));
     }
   };
+
+  const unlinkFromStock = (id: string) => {
+    onChange(
+      lignes.map((l) => (l.id === id ? { ...l, article_stock_id: null } : l))
+    );
+  };
+
+  // Get already linked stock article ids to exclude from selector
+  const linkedStockIds = lignes
+    .filter((l) => l.article_stock_id)
+    .map((l) => l.article_stock_id as string);
 
   const urgencyColors: Record<BesoinUrgency, string> = {
     normale: 'bg-muted text-muted-foreground',
@@ -94,7 +123,16 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false }: Besoin
           <TableBody>
             {lignes.map((ligne) => (
               <TableRow key={ligne.id}>
-                <TableCell className="font-medium">{ligne.designation}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {ligne.article_stock_id && (
+                      <span title="Article du stock">
+                        <Package className="h-4 w-4 text-primary" />
+                      </span>
+                    )}
+                    {ligne.designation}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline">
                     {BESOIN_LIGNE_CATEGORY_LABELS[ligne.category]}
@@ -137,15 +175,37 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false }: Besoin
           <TableBody>
             {lignes.map((ligne, index) => {
               const needsJustification = ligne.urgency !== 'normale';
+              const isFromStock = !!ligne.article_stock_id;
               return (
                 <TableRow key={ligne.id}>
                   <TableCell>
-                    <Input
-                      placeholder="Ex: Câbles RJ45 Cat6 blindés"
-                      value={ligne.designation}
-                      onChange={(e) => updateLigne(ligne.id, 'designation', e.target.value)}
-                      className="min-w-[180px]"
-                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {isFromStock && (
+                          <Badge variant="secondary" className="gap-1 shrink-0">
+                            <Package className="h-3 w-3" />
+                            Stock
+                          </Badge>
+                        )}
+                        <Input
+                          placeholder="Ex: Câbles RJ45 Cat6 blindés"
+                          value={ligne.designation}
+                          onChange={(e) => updateLigne(ligne.id, 'designation', e.target.value)}
+                          className="min-w-[180px]"
+                          disabled={isFromStock}
+                        />
+                      </div>
+                      {isFromStock && (
+                        <button
+                          type="button"
+                          onClick={() => unlinkFromStock(ligne.id)}
+                          className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1"
+                        >
+                          <Link2 className="h-3 w-3" />
+                          Délier du stock
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Select
@@ -175,21 +235,30 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false }: Besoin
                     />
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={ligne.unit}
-                      onValueChange={(v) => updateLigne(ligne.id, 'unit', v)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {UNITS.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {unit}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isFromStock ? (
+                      <Input
+                        value={ligne.unit}
+                        disabled
+                        className="w-full bg-muted"
+                        title="L'unité est définie par l'article du stock"
+                      />
+                    ) : (
+                      <Select
+                        value={ligne.unit}
+                        onValueChange={(v) => updateLigne(ligne.id, 'unit', v)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UNITS.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {unit}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select
@@ -236,13 +305,24 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false }: Besoin
         </Table>
       </div>
 
-      <Button type="button" variant="outline" onClick={addLigne} className="w-full">
-        <Plus className="mr-2 h-4 w-4" />
-        Ajouter une ligne
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={addLigne} className="flex-1 sm:flex-none">
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter manuellement
+        </Button>
+        {showStockSelector && (
+          <BesoinStockSelector
+            onSelect={addLigneFromStock}
+            excludeIds={linkedStockIds}
+            buttonText="Ajouter depuis le stock"
+            buttonVariant="secondary"
+          />
+        )}
+      </div>
 
       <p className="text-xs text-muted-foreground">
         ⚠️ Aucun prix n'est demandé. La logistique se chargera du chiffrage lors de la conversion en DA.
+        {showStockSelector && ' Les articles du stock gardent leur unité d\'origine.'}
       </p>
     </div>
   );

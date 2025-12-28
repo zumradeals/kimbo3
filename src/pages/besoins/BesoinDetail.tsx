@@ -386,6 +386,7 @@ export default function BesoinDetail() {
     quantity: l.quantity,
     urgency: l.urgency,
     justification: l.justification || '',
+    article_stock_id: l.article_stock_id || null,
   }));
 
   return (

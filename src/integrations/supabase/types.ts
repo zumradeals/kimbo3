@@ -156,6 +156,7 @@ export type Database = {
       }
       besoin_lignes: {
         Row: {
+          article_stock_id: string | null
           besoin_id: string
           category: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at: string
@@ -167,6 +168,7 @@ export type Database = {
           urgency: Database["public"]["Enums"]["besoin_urgency"]
         }
         Insert: {
+          article_stock_id?: string | null
           besoin_id: string
           category?: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at?: string
@@ -178,6 +180,7 @@ export type Database = {
           urgency?: Database["public"]["Enums"]["besoin_urgency"]
         }
         Update: {
+          article_stock_id?: string | null
           besoin_id?: string
           category?: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at?: string
@@ -189,6 +192,13 @@ export type Database = {
           urgency?: Database["public"]["Enums"]["besoin_urgency"]
         }
         Relationships: [
+          {
+            foreignKeyName: "besoin_lignes_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "besoin_lignes_besoin_id_fkey"
             columns: ["besoin_id"]
