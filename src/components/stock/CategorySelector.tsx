@@ -86,10 +86,12 @@ export function CategorySelector({
     );
   }
 
+  const NONE_VALUE = '__none__';
+
   return (
     <Select
-      value={value || ''}
-      onValueChange={(v) => onChange(v === '' ? null : v)}
+      value={value || NONE_VALUE}
+      onValueChange={(v) => onChange(v === NONE_VALUE ? null : v)}
       disabled={disabled}
     >
       <SelectTrigger>
@@ -105,8 +107,8 @@ export function CategorySelector({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {showAll && <SelectItem value="">Toutes les catégories</SelectItem>}
-        {!showAll && <SelectItem value="">Aucune catégorie</SelectItem>}
+        {showAll && <SelectItem value={NONE_VALUE}>Toutes les catégories</SelectItem>}
+        {!showAll && <SelectItem value={NONE_VALUE}>Aucune catégorie</SelectItem>}
         {flattenedOptions.map((opt) => (
           <SelectItem key={opt.id} value={opt.id}>
             <span style={{ paddingLeft: `${opt.indent * 16}px` }}>
