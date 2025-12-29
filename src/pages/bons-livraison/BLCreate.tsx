@@ -92,14 +92,41 @@ export default function BLCreate() {
       }
 
       if (lignesData && lignesData.length > 0 && !lignesLoaded) {
-        const articlesFromLignes: ArticleForm[] = lignesData.map((ligne) => ({
-          designation: ligne.designation,
-          quantity: String(ligne.quantity),
-          unit: ligne.unit,
-          observations: ligne.justification || '',
-          article_stock_id: null,
-          stock_available: undefined,
-        }));
+        // Fetch stock availability for linked articles
+        const stockIds = lignesData
+          .filter((l) => l.article_stock_id)
+          .map((l) => l.article_stock_id as string);
+
+        let stockMap: Record<string, { quantity_available: number; quantity_reserved: number }> = {};
+        if (stockIds.length > 0) {
+          const { data: stockData } = await supabase
+            .from('articles_stock')
+            .select('id, quantity_available, quantity_reserved')
+            .in('id', stockIds);
+          
+          if (stockData) {
+            stockMap = stockData.reduce((acc, s) => {
+              acc[s.id] = { quantity_available: s.quantity_available, quantity_reserved: s.quantity_reserved };
+              return acc;
+            }, {} as Record<string, { quantity_available: number; quantity_reserved: number }>);
+          }
+        }
+
+        const articlesFromLignes: ArticleForm[] = lignesData.map((ligne) => {
+          const stockInfo = ligne.article_stock_id ? stockMap[ligne.article_stock_id] : null;
+          const available = stockInfo 
+            ? Math.max(0, stockInfo.quantity_available - stockInfo.quantity_reserved) 
+            : undefined;
+          
+          return {
+            designation: ligne.designation,
+            quantity: String(ligne.quantity),
+            unit: ligne.unit,
+            observations: ligne.justification || '',
+            article_stock_id: ligne.article_stock_id || null,
+            stock_available: available,
+          };
+        });
         setArticles(articlesFromLignes);
         setLignesLoaded(true);
       } else if (!lignesLoaded) {
