@@ -19,7 +19,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Package, Search, Check, AlertTriangle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Package, Search, Check, AlertTriangle, Filter } from 'lucide-react';
 
 interface StockArticle {
   id: string;
@@ -31,6 +38,13 @@ interface StockArticle {
   quantity_min: number | null;
   location: string | null;
   status: 'disponible' | 'reserve' | 'epuise';
+  category_id: string | null;
+}
+
+interface StockCategory {
+  id: string;
+  name: string;
+  code: string | null;
 }
 
 interface BesoinStockSelectorProps {
@@ -62,14 +76,32 @@ export function BesoinStockSelector({
 }: BesoinStockSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('__all__');
   const [articles, setArticles] = useState<StockArticle[]>([]);
+  const [categories, setCategories] = useState<StockCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       fetchArticles();
+      fetchCategories();
     }
   }, [open]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('stock_categories')
+        .select('id, name, code')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setCategories((data || []) as StockCategory[]);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchArticles = async () => {
     setIsLoading(true);
@@ -89,13 +121,25 @@ export function BesoinStockSelector({
     }
   };
 
-  const filteredArticles = articles.filter(
-    (a) =>
-      !excludeIds.includes(a.id) &&
-      (a.designation.toLowerCase().includes(search.toLowerCase()) ||
-        a.description?.toLowerCase().includes(search.toLowerCase()) ||
-        a.location?.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredArticles = articles.filter((a) => {
+    // Exclude already selected
+    if (excludeIds.includes(a.id)) return false;
+    
+    // Filter by category
+    if (selectedCategory !== '__all__' && a.category_id !== selectedCategory) return false;
+    
+    // Filter by search
+    if (search) {
+      const searchLower = search.toLowerCase();
+      return (
+        a.designation.toLowerCase().includes(searchLower) ||
+        a.description?.toLowerCase().includes(searchLower) ||
+        a.location?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return true;
+  });
 
   const handleSelect = (article: StockArticle) => {
     onSelect(article);
@@ -123,14 +167,30 @@ export function BesoinStockSelector({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher par désignation, description ou emplacement..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par désignation, description ou emplacement..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[200px]">
+              <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Toutes les catégories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 overflow-auto border rounded-lg">
