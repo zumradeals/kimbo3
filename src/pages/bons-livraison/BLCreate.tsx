@@ -293,8 +293,15 @@ export default function BLCreate() {
       toast({ title: 'BL créé', description: `Le bon ${refData} a été créé avec succès.` });
       navigate(`/bons-livraison/${bl.id}`);
     } catch (error: any) {
-      console.error('Error:', error);
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      const message =
+        error?.message ||
+        error?.error_description ||
+        error?.details ||
+        (typeof error === 'string' ? error : null) ||
+        'Erreur inconnue lors de la création du bon de livraison.';
+
+      console.error('BLCreate submit error:', { error, message });
+      toast({ title: 'Erreur', description: message, variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -601,7 +608,9 @@ export default function BLCreate() {
             </Button>
           </Link>
           <Button type="submit" disabled={isSaving}>
-            {isSaving ? 'Création...' : 'Créer le Bon de Livraison'}
+            {isSaving
+              ? 'Création...'
+              : "Créer le Bon de Livraison quand je clique sur ce bouton l'ereur apparait je ne ne peux toujours pas creer de bon de livraison"}
           </Button>
         </div>
       </form>
