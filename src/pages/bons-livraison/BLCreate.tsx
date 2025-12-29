@@ -270,7 +270,7 @@ export default function BLCreate() {
           delivery_date: form.delivery_date || null,
           warehouse: form.warehouse.trim() || null,
           observations: form.observations.trim() || null,
-          bl_type: 'stock',
+          bl_type: 'interne',
         })
         .select()
         .single();
@@ -608,9 +608,7 @@ export default function BLCreate() {
             </Button>
           </Link>
           <Button type="submit" disabled={isSaving}>
-            {isSaving
-              ? 'Création...'
-              : "Créer le Bon de Livraison quand je clique sur ce bouton l'ereur apparait je ne ne peux toujours pas creer de bon de livraison"}
+            {isSaving ? 'Création...' : 'Créer le Bon de Livraison'}
           </Button>
         </div>
       </form>
