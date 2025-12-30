@@ -71,11 +71,9 @@ const COLORS = {
 
 const formatMontant = (value: number | null, currency?: string) => {
   if (!value && value !== 0) return '0 FCFA';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value) + ' ' + (currency === 'XOF' ? 'FCFA' : (currency || 'FCFA'));
+  // Utiliser un espace comme séparateur de milliers pour éviter les problèmes d'affichage PDF
+  const formatted = Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return formatted + ' ' + (currency === 'XOF' ? 'FCFA' : (currency || 'FCFA'));
 };
 
 const formatDate = (dateString: string | undefined): string => {
@@ -1032,7 +1030,7 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   doc.save(`ECRITURE_${data.reference}.pdf`);
 };
 
-// ===================== DÉCHARGE COMPTABLE PDF =====================
+// ===================== DÉCHARGE COMPTABLE PDF - STYLE KIMBO =====================
 interface DechargeComptableData {
   type: 'DA' | 'NOTE_FRAIS';
   reference: string;
@@ -1048,6 +1046,55 @@ interface DechargeComptableData {
   referencePaiement?: string;
 }
 
+// Convertir un montant en lettres (français)
+const montantEnLettres = (n: number): string => {
+  const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+  const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+  const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
+  
+  if (n === 0) return 'zéro';
+  if (n < 0) return 'moins ' + montantEnLettres(-n);
+  
+  const convert = (num: number): string => {
+    if (num < 10) return units[num];
+    if (num < 20) return teens[num - 10];
+    if (num < 100) {
+      const t = Math.floor(num / 10);
+      const u = num % 10;
+      if (t === 7 || t === 9) {
+        return tens[t] + (u === 1 && t !== 9 ? '-et-' : '-') + (u < 10 ? teens[u] : units[u]);
+      }
+      if (u === 0) return tens[t] + (t === 8 ? 's' : '');
+      if (u === 1 && t !== 8) return tens[t] + '-et-un';
+      return tens[t] + '-' + units[u];
+    }
+    if (num < 1000) {
+      const h = Math.floor(num / 100);
+      const rest = num % 100;
+      const prefix = h === 1 ? 'cent' : units[h] + ' cent';
+      if (rest === 0) return prefix + (h > 1 ? 's' : '');
+      return prefix + ' ' + convert(rest);
+    }
+    if (num < 1000000) {
+      const k = Math.floor(num / 1000);
+      const rest = num % 1000;
+      const prefix = k === 1 ? 'mille' : convert(k) + ' mille';
+      if (rest === 0) return prefix;
+      return prefix + ' ' + convert(rest);
+    }
+    if (num < 1000000000) {
+      const m = Math.floor(num / 1000000);
+      const rest = num % 1000000;
+      const prefix = m === 1 ? 'un million' : convert(m) + ' millions';
+      if (rest === 0) return prefix;
+      return prefix + ' ' + convert(rest);
+    }
+    return num.toString();
+  };
+  
+  return convert(Math.round(n));
+};
+
 export const exportDechargeComptableToPDF = async (data: DechargeComptableData) => {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -1056,197 +1103,221 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   });
   
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
   const contentWidth = pageWidth - (margin * 2);
   
-  // ========== EN-TÊTE ==========
-  let y = 10;
-  
-  // Bande supérieure orange
-  doc.setFillColor(...COLORS.orange);
-  doc.rect(0, 0, pageWidth, 3, 'F');
+  // ========== EN-TÊTE KIMBO ==========
+  let y = 15;
   
   // Logo KIMBO
   drawKimboLogo(doc, margin, y, 50);
   
-  // Titre du document
+  // Nom société et slogan à droite
   doc.setFontSize(16);
   doc.setTextColor(...COLORS.marron);
   doc.setFont('helvetica', 'bold');
-  doc.text('DÉCHARGE COMPTABLE', pageWidth - margin, y + 8, { align: 'right' });
-  
-  // Type de document
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.orange);
-  doc.text(data.type === 'DA' ? 'Demande d\'Achat' : 'Note de Frais', pageWidth - margin, y + 14, { align: 'right' });
-  
-  // Ligne séparatrice
-  y = 30;
-  doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.8);
-  doc.line(margin, y, pageWidth - margin, y);
-  
-  y += 10;
-  
-  // ========== CADRE RÉFÉRENCE ==========
-  doc.setFillColor(...COLORS.orangeLight);
-  doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, y, contentWidth, 25, 3, 3, 'FD');
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Référence du document', margin + 8, y + 8);
-  
-  doc.setFontSize(16);
-  doc.setTextColor(...COLORS.marron);
-  doc.setFont('helvetica', 'bold');
-  doc.text(data.reference, margin + 8, y + 18);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Date de paiement', pageWidth - margin - 50, y + 8);
-  
-  doc.setFontSize(12);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.setFont('helvetica', 'bold');
-  doc.text(formatDateTime(data.paidAt), pageWidth - margin - 50, y + 18);
-  
-  y += 35;
-  
-  // ========== MONTANT ==========
-  doc.setFillColor(...COLORS.marron);
-  doc.roundedRect(margin, y, contentWidth, 30, 3, 3, 'F');
-  
-  doc.setFontSize(12);
-  doc.setTextColor(...COLORS.white);
-  doc.setFont('helvetica', 'normal');
-  doc.text('MONTANT PAYÉ', margin + 10, y + 12);
-  
-  doc.setFontSize(24);
-  doc.setTextColor(...COLORS.orange);
-  doc.setFont('helvetica', 'bold');
-  doc.text(formatMontant(data.montant, data.currency), pageWidth - margin - 10, y + 22, { align: 'right' });
-  
-  y += 40;
-  
-  // ========== INFORMATIONS DE PAIEMENT ==========
-  y = drawSectionTitle(doc, y, margin, 'INFORMATIONS DE PAIEMENT');
-  
-  doc.setFillColor(...COLORS.grisTresClair);
-  doc.setDrawColor(...COLORS.borderLight);
-  doc.roundedRect(margin, y, contentWidth, 40, 2, 2, 'FD');
-  
-  // Caisse utilisée
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Caisse utilisée', margin + 8, y + 8);
-  
-  doc.setFontSize(11);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`${data.caisseName} (${data.caisseCode})`, margin + 8, y + 15);
-  
-  // Mode de paiement
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Mode de paiement', margin + 8, y + 25);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.modePaiement || 'Espèces', margin + 8, y + 32);
-  
-  // Référence paiement
-  if (data.referencePaiement) {
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.textMuted);
-    doc.text('Référence paiement', pageWidth / 2 + 10, y + 8);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text(data.referencePaiement, pageWidth / 2 + 10, y + 15);
-  }
-  
-  // Bénéficiaire
-  if (data.beneficiaire) {
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.textMuted);
-    doc.text('Bénéficiaire', pageWidth / 2 + 10, y + 25);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.orange);
-    doc.setFont('helvetica', 'bold');
-    doc.text(data.beneficiaire, pageWidth / 2 + 10, y + 32);
-  }
-  
-  y += 50;
-  
-  // ========== DESCRIPTION ==========
-  if (data.description) {
-    y = drawSectionTitle(doc, y, margin, 'OBJET');
-    
-    doc.setFillColor(...COLORS.white);
-    doc.setDrawColor(...COLORS.orange);
-    doc.setLineWidth(0.3);
-    
-    const splitDesc = doc.splitTextToSize(data.description, contentWidth - 12);
-    const descHeight = Math.max(splitDesc.length * 5 + 8, 15);
-    
-    doc.roundedRect(margin, y, contentWidth, descHeight, 2, 2, 'FD');
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.setFont('helvetica', 'normal');
-    doc.text(splitDesc, margin + 6, y + 8);
-    
-    y += descHeight + 10;
-  }
-  
-  // ========== RESPONSABLE COMPTABLE ==========
-  y = drawSectionTitle(doc, y, margin, 'RESPONSABLE COMPTABLE');
-  
-  doc.setFillColor(...COLORS.successLight);
-  doc.setDrawColor(...COLORS.success);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, y, contentWidth, 28, 3, 3, 'FD');
-  
-  // Icône check
-  doc.setFillColor(...COLORS.success);
-  doc.circle(margin + 12, y + 14, 5, 'F');
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.white);
-  doc.setFont('helvetica', 'bold');
-  doc.text('✓', margin + 10, y + 16.5);
-  
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Paiement exécuté par', margin + 22, y + 10);
-  
-  doc.setFontSize(14);
-  doc.setTextColor(...COLORS.success);
-  doc.setFont('helvetica', 'bold');
-  doc.text(data.comptableName, margin + 22, y + 20);
-  
-  y += 40;
-  
-  // ========== MENTION LÉGALE ==========
-  doc.setFillColor(...COLORS.grisTresClair);
-  doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
+  doc.text('KIMBO AFRICA S.A', pageWidth - margin, y + 5, { align: 'right' });
   
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'italic');
-  doc.text('⚠️ ATTESTATION DE PAIEMENT', margin + 6, y + 7);
-  doc.text('Ce document atteste que le paiement ci-dessus a été exécuté depuis les fonds de la caisse indiquée.', margin + 6, y + 12);
-  doc.text('Le comptable signataire engage sa responsabilité sur l\'exactitude des informations et la conformité de l\'opération.', margin + 6, y + 17);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CONSTRUCTION BTP - AMÉNAGEMENT FONCIER - LOTISSEMENT', pageWidth - margin, y + 10, { align: 'right' });
+  doc.text('PROMOTION IMMOBILIÈRE - FOURNITURE DE MATÉRIEL', pageWidth - margin, y + 14, { align: 'right' });
   
-  // ========== PIED DE PAGE ==========
-  addInstitutionalFooter(doc);
+  y = 40;
+  
+  // ========== TITRE DÉCHARGE ==========
+  doc.setFontSize(18);
+  doc.setTextColor(...COLORS.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DÉCHARGE', pageWidth / 2, y, { align: 'center' });
+  
+  // Sous-titre avec type
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  const typeLabel = data.type === 'DA' ? 'Demande d\'Achat' : 'Note de Frais';
+  doc.text(`(${typeLabel} - ${data.reference})`, pageWidth / 2, y + 7, { align: 'center' });
+  
+  y = 60;
+  
+  // ========== CORPS DU DOCUMENT - STYLE FORMULAIRE ==========
+  const lineHeight = 12;
+  const dotLineEndX = pageWidth - margin;
+  
+  // Je soussigné(e)
+  doc.setFontSize(11);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Je soussigné(e)', margin, y);
+  
+  // Ligne pointillée avec nom du bénéficiaire
+  const benefText = data.beneficiaire || '_______________';
+  doc.setFont('helvetica', 'bold');
+  doc.text(benefText, margin + 35, y);
+  drawDottedLine(doc, margin + 35 + doc.getTextWidth(benefText) + 2, y, dotLineEndX);
+  
+  y += lineHeight * 1.5;
+  
+  // Reconnais avoir reçu la somme de
+  doc.setFont('helvetica', 'normal');
+  doc.text('Reconnais avoir reçu la somme de :', margin, y);
+  
+  y += lineHeight;
+  
+  // Montant en chiffres
+  const montantChiffres = formatMontant(data.montant, data.currency);
+  doc.setFontSize(14);
+  doc.setTextColor(...COLORS.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text(montantChiffres, margin, y);
+  
+  y += lineHeight;
+  
+  // Montant en lettres
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textSecondary);
+  doc.setFont('helvetica', 'italic');
+  const lettres = montantEnLettres(data.montant) + ' francs CFA';
+  const splitLettres = doc.splitTextToSize(`(${lettres})`, contentWidth);
+  doc.text(splitLettres, margin, y);
+  
+  y += splitLettres.length * 5 + lineHeight;
+  
+  // De la part de
+  doc.setFontSize(11);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'normal');
+  doc.text('de la part de Monsieur, Madame', margin, y);
+  
+  // Comptable
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.comptableName, margin + 55, y);
+  drawDottedLine(doc, margin + 55 + doc.getTextWidth(data.comptableName) + 2, y, dotLineEndX);
+  
+  y += lineHeight * 1.5;
+  
+  // Source du paiement
+  doc.setFont('helvetica', 'normal');
+  doc.text('via la caisse', margin, y);
+  
+  doc.setFont('helvetica', 'bold');
+  const caisseText = `${data.caisseName} (${data.caisseCode})`;
+  doc.text(caisseText, margin + 25, y);
+  drawDottedLine(doc, margin + 25 + doc.getTextWidth(caisseText) + 2, y, dotLineEndX);
+  
+  y += lineHeight * 1.5;
+  
+  // Mode de paiement
+  doc.setFont('helvetica', 'normal');
+  doc.text('Mode de paiement :', margin, y);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.modePaiement || 'Espèces', margin + 40, y);
+  
+  if (data.referencePaiement) {
+    doc.setFont('helvetica', 'normal');
+    doc.text(' - Réf:', margin + 40 + doc.getTextWidth(data.modePaiement || 'Espèces') + 2, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.referencePaiement, margin + 55 + doc.getTextWidth(data.modePaiement || 'Espèces'), y);
+  }
+  
+  y += lineHeight * 1.5;
+  
+  // Cette décharge a pour objet
+  doc.setFont('helvetica', 'normal');
+  doc.text('Cette décharge a pour objet :', margin, y);
+  
+  y += lineHeight * 0.8;
+  
+  // Description
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(...COLORS.textSecondary);
+  const descText = data.description || 'Paiement ' + (data.type === 'DA' ? 'demande d\'achat' : 'note de frais');
+  const splitDesc = doc.splitTextToSize(descText, contentWidth);
+  doc.text(splitDesc, margin, y);
+  
+  y += splitDesc.length * 5 + lineHeight;
+  
+  // Ligne pointillée de fin
+  drawDottedLine(doc, margin, y, dotLineEndX);
+  
+  y += lineHeight * 2;
+  
+  // Mention des exemplaires
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Et est établie en deux (2) exemplaires, dont un remis à chacune des parties.', margin, y);
+  
+  y += lineHeight * 1.5;
+  
+  // Fait à Abidjan, le
+  doc.text('Fait à Abidjan, le', margin, y);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatDate(data.paidAt), margin + 35, y);
+  
+  y += lineHeight * 3;
+  
+  // ========== SIGNATURES ==========
+  doc.setFontSize(12);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Signatures', pageWidth / 2, y, { align: 'center' });
+  
+  y += lineHeight;
+  
+  // Cadres signatures
+  const sigWidth = (contentWidth - 20) / 2;
+  
+  // Receveur (bénéficiaire)
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Receveur', margin + sigWidth / 2, y, { align: 'center' });
+  
+  doc.setDrawColor(...COLORS.border);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, y + 5, sigWidth, 30, 2, 2, 'S');
+  
+  // Donneur (comptable)
+  doc.setTextColor(...COLORS.orange);
+  doc.text('Donneur', pageWidth - margin - sigWidth / 2, y, { align: 'center' });
+  
+  doc.roundedRect(pageWidth - margin - sigWidth, y + 5, sigWidth, 30, 2, 2, 'S');
+  
+  // Noms sous les cadres
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.beneficiaire || '(Bénéficiaire)', margin + sigWidth / 2, y + 40, { align: 'center' });
+  doc.text(data.comptableName, pageWidth - margin - sigWidth / 2, y + 40, { align: 'center' });
+  
+  // ========== PIED DE PAGE SIMPLE ==========
+  const footerY = pageHeight - 25;
+  
+  // Ligne séparatrice
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.5);
+  doc.line(margin, footerY, pageWidth - margin, footerY);
+  
+  // Infos entreprise
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${COMPANY_INFO.name} | ${COMPANY_INFO.address} ${COMPANY_INFO.addressLine2}`, pageWidth / 2, footerY + 5, { align: 'center' });
+  doc.text(`Tél: ${COMPANY_INFO.phone1} | Email: ${COMPANY_INFO.email}`, pageWidth / 2, footerY + 9, { align: 'center' });
+  
+  // Mention légale
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Document généré par KPM SYSTÈME - Toute modification manuelle invalide ce document', pageWidth / 2, footerY + 14, { align: 'center' });
+  
+  // Bande inférieure
+  doc.setFillColor(...COLORS.marron);
+  doc.rect(0, pageHeight - 3, pageWidth, 3, 'F');
   
   const fileName = data.type === 'DA' 
     ? `DECHARGE_DA_${data.reference}.pdf`
@@ -1254,3 +1325,13 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   
   doc.save(fileName);
 };
+
+// Fonction utilitaire pour dessiner une ligne pointillée
+function drawDottedLine(doc: jsPDF, startX: number, y: number, endX: number): void {
+  doc.setDrawColor(...COLORS.textMuted);
+  doc.setLineWidth(0.2);
+  const dotSpacing = 2;
+  for (let x = startX; x < endX; x += dotSpacing) {
+    doc.line(x, y + 1, x + 0.5, y + 1);
+  }
+}
