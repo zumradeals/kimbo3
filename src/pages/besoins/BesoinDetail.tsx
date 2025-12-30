@@ -494,25 +494,26 @@ export default function BesoinDetail() {
           </div>
         </div>
 
-        {/* Returned besoin - message for creator */}
-        {besoin.status === 'retourne' && besoin.return_comment && (
+        {/* Returned besoin - message and actions for creator */}
+        {besoin.status === 'retourne' && (
           <Card className="border-orange-500/50 bg-orange-500/5">
             <CardContent className="flex items-start gap-3 py-4">
               <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
               <div className="flex-1">
                 <p className="font-medium text-orange-600">Besoin à corriger</p>
-                <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{besoin.return_comment}</p>
+                {besoin.return_comment && (
+                  <p className="text-sm text-foreground whitespace-pre-wrap mt-1 p-2 bg-background rounded border">
+                    {besoin.return_comment}
+                  </p>
+                )}
                 {isCreator && (
-                  <div className="mt-4 flex gap-2">
-                    <Link to={`/besoins/${id}/modifier`}>
-                      <Button variant="outline" size="sm">
-                        <Edit className="mr-2 h-4 w-4" />
-                        Modifier le besoin
-                      </Button>
-                    </Link>
-                    <Button size="sm" onClick={handleResubmit} disabled={isSaving}>
+                  <div className="mt-4">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Vous pouvez modifier les informations ci-dessous puis resoumettre votre besoin.
+                    </p>
+                    <Button onClick={handleResubmit} disabled={isSaving}>
                       <Play className="mr-2 h-4 w-4" />
-                      Resoumettre
+                      Resoumettre le besoin
                     </Button>
                   </div>
                 )}
@@ -645,6 +646,16 @@ export default function BesoinDetail() {
             besoin={besoin}
             onUpdate={fetchBesoin}
             isLocked={besoin.is_locked}
+          />
+        )}
+
+        {/* Édition par le créateur pour besoin retourné */}
+        {isCreator && besoin.status === 'retourne' && (
+          <BesoinEditLogistique
+            besoinId={besoin.id}
+            besoin={besoin}
+            onUpdate={fetchBesoin}
+            isLocked={false}
           />
         )}
 
