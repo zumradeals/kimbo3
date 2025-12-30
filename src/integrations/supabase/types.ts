@@ -216,6 +216,9 @@ export type Database = {
           besoin_avance_caisse: boolean | null
           besoin_type: string | null
           besoin_vehicule: boolean | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           category: Database["public"]["Enums"]["besoin_category"]
           confirmation_engagement: boolean | null
           created_at: string
@@ -256,6 +259,9 @@ export type Database = {
           besoin_avance_caisse?: boolean | null
           besoin_type?: string | null
           besoin_vehicule?: boolean | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category: Database["public"]["Enums"]["besoin_category"]
           confirmation_engagement?: boolean | null
           created_at?: string
@@ -296,6 +302,9 @@ export type Database = {
           besoin_avance_caisse?: boolean | null
           besoin_type?: string | null
           besoin_vehicule?: boolean | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category?: Database["public"]["Enums"]["besoin_category"]
           confirmation_engagement?: boolean | null
           created_at?: string
@@ -330,6 +339,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "besoins_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "besoins_decided_by_fkey"
             columns: ["decided_by"]
@@ -428,6 +444,9 @@ export type Database = {
         Row: {
           besoin_id: string
           bl_type: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           created_by: string
           delivered_at: string | null
@@ -450,6 +469,9 @@ export type Database = {
         Insert: {
           besoin_id: string
           bl_type?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           created_by: string
           delivered_at?: string | null
@@ -472,6 +494,9 @@ export type Database = {
         Update: {
           besoin_id?: string
           bl_type?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           created_by?: string
           delivered_at?: string | null
@@ -497,6 +522,13 @@ export type Database = {
             columns: ["besoin_id"]
             isOneToOne: false
             referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -817,6 +849,9 @@ export type Database = {
           attachment_url: string | null
           besoin_id: string
           caisse_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           category: Database["public"]["Enums"]["da_category"]
           comptabilise_at: string | null
           comptabilise_by: string | null
@@ -868,6 +903,9 @@ export type Database = {
           attachment_url?: string | null
           besoin_id: string
           caisse_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category: Database["public"]["Enums"]["da_category"]
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -919,6 +957,9 @@ export type Database = {
           attachment_url?: string | null
           besoin_id?: string
           caisse_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category?: Database["public"]["Enums"]["da_category"]
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -983,6 +1024,13 @@ export type Database = {
             columns: ["caisse_id"]
             isOneToOne: false
             referencedRelation: "caisses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2138,6 +2186,7 @@ export type Database = {
         | "accepte"
         | "refuse"
         | "retourne"
+        | "annulee"
       besoin_type_enum:
         | "achat"
         | "transport"
@@ -2153,6 +2202,7 @@ export type Database = {
         | "livre"
         | "livree_partiellement"
         | "refusee"
+        | "annulee"
       da_category:
         | "fournitures"
         | "equipement"
@@ -2173,6 +2223,7 @@ export type Database = {
         | "en_revision_achats"
         | "payee"
         | "rejetee_comptabilite"
+        | "annulee"
       note_frais_status:
         | "brouillon"
         | "soumise"
@@ -2341,6 +2392,7 @@ export const Constants = {
         "accepte",
         "refuse",
         "retourne",
+        "annulee",
       ],
       besoin_type_enum: [
         "achat",
@@ -2358,6 +2410,7 @@ export const Constants = {
         "livre",
         "livree_partiellement",
         "refusee",
+        "annulee",
       ],
       da_category: [
         "fournitures",
@@ -2380,6 +2433,7 @@ export const Constants = {
         "en_revision_achats",
         "payee",
         "rejetee_comptabilite",
+        "annulee",
       ],
       note_frais_status: [
         "brouillon",
