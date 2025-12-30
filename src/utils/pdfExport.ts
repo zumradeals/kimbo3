@@ -1185,16 +1185,17 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   
   y += splitLettres.length * 5 + lineHeight;
   
-  // De la part de
+  // De la part de (avec nom complet du comptable)
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.textPrimary);
   doc.setFont('helvetica', 'normal');
   doc.text('de la part de Monsieur, Madame', margin, y);
   
-  // Comptable
+  // Nom complet du comptable
   doc.setFont('helvetica', 'bold');
-  doc.text(data.comptableName, margin + 55, y);
-  drawDottedLine(doc, margin + 55 + doc.getTextWidth(data.comptableName) + 2, y, dotLineEndX);
+  const comptableFullName = data.comptableName || 'Le Comptable';
+  doc.text(comptableFullName, margin + 55, y);
+  drawDottedLine(doc, margin + 55 + doc.getTextWidth(comptableFullName) + 2, y, dotLineEndX);
   
   y += lineHeight * 1.5;
   
@@ -1261,7 +1262,9 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   
   y += lineHeight * 3;
   
-  // ========== SIGNATURES ==========
+  // ========== SIGNATURES (remontées) ==========
+  y += lineHeight;
+  
   doc.setFontSize(12);
   doc.setTextColor(...COLORS.marron);
   doc.setFont('helvetica', 'bold');
@@ -1295,31 +1298,7 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   doc.text(data.beneficiaire || '(Bénéficiaire)', margin + sigWidth / 2, y + 40, { align: 'center' });
   doc.text(data.comptableName, pageWidth - margin - sigWidth / 2, y + 40, { align: 'center' });
   
-  // ========== PIED DE PAGE SIMPLE ==========
-  const footerY = pageHeight - 25;
-  
-  // Ligne séparatrice
-  doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.5);
-  doc.line(margin, footerY, pageWidth - margin, footerY);
-  
-  // Infos entreprise
-  doc.setFontSize(7);
-  doc.setTextColor(...COLORS.textMuted);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${COMPANY_INFO.name} | ${COMPANY_INFO.address} ${COMPANY_INFO.addressLine2}`, pageWidth / 2, footerY + 5, { align: 'center' });
-  doc.text(`Tél: ${COMPANY_INFO.phone1} | Email: ${COMPANY_INFO.email}`, pageWidth / 2, footerY + 9, { align: 'center' });
-  
-  // Mention légale
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'italic');
-  doc.text('Document généré par KPM SYSTÈME - Toute modification manuelle invalide ce document', pageWidth / 2, footerY + 14, { align: 'center' });
-  
-  // Bande inférieure
-  doc.setFillColor(...COLORS.marron);
-  doc.rect(0, pageHeight - 3, pageWidth, 3, 'F');
-  
-  const fileName = data.type === 'DA' 
+  const fileName = data.type === 'DA'
     ? `DECHARGE_DA_${data.reference}.pdf`
     : `DECHARGE_NDF_${data.reference}.pdf`;
   
