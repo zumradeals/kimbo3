@@ -102,10 +102,16 @@ export default function BLDetail() {
   const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
+  const isDAF = roles.includes('daf');
 
-  const canValidate = (isLogistics || isAdmin) && bl?.status === 'en_attente_validation';
+  // DAF validates BL when in 'en_attente_validation' status
+  const canValidate = (isDAF || isAdmin) && bl?.status === 'en_attente_validation';
+  // Logistics can deliver once DAF has validated
   const canDeliver = (isLogistics || isAdmin) && bl?.status === 'valide';
+  // Logistics submits BL for DAF validation
   const canRequestValidation = (isLogistics || isAdmin) && bl?.status === 'prepare';
+  // DAF can refuse BL
+  const canRefuse = (isDAF || isAdmin) && bl?.status === 'en_attente_validation';
   const canDelete = isAdmin;
 
   useEffect(() => {
@@ -460,15 +466,26 @@ export default function BLDetail() {
           <Card className="border-warning/50 bg-warning/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-medium text-foreground">Validation requise</p>
+                <p className="font-medium text-foreground">Validation DAF requise</p>
                 <p className="text-sm text-muted-foreground">
-                  Validez ce BL pour autoriser la livraison.
+                  En tant que DAF, validez ce BL pour autoriser la Logistique à effectuer la livraison.
                 </p>
               </div>
-              <Button onClick={() => updateStatus('valide')} disabled={isSaving}>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Valider
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => updateStatus('refusee')} 
+                  disabled={isSaving}
+                  className="text-destructive hover:bg-destructive/10"
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Refuser
+                </Button>
+                <Button onClick={() => updateStatus('valide')} disabled={isSaving}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Valider
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
