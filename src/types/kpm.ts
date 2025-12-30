@@ -566,7 +566,7 @@ export interface BonLivraison {
 
 export const BL_STATUS_LABELS: Record<BLStatus, string> = {
   prepare: 'Préparé',
-  en_attente_validation: 'En attente validation DG',
+  en_attente_validation: 'En attente validation DAF',
   valide: 'Validé',
   livre: 'Livré',
   livree_partiellement: 'Livré partiellement',
