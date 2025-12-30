@@ -143,7 +143,7 @@ export type BesoinLigneCategory = 'materiel' | 'service' | 'transport' | 'autre'
 // Legacy types (pour compatibilité)
 export type BesoinCategory = 'materiel' | 'service' | 'maintenance' | 'urgence' | 'autre';
 export type BesoinUrgency = 'normale' | 'urgente' | 'critique';
-export type BesoinStatus = 'cree' | 'pris_en_charge' | 'accepte' | 'refuse' | 'retourne';
+export type BesoinStatus = 'cree' | 'pris_en_charge' | 'accepte' | 'refuse' | 'retourne' | 'annulee';
 export type BesoinType = 'article' | 'service';
 
 // Interface Ligne de Besoin (Bloc C)
@@ -281,6 +281,7 @@ export const BESOIN_STATUS_LABELS: Record<BesoinStatus, string> = {
   accepte: 'Accepté',
   refuse: 'Refusé',
   retourne: 'À corriger',
+  annulee: 'Annulée',
 };
 
 // Objets interdits dans le champ objet_besoin
@@ -327,7 +328,7 @@ export const ACHATS_ROLES: AppRole[] = [
 
 export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
 export type DAPriority = 'basse' | 'normale' | 'haute' | 'urgente';
-export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite';
+export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee';
 
 export interface DAArticle {
   id: string;
@@ -464,6 +465,7 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   rejetee: 'Rejetée',
   payee: 'Payée',
   rejetee_comptabilite: 'Rejetée (Comptabilité)',
+  annulee: 'Annulée',
 };
 
 // Écriture comptable SYSCOHADA
@@ -514,7 +516,7 @@ export const MODES_PAIEMENT = [
 
 // ==================== MODULE BON DE LIVRAISON (BL) ====================
 
-export type BLStatus = 'prepare' | 'en_attente_validation' | 'valide' | 'livre' | 'livree_partiellement' | 'refusee';
+export type BLStatus = 'prepare' | 'en_attente_validation' | 'valide' | 'livre' | 'livree_partiellement' | 'refusee' | 'annulee';
 export type BLType = 'fournisseur' | 'interne';
 
 export interface BLArticle {
@@ -549,12 +551,16 @@ export interface BonLivraison {
   rejection_reason: string | null;
   rejected_by: string | null;
   rejected_at: string | null;
+  // Annulation
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancellation_reason?: string | null;
   // Projet rattaché
   projet_id: string | null;
   created_at: string;
   updated_at: string;
   // Relations
-  besoin?: Besoin | null;
+  besoin?: Besoin | { id: string; title: string } | null;
   department?: { id: string; name: string } | null;
   created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   validated_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
@@ -571,6 +577,7 @@ export const BL_STATUS_LABELS: Record<BLStatus, string> = {
   livre: 'Livré',
   livree_partiellement: 'Livré partiellement',
   refusee: 'Refusé',
+  annulee: 'Annulée',
 };
 
 export const BL_TYPE_LABELS: Record<BLType, string> = {

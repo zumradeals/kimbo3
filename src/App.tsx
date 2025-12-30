@@ -65,6 +65,7 @@ import Profile from "./pages/Profile";
 
 // Module Caisse
 import CaisseList from "./pages/caisse/CaisseList";
+import CaisseDetail from "./pages/caisse/CaisseDetail";
 
 const queryClient = new QueryClient();
 
@@ -151,6 +152,7 @@ function AppRoutes() {
       
       {/* Module Caisse */}
       <Route path="/caisse" element={<ProtectedRoute><CaisseList /></ProtectedRoute>} />
+      <Route path="/caisse/:id" element={<ProtectedRoute><CaisseDetail /></ProtectedRoute>} />
       
       {/* Profil */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

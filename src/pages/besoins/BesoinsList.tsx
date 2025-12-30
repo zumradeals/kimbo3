@@ -41,6 +41,7 @@ const statusIcons: Record<BesoinStatus, React.ElementType> = {
   accepte: CheckCircle,
   refuse: XCircle,
   retourne: RotateCcw,
+  annulee: XCircle,
 };
 
 const statusColors: Record<BesoinStatus, string> = {
@@ -49,6 +50,7 @@ const statusColors: Record<BesoinStatus, string> = {
   accepte: 'bg-success/10 text-success',
   refuse: 'bg-destructive/10 text-destructive',
   retourne: 'bg-orange-500/10 text-orange-600',
+  annulee: 'bg-muted text-muted-foreground line-through',
 };
 
 const urgencyColors: Record<string, string> = {

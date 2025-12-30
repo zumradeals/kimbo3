@@ -35,6 +35,7 @@ const statusColors: Record<BLStatus, string> = {
   livre: 'bg-success/10 text-success border-success/20',
   livree_partiellement: 'bg-warning/10 text-warning border-warning/20',
   refusee: 'bg-destructive/10 text-destructive border-destructive/20',
+  annulee: 'bg-muted text-muted-foreground line-through',
 };
 
 const statusIcons: Record<BLStatus, React.ElementType> = {
@@ -44,6 +45,7 @@ const statusIcons: Record<BLStatus, React.ElementType> = {
   livre: Truck,
   livree_partiellement: AlertTriangle,
   refusee: XCircle,
+  annulee: XCircle,
 };
 
 export default function BLList() {

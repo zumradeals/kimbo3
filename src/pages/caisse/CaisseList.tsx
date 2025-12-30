@@ -182,6 +182,7 @@ export default function CaisseList() {
           name: formData.name,
           type: formData.type,
           responsable_id: formData.responsable_id && formData.responsable_id !== '_none' ? formData.responsable_id : null,
+          solde_initial: formData.solde_initial, // LOT 2: Modification traçable via trigger
           devise: formData.devise,
           description: formData.description || null,
         })
@@ -616,19 +617,33 @@ export default function CaisseList() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Devise</Label>
-              <Select value={formData.devise} onValueChange={(v) => setFormData({ ...formData, devise: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="XOF">XOF (Franc CFA BCEAO)</SelectItem>
-                  <SelectItem value="XAF">XAF (Franc CFA BEAC)</SelectItem>
-                  <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* LOT 2: Solde initial modifiable avec traçabilité */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Solde Initial</Label>
+                <Input
+                  type="number"
+                  value={formData.solde_initial}
+                  onChange={(e) => setFormData({ ...formData, solde_initial: parseFloat(e.target.value) || 0 })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Toute modification génère un mouvement d'ajustement traçable.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Devise</Label>
+                <Select value={formData.devise} onValueChange={(v) => setFormData({ ...formData, devise: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="XOF">XOF (Franc CFA BCEAO)</SelectItem>
+                    <SelectItem value="XAF">XAF (Franc CFA BEAC)</SelectItem>
+                    <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>

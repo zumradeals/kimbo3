@@ -40,6 +40,7 @@ const statusColors: Record<DAStatus, string> = {
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
   payee: 'bg-success text-success-foreground',
   rejetee_comptabilite: 'bg-destructive text-destructive-foreground',
+  annulee: 'bg-muted text-muted-foreground line-through',
 };
 
 const statusIcons: Record<DAStatus, React.ElementType> = {
@@ -54,6 +55,7 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   rejetee: XCircle,
   payee: Banknote,
   rejetee_comptabilite: BookX,
+  annulee: XCircle,
 };
 
 const priorityColors: Record<string, string> = {
