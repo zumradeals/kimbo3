@@ -28,6 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Search, BookOpen, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CatalogArticle {
   id: string;
@@ -55,12 +56,18 @@ export function ArticleCatalogSelector({
   buttonText = 'Sélectionner du catalogue',
   buttonVariant = 'outline',
 }: ArticleCatalogSelectorProps) {
+  const { isAdmin, roles } = useAuth();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [articles, setArticles] = useState<CatalogArticle[]>([]);
   const [categories, setCategories] = useState<StockCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // LOT 6: Check if user has logistics or purchasing role (can see full info)
+  const canSeeFullInfo = isAdmin || roles.some(r => 
+    ['dg', 'daf', 'responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats'].includes(r)
+  );
 
   useEffect(() => {
     if (open) {
@@ -158,6 +165,8 @@ export function ArticleCatalogSelector({
               className="pl-10"
             />
           </div>
+        {/* LOT 6: Category filter only visible to authorized roles */}
+        {canSeeFullInfo && (
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Toutes catégories" />
@@ -171,6 +180,7 @@ export function ArticleCatalogSelector({
               ))}
             </SelectContent>
           </Select>
+        )}
         </div>
 
         <div className="flex-1 overflow-auto border rounded-md">
@@ -178,8 +188,10 @@ export function ArticleCatalogSelector({
             <TableHeader>
               <TableRow>
                 <TableHead>Désignation</TableHead>
-                <TableHead className="w-[150px]">Catégorie</TableHead>
-                <TableHead className="w-[100px]">Unité</TableHead>
+                {/* LOT 6: Category column only visible to authorized roles */}
+                {canSeeFullInfo && <TableHead className="w-[150px]">Catégorie</TableHead>}
+                {/* LOT 6: Unit column only visible to authorized roles */}
+                {canSeeFullInfo && <TableHead className="w-[100px]">Unité</TableHead>}
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -188,14 +200,14 @@ export function ArticleCatalogSelector({
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    {canSeeFullInfo && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
+                    {canSeeFullInfo && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
                     <TableCell><Skeleton className="h-8 w-20" /></TableCell>
                   </TableRow>
                 ))
               ) : filteredArticles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={canSeeFullInfo ? 4 : 2} className="text-center py-8 text-muted-foreground">
                     {search || selectedCategory !== 'all' 
                       ? 'Aucun article ne correspond à votre recherche'
                       : 'Aucun article disponible dans le catalogue'}
@@ -214,14 +226,20 @@ export function ArticleCatalogSelector({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {getCategoryName(article.category_id)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {article.unit}
-                    </TableCell>
+                    {/* LOT 6: Category cell only visible to authorized roles */}
+                    {canSeeFullInfo && (
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {getCategoryName(article.category_id)}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {/* LOT 6: Unit cell only visible to authorized roles */}
+                    {canSeeFullInfo && (
+                      <TableCell className="text-muted-foreground">
+                        {article.unit}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Button
                         type="button"

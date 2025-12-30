@@ -53,7 +53,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { exportEcritureToPDF } from '@/utils/pdfExport';
+import { exportEcritureToPDF, exportDechargeComptableToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
 import { SyscohadaFormDynamic } from '@/components/comptabilite/SyscohadaFormDynamic';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
@@ -384,14 +384,40 @@ export default function ComptabiliteDetail() {
           </div>
           
           {da.status === 'payee' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPDF}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Exporter PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Écriture PDF
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  const selectedCaisse = caisses.find(c => c.id === selectedCaisseId);
+                  exportDechargeComptableToPDF({
+                    type: 'DA',
+                    reference: da.reference,
+                    montant: da.total_amount || 0,
+                    currency: da.currency || 'XOF',
+                    caisseName: selectedCaisse?.name || 'Caisse',
+                    caisseCode: selectedCaisse?.code || 'N/A',
+                    comptableName: 'Comptable',
+                    paidAt: da.comptabilise_at || new Date().toISOString(),
+                    beneficiaire: da.selected_fournisseur?.name,
+                    description: da.description,
+                    modePaiement: da.mode_paiement || undefined,
+                    referencePaiement: da.reference_paiement || undefined,
+                  });
+                }}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Décharge PDF
+              </Button>
+            </div>
           )}
         </div>
 
