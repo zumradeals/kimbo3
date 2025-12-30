@@ -498,7 +498,7 @@ export default function BesoinCreate() {
               <CardDescription>Détaillez chaque article ou service nécessaire</CardDescription>
             </CardHeader>
             <CardContent>
-              <BesoinLignesTable lignes={lignes} onChange={setLignes} />
+              <BesoinLignesTable lignes={lignes} onChange={setLignes} showCatalog={true} />
             </CardContent>
           </Card>
 

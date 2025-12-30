@@ -27,6 +27,7 @@ import {
   BESOIN_URGENCY_LABELS,
 } from '@/types/kpm';
 import { BesoinStockSelector } from './BesoinStockSelector';
+import { ArticleCatalogSelector } from './ArticleCatalogSelector';
 
 export interface BesoinLigneInput {
   id: string;
@@ -44,11 +45,12 @@ interface BesoinLignesTableProps {
   onChange: (lignes: BesoinLigneInput[]) => void;
   readOnly?: boolean;
   showStockSelector?: boolean;
+  showCatalog?: boolean;
 }
 
 const UNITS = ['pc', 'lot', 'jour', 'course', 'heure', 'unité', 'kg', 'litre', 'mètre', 'boîte'];
 
-export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStockSelector = false }: BesoinLignesTableProps) {
+export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStockSelector = false, showCatalog = false }: BesoinLignesTableProps) {
   const addLigne = () => {
     const newLigne: BesoinLigneInput = {
       id: `temp-${crypto.randomUUID()}`,
@@ -310,6 +312,14 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
           <Plus className="mr-2 h-4 w-4" />
           Ajouter manuellement
         </Button>
+        {showCatalog && (
+          <ArticleCatalogSelector
+            onSelect={addLigneFromStock}
+            excludeIds={linkedStockIds}
+            buttonText="Sélectionner du catalogue"
+            buttonVariant="secondary"
+          />
+        )}
         {showStockSelector && (
           <BesoinStockSelector
             onSelect={addLigneFromStock}
@@ -322,6 +332,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
 
       <p className="text-xs text-muted-foreground">
         ⚠️ Aucun prix n'est demandé. La logistique se chargera du chiffrage lors de la conversion en DA.
+        {showCatalog && ' Les articles du catalogue gardent leur unité d\'origine.'}
         {showStockSelector && ' Les articles du stock gardent leur unité d\'origine.'}
       </p>
     </div>
