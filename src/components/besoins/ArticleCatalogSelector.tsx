@@ -137,9 +137,16 @@ export function ArticleCatalogSelector({
           </DialogTitle>
           <DialogDescription>
             Sélectionnez un article existant pour pré-remplir votre ligne de besoin.
-            Les quantités disponibles seront vérifiées par la Logistique.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Message explicatif gouvernance */}
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-sm text-foreground">
+            <span className="font-medium">📋 Information importante :</span> Ce catalogue liste les articles référencés dans le système. 
+            <span className="text-muted-foreground"> La disponibilité réelle et les quantités en stock seront vérifiées par la Logistique lors du traitement de votre besoin.</span>
+          </p>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3 py-4">
           <div className="relative flex-1">
