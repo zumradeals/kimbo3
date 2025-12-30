@@ -1143,7 +1143,7 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   y = 60;
   
   // ========== CORPS DU DOCUMENT - STYLE FORMULAIRE ==========
-  const lineHeight = 12;
+  const lineHeight = 10;
   const dotLineEndX = pageWidth - margin;
   
   // Je soussigné(e)
@@ -1155,10 +1155,10 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   // Ligne pointillée avec nom du bénéficiaire
   const benefText = data.beneficiaire || '_______________';
   doc.setFont('helvetica', 'bold');
-  doc.text(benefText, margin + 35, y);
-  drawDottedLine(doc, margin + 35 + doc.getTextWidth(benefText) + 2, y, dotLineEndX);
+  doc.text(benefText, margin + 32, y);
+  drawDottedLine(doc, margin + 32 + doc.getTextWidth(benefText) + 2, y, dotLineEndX);
   
-  y += lineHeight * 1.5;
+  y += lineHeight * 1.3;
   
   // Reconnais avoir reçu la somme de
   doc.setFont('helvetica', 'normal');
@@ -1183,120 +1183,121 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   const splitLettres = doc.splitTextToSize(`(${lettres})`, contentWidth);
   doc.text(splitLettres, margin, y);
   
-  y += splitLettres.length * 5 + lineHeight;
+  y += splitLettres.length * 5 + lineHeight * 0.8;
   
-  // De la part de (avec nom complet du comptable)
+  // De la part de (avec nom complet du comptable) - ESPACE AJOUTÉ
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.textPrimary);
   doc.setFont('helvetica', 'normal');
-  doc.text('de la part de Monsieur, Madame', margin, y);
+  doc.text('de la part de Monsieur, Madame :', margin, y);
   
-  // Nom complet du comptable
+  // Nom complet du comptable sur nouvelle ligne pour plus de clarté
+  y += lineHeight * 0.8;
   doc.setFont('helvetica', 'bold');
   const comptableFullName = data.comptableName || 'Le Comptable';
-  doc.text(comptableFullName, margin + 55, y);
-  drawDottedLine(doc, margin + 55 + doc.getTextWidth(comptableFullName) + 2, y, dotLineEndX);
+  doc.text(comptableFullName, margin, y);
+  drawDottedLine(doc, margin + doc.getTextWidth(comptableFullName) + 2, y, dotLineEndX);
   
-  y += lineHeight * 1.5;
+  y += lineHeight * 1.3;
   
   // Source du paiement
   doc.setFont('helvetica', 'normal');
-  doc.text('via la caisse', margin, y);
+  doc.text('via la caisse :', margin, y);
   
   doc.setFont('helvetica', 'bold');
   const caisseText = `${data.caisseName} (${data.caisseCode})`;
   doc.text(caisseText, margin + 25, y);
   drawDottedLine(doc, margin + 25 + doc.getTextWidth(caisseText) + 2, y, dotLineEndX);
   
-  y += lineHeight * 1.5;
+  y += lineHeight * 1.3;
   
   // Mode de paiement
   doc.setFont('helvetica', 'normal');
   doc.text('Mode de paiement :', margin, y);
   
   doc.setFont('helvetica', 'bold');
-  doc.text(data.modePaiement || 'Espèces', margin + 40, y);
+  doc.text(data.modePaiement || 'Espèces', margin + 38, y);
   
   if (data.referencePaiement) {
     doc.setFont('helvetica', 'normal');
-    doc.text(' - Réf:', margin + 40 + doc.getTextWidth(data.modePaiement || 'Espèces') + 2, y);
+    doc.text(' - Réf:', margin + 38 + doc.getTextWidth(data.modePaiement || 'Espèces') + 2, y);
     doc.setFont('helvetica', 'bold');
-    doc.text(data.referencePaiement, margin + 55 + doc.getTextWidth(data.modePaiement || 'Espèces'), y);
+    doc.text(data.referencePaiement, margin + 52 + doc.getTextWidth(data.modePaiement || 'Espèces'), y);
   }
   
-  y += lineHeight * 1.5;
+  y += lineHeight * 1.3;
   
   // Cette décharge a pour objet
   doc.setFont('helvetica', 'normal');
   doc.text('Cette décharge a pour objet :', margin, y);
   
-  y += lineHeight * 0.8;
+  y += lineHeight * 0.7;
   
-  // Description
+  // Description (limitée à 2 lignes max)
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(...COLORS.textSecondary);
   const descText = data.description || 'Paiement ' + (data.type === 'DA' ? 'demande d\'achat' : 'note de frais');
-  const splitDesc = doc.splitTextToSize(descText, contentWidth);
+  const splitDesc = doc.splitTextToSize(descText, contentWidth).slice(0, 2);
   doc.text(splitDesc, margin, y);
   
-  y += splitDesc.length * 5 + lineHeight;
+  y += splitDesc.length * 5 + lineHeight * 0.8;
   
   // Ligne pointillée de fin
   drawDottedLine(doc, margin, y, dotLineEndX);
   
-  y += lineHeight * 2;
+  y += lineHeight * 1.2;
   
   // Mention des exemplaires
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(...COLORS.textPrimary);
   doc.setFont('helvetica', 'normal');
   doc.text('Et est établie en deux (2) exemplaires, dont un remis à chacune des parties.', margin, y);
   
-  y += lineHeight * 1.5;
+  y += lineHeight;
   
   // Fait à Abidjan, le
   doc.text('Fait à Abidjan, le', margin, y);
   
   doc.setFont('helvetica', 'bold');
-  doc.text(formatDate(data.paidAt), margin + 35, y);
+  doc.text(formatDate(data.paidAt), margin + 32, y);
   
-  y += lineHeight * 3;
+  // ========== SIGNATURES - POSITION FIXE EN BAS ==========
+  // On place les signatures à une position fixe pour garantir qu'elles sont visibles
+  const signaturesY = Math.max(y + lineHeight * 2, 200); // Minimum 200mm du haut
   
-  // ========== SIGNATURES (remontées) ==========
-  y += lineHeight;
-  
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setTextColor(...COLORS.marron);
   doc.setFont('helvetica', 'bold');
-  doc.text('Signatures', pageWidth / 2, y, { align: 'center' });
+  doc.text('Signatures', pageWidth / 2, signaturesY, { align: 'center' });
   
-  y += lineHeight;
+  const sigBoxY = signaturesY + 8;
   
   // Cadres signatures
-  const sigWidth = (contentWidth - 20) / 2;
+  const sigWidth = (contentWidth - 30) / 2;
+  const sigHeight = 25;
   
   // Receveur (bénéficiaire)
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(...COLORS.orange);
   doc.setFont('helvetica', 'bold');
-  doc.text('Receveur', margin + sigWidth / 2, y, { align: 'center' });
+  doc.text('Receveur', margin + sigWidth / 2, sigBoxY, { align: 'center' });
   
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.3);
-  doc.roundedRect(margin, y + 5, sigWidth, 30, 2, 2, 'S');
+  doc.roundedRect(margin, sigBoxY + 3, sigWidth, sigHeight, 2, 2, 'S');
   
   // Donneur (comptable)
   doc.setTextColor(...COLORS.orange);
-  doc.text('Donneur', pageWidth - margin - sigWidth / 2, y, { align: 'center' });
+  doc.text('Donneur', pageWidth - margin - sigWidth / 2, sigBoxY, { align: 'center' });
   
-  doc.roundedRect(pageWidth - margin - sigWidth, y + 5, sigWidth, 30, 2, 2, 'S');
+  doc.roundedRect(pageWidth - margin - sigWidth, sigBoxY + 3, sigWidth, sigHeight, 2, 2, 'S');
   
   // Noms sous les cadres
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.textMuted);
   doc.setFont('helvetica', 'normal');
-  doc.text(data.beneficiaire || '(Bénéficiaire)', margin + sigWidth / 2, y + 40, { align: 'center' });
-  doc.text(data.comptableName, pageWidth - margin - sigWidth / 2, y + 40, { align: 'center' });
+  doc.text(data.beneficiaire || '(Bénéficiaire)', margin + sigWidth / 2, sigBoxY + sigHeight + 8, { align: 'center' });
+  doc.text(comptableFullName, pageWidth - margin - sigWidth / 2, sigBoxY + sigHeight + 8, { align: 'center' });
   
   const fileName = data.type === 'DA'
     ? `DECHARGE_DA_${data.reference}.pdf`
