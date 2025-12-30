@@ -42,6 +42,7 @@ import {
   BL_STATUS_LABELS,
   BLStatus,
   LOGISTICS_ROLES,
+  DA_CATEGORY_LABELS,
 } from '@/types/kpm';
 import {
   ArrowLeft,
@@ -56,6 +57,7 @@ import {
   XCircle,
   PackageCheck,
   Download,
+  ShoppingCart,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -99,7 +101,9 @@ export default function BLDetail() {
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [showReliquatDialog, setShowReliquatDialog] = useState(false);
   const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
+  const [isCreatingDA, setIsCreatingDA] = useState(false);
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
   const isDAF = roles.includes('daf');
@@ -113,6 +117,16 @@ export default function BLDetail() {
   // DAF can refuse BL
   const canRefuse = (isDAF || isAdmin) && bl?.status === 'en_attente_validation';
   const canDelete = isAdmin;
+
+  // Calculate reliquat (remaining items not delivered)
+  const reliquatArticles = articles.filter((art) => {
+    const ordered = art.quantity_ordered || art.quantity;
+    const delivered = art.quantity_delivered || 0;
+    return delivered < ordered && delivered > 0;
+  });
+
+  const hasReliquat = bl?.status === 'livree_partiellement' && reliquatArticles.length > 0;
+  const canCreateDAFromReliquat = (isLogistics || isAdmin) && hasReliquat;
 
   useEffect(() => {
     if (id) {
@@ -329,6 +343,90 @@ export default function BLDetail() {
     }
   };
 
+  const handleCreateDAFromReliquat = async () => {
+    if (!bl || !user || reliquatArticles.length === 0) return;
+    setIsCreatingDA(true);
+
+    try {
+      // Get besoin info for the DA
+      const { data: besoinData, error: besoinError } = await supabase
+        .from('besoins')
+        .select('id, title, department_id, desired_date, projet_id')
+        .eq('id', bl.besoin_id)
+        .single();
+
+      if (besoinError || !besoinData) {
+        throw new Error('Impossible de récupérer le besoin source');
+      }
+
+      // Generate DA reference using RPC function
+      const { data: refData, error: refError } = await supabase.rpc('generate_da_reference');
+      if (refError || !refData) throw new Error('Impossible de générer la référence DA');
+
+      // Calculate reliquat quantities
+      const reliquatItems = reliquatArticles.map((art) => {
+        const ordered = art.quantity_ordered || art.quantity;
+        const delivered = art.quantity_delivered || 0;
+        return {
+          designation: art.designation,
+          quantity: ordered - delivered,
+          unit: art.unit,
+          observations: `Reliquat BL ${bl.reference} - Non livré depuis stock`,
+        };
+      });
+
+      // Create the DA with generated reference
+      const daInsertData: any = {
+        besoin_id: besoinData.id,
+        department_id: besoinData.department_id,
+        created_by: user.id,
+        category: 'materiel' as const,
+        priority: 'normale' as const,
+        desired_date: besoinData.desired_date,
+        projet_id: besoinData.projet_id,
+        status: 'brouillon' as const,
+        description: `Reliquat livraison partielle BL ${bl.reference} - Articles non disponibles en stock`,
+        observations: `DA générée automatiquement suite à la livraison partielle du BL ${bl.reference}. Les articles ci-dessous doivent être approvisionnés via achat externe.`,
+      };
+
+      // Set reference separately (column allows being set manually)
+      daInsertData.reference = refData;
+
+      const { data: daData, error: daError } = await supabase
+        .from('demandes_achat')
+        .insert(daInsertData)
+        .select()
+        .single();
+
+      if (daError || !daData) throw daError || new Error('Impossible de créer la DA');
+
+      // Create DA articles for reliquat
+      const daArticles = reliquatItems.map((item) => ({
+        da_id: daData.id,
+        designation: item.designation,
+        quantity: item.quantity,
+        unit: item.unit,
+        observations: item.observations,
+      }));
+
+      const { error: articlesError } = await supabase.from('da_articles').insert(daArticles);
+      if (articlesError) throw articlesError;
+
+      toast({
+        title: 'DA créée pour le reliquat',
+        description: `La demande d'achat ${refData} a été créée avec ${reliquatItems.length} article(s) à approvisionner.`,
+      });
+
+      setShowReliquatDialog(false);
+      navigate(`/demandes-achat/${daData.id}`);
+    } catch (error: any) {
+      console.error('Error creating DA from reliquat:', error);
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsCreatingDA(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!bl) return;
     setIsSaving(true);
@@ -509,7 +607,32 @@ export default function BLDetail() {
           </Card>
         )}
 
-        {/* Besoin source */}
+        {/* Reliquat - Create DA for remaining items */}
+        {canCreateDAFromReliquat && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-foreground flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  Livraison partielle - Reliquat disponible
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {reliquatArticles.length} article(s) non livré(s) intégralement. Vous pouvez créer une DA pour approvisionner le reliquat.
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowReliquatDialog(true)} 
+                disabled={isCreatingDA}
+                className="border-warning text-warning hover:bg-warning/10"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Créer DA pour reliquat
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -733,6 +856,56 @@ export default function BLDetail() {
             </Button>
             <Button onClick={handleDelivery} disabled={isSaving}>
               {isSaving ? 'Enregistrement...' : 'Confirmer la livraison'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reliquat DA Dialog */}
+      <Dialog open={showReliquatDialog} onOpenChange={setShowReliquatDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-warning" />
+              Créer une DA pour le reliquat
+            </DialogTitle>
+            <DialogDescription>
+              Une demande d'achat sera créée pour les articles non livrés intégralement depuis le stock.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-sm font-medium mb-3">Articles concernés :</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {reliquatArticles.map((art) => {
+                const ordered = art.quantity_ordered || art.quantity;
+                const delivered = art.quantity_delivered || 0;
+                const reliquat = ordered - delivered;
+                return (
+                  <div key={art.id} className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+                    <span className="font-medium">{art.designation}</span>
+                    <span className="text-sm text-muted-foreground">
+                      <span className="text-warning font-mono">{reliquat}</span> {art.unit} à commander
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+            <p className="text-sm text-foreground">
+              <span className="font-medium">📋 Information :</span> La DA sera créée en statut "brouillon" et liée au même besoin source. 
+              Vous pourrez la soumettre au service Achats pour traitement.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReliquatDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreateDAFromReliquat} disabled={isCreatingDA}>
+              {isCreatingDA ? 'Création...' : 'Créer la DA'}
             </Button>
           </DialogFooter>
         </DialogContent>
