@@ -48,7 +48,7 @@ interface BesoinLignesTableProps {
 
 const UNITS = ['pc', 'lot', 'jour', 'course', 'heure', 'unité', 'kg', 'litre', 'mètre', 'boîte'];
 
-export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStockSelector = true }: BesoinLignesTableProps) {
+export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStockSelector = false }: BesoinLignesTableProps) {
   const addLigne = () => {
     const newLigne: BesoinLigneInput = {
       id: `temp-${crypto.randomUUID()}`,

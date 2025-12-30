@@ -301,7 +301,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
           <CardDescription>Ajoutez, modifiez ou supprimez les articles demandés</CardDescription>
         </CardHeader>
         <CardContent>
-          <BesoinLignesTable lignes={lignes} onChange={setLignes} readOnly={false} />
+          <BesoinLignesTable lignes={lignes} onChange={setLignes} readOnly={false} showStockSelector={true} />
         </CardContent>
       </Card>
 
