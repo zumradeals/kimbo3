@@ -83,7 +83,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportDAToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
-import { CancelDialog } from '@/components/ui/CancelDialog';
 
 const statusColors: Record<DAStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -133,7 +132,6 @@ export default function DADetail() {
   const [showFinanceRefuseDialog, setShowFinanceRefuseDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showValidateDialog, setShowValidateDialog] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [justification, setJustification] = useState('');
@@ -597,36 +595,6 @@ export default function DADetail() {
     }
   };
 
-  const handleCancelDA = async (reason: string) => {
-    if (!da || !user) return;
-    setIsSaving(true);
-
-    try {
-      const { error } = await supabase
-        .from('demandes_achat')
-        .update({
-          status: 'annulee',
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: user.id,
-          cancellation_reason: reason,
-        })
-        .eq('id', da.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'DA annulée',
-        description: 'La demande d\'achat a été annulée avec succès.',
-      });
-      setShowCancelDialog(false);
-      fetchDA();
-    } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!da || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
@@ -799,18 +767,7 @@ export default function DADetail() {
               <Download className="mr-2 h-4 w-4" />
               Exporter PDF
             </Button>
-            {isAdmin && ['payee', 'validee_finance', 'soumise_validation', 'chiffree'].includes(da.status) && da.status !== 'annulee' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setShowCancelDialog(true)}
-              >
-                <Ban className="mr-2 h-4 w-4" />
-                Annuler
-              </Button>
-            )}
-            {canDelete && da.status === 'brouillon' && (
+            {canDelete && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1556,15 +1513,6 @@ export default function DADetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Cancel Dialog */}
-      <CancelDialog
-        open={showCancelDialog}
-        onOpenChange={setShowCancelDialog}
-        onConfirm={handleCancelDA}
-        entityType="da"
-        isLoading={isSaving}
-      />
     </AppLayout>
   );
 }

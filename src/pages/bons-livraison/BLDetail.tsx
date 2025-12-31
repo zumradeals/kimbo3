@@ -62,8 +62,6 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportBLToPDF } from '@/utils/pdfExport';
-import { CancelDialog } from '@/components/ui/CancelDialog';
-import { Ban } from 'lucide-react';
 
 const statusColors: Record<BLStatus, string> = {
   prepare: 'bg-muted text-muted-foreground',
@@ -106,7 +104,6 @@ export default function BLDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
   const [showReliquatDialog, setShowReliquatDialog] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
   const [isCreatingDA, setIsCreatingDA] = useState(false);
 
@@ -349,36 +346,6 @@ export default function BLDetail() {
     }
   };
 
-  const handleCancelBL = async (reason: string) => {
-    if (!bl || !user) return;
-    setIsSaving(true);
-
-    try {
-      const { error } = await supabase
-        .from('bons_livraison')
-        .update({
-          status: 'annulee',
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: user.id,
-          cancellation_reason: reason,
-        })
-        .eq('id', bl.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'BL annulé',
-        description: 'Le bon de livraison a été annulé avec succès.',
-      });
-      setShowCancelDialog(false);
-      fetchBL();
-    } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleCreateDAFromReliquat = async () => {
     if (!bl || !user || reliquatArticles.length === 0) return;
     setIsCreatingDA(true);
@@ -564,18 +531,7 @@ export default function BLDetail() {
               <Download className="mr-2 h-4 w-4" />
               Exporter PDF
             </Button>
-            {isAdmin && ['livre', 'livree_partiellement', 'valide'].includes(bl.status) && bl.status !== 'annulee' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setShowCancelDialog(true)}
-              >
-                <Ban className="mr-2 h-4 w-4" />
-                Annuler
-              </Button>
-            )}
-            {canDelete && bl.status === 'prepare' && (
+            {canDelete && (
               <Button
                 variant="outline"
                 size="sm"
@@ -957,15 +913,6 @@ export default function BLDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Cancel Dialog */}
-      <CancelDialog
-        open={showCancelDialog}
-        onOpenChange={setShowCancelDialog}
-        onConfirm={handleCancelBL}
-        entityType="bl"
-        isLoading={isSaving}
-      />
     </AppLayout>
   );
 }

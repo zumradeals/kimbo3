@@ -70,8 +70,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
 import { BesoinEditLogistique } from '@/components/besoins/BesoinEditLogistique';
-import { CancelDialog } from '@/components/ui/CancelDialog';
-import { Ban } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   cree: 'bg-muted text-muted-foreground',
@@ -79,7 +77,6 @@ const statusColors: Record<string, string> = {
   accepte: 'bg-success/10 text-success border-success/20',
   refuse: 'bg-destructive/10 text-destructive border-destructive/20',
   retourne: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  annulee: 'bg-muted text-muted-foreground line-through',
 };
 
 const statusIcons: Record<string, React.ElementType> = {
@@ -88,7 +85,6 @@ const statusIcons: Record<string, React.ElementType> = {
   accepte: CheckCircle,
   refuse: XCircle,
   retourne: MessageSquareWarning,
-  annulee: XCircle,
 };
 
 interface BesoinWithRelations extends Besoin {
@@ -109,7 +105,6 @@ export default function BesoinDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [returnComment, setReturnComment] = useState('');
   const [lockReason, setLockReason] = useState('');
@@ -390,36 +385,6 @@ export default function BesoinDetail() {
     }
   };
 
-  const handleCancelBesoin = async (reason: string) => {
-    if (!besoin || !user) return;
-    setIsSaving(true);
-
-    try {
-      const { error } = await supabase
-        .from('besoins')
-        .update({
-          status: 'annulee',
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: user.id,
-          cancellation_reason: reason,
-        })
-        .eq('id', besoin.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Besoin annulé',
-        description: 'Le besoin a été annulé avec succès.',
-      });
-      setShowCancelDialog(false);
-      fetchBesoin();
-    } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const getFileIcon = (type: string | null) => {
     if (!type) return File;
     if (type.startsWith('image/')) return FileImage;
@@ -515,18 +480,7 @@ export default function BesoinDetail() {
                 )}
               </Button>
             )}
-            {isAdmin && ['accepte', 'pris_en_charge'].includes(besoin.status) && besoin.status !== 'annulee' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setShowCancelDialog(true)}
-              >
-                <Ban className="mr-2 h-4 w-4" />
-                Annuler
-              </Button>
-            )}
-            {canDelete && besoin.status === 'cree' && (
+            {canDelete && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1081,15 +1035,6 @@ export default function BesoinDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Cancel Dialog */}
-      <CancelDialog
-        open={showCancelDialog}
-        onOpenChange={setShowCancelDialog}
-        onConfirm={handleCancelBesoin}
-        entityType="besoin"
-        isLoading={isSaving}
-      />
     </AppLayout>
   );
 }
