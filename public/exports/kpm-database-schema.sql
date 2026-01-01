@@ -1,7 +1,7 @@
 -- =============================================================================
 -- KPM (KIMBO Procurement Management) - Complete Database Schema
 -- Export for self-hosted deployment (VPS, Supabase self-hosted, etc.)
--- Generated: 2025-12-30
+-- Generated: 2026-01-01 (v1.1 - Fixed handle_new_user trigger)
 -- =============================================================================
 
 -- =============================================================================
@@ -1205,6 +1205,45 @@ $$;
 
 CREATE TRIGGER update_caisse_solde_trigger AFTER INSERT ON public.caisse_mouvements
   FOR EACH ROW EXECUTE FUNCTION public.update_caisse_solde();
+
+-- =============================================================================
+-- FONCTION: handle_new_user (Création automatique profil et rôle)
+-- CORRIGÉ: Always set both role (NOT NULL) and role_id to prevent null constraint violation
+-- =============================================================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _employe_role_id UUID;
+BEGIN
+  -- Create profile
+  INSERT INTO public.profiles (id, email, first_name, last_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data ->> 'first_name',
+    NEW.raw_user_meta_data ->> 'last_name'
+  );
+  
+  -- Get the 'employe' role id from roles table
+  SELECT id INTO _employe_role_id FROM public.roles WHERE code = 'employe';
+  
+  -- Always insert with role enum set (required NOT NULL), optionally with role_id
+  INSERT INTO public.user_roles (user_id, role, role_id)
+  VALUES (NEW.id, 'employe'::public.app_role, _employe_role_id);
+  
+  RETURN NEW;
+END;
+$function$;
+
+-- IMPORTANT: Ce trigger doit être créé sur auth.users (nécessite accès au schéma auth)
+-- Exécuter manuellement après déploiement:
+-- CREATE TRIGGER on_auth_user_created
+--   AFTER INSERT ON auth.users
+--   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Trigger pour audit automatique
 CREATE OR REPLACE FUNCTION public.audit_trigger_function()
