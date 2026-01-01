@@ -165,7 +165,7 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/kimbo3">
         <TooltipProvider>
           <AuthProvider>
             <AppRoutes />
