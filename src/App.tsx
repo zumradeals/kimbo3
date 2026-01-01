@@ -97,7 +97,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/audit" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
@@ -166,7 +166,8 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/kimbo3">
+      {/* Use Vite's BASE_URL so routing works both at / and on subpaths */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <TooltipProvider>
           <AuthProvider>
             <AppRoutes />
