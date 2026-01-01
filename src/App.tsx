@@ -18,6 +18,7 @@ import AdminUnits from "./pages/admin/Units";
 import AdminPaymentCategories from "./pages/admin/PaymentCategories";
 import AdminComptesComptables from "./pages/admin/ComptesComptables";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 // Module Besoins
 import BesoinsList from "./pages/besoins/BesoinsList";
@@ -96,7 +97,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Index />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/audit" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
