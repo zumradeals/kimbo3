@@ -993,13 +993,57 @@ export default function DADetail() {
                     </Badge>
                   </div>
                 </div>
-                {da.fournisseur_justification && (
-                  <div className="mt-3 border-t pt-3">
-                    <p className="text-xs text-muted-foreground">Justification Achats</p>
-                    <p className="text-sm">{da.fournisseur_justification}</p>
-                  </div>
-                )}
               </div>
+
+              {/* Détail des articles chiffrés pour le DAF */}
+              <div className="rounded-lg border bg-background p-4">
+                <p className="mb-3 font-medium text-foreground">Détail des articles chiffrés</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Désignation</TableHead>
+                      <TableHead className="text-center">Qté</TableHead>
+                      <TableHead>Fournisseur</TableHead>
+                      <TableHead className="text-right">Prix unitaire</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {articles.map((art) => {
+                      const prices = articlePrices[art.id] || [];
+                      const selectedPrice = prices.find((p) => p.is_selected);
+                      return (
+                        <TableRow key={art.id}>
+                          <TableCell className="font-medium">{art.designation}</TableCell>
+                          <TableCell className="text-center">{art.quantity} {art.unit}</TableCell>
+                          <TableCell>
+                            {selectedPrice ? (selectedPrice.fournisseur as Fournisseur)?.name || 'N/A' : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {selectedPrice ? `${selectedPrice.unit_price.toLocaleString()} ${selectedPrice.currency}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {selectedPrice ? `${(selectedPrice.unit_price * art.quantity).toLocaleString()} ${selectedPrice.currency}` : '-'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="border-t-2 bg-muted/30">
+                      <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+                      <TableCell className="text-right font-bold text-success">
+                        {da.total_amount?.toLocaleString()} {da.currency}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              {da.fournisseur_justification && (
+                <div className="rounded-md bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Justification du choix de fournisseur</p>
+                  <p className="text-sm">{da.fournisseur_justification}</p>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex flex-wrap gap-3">
@@ -1064,17 +1108,47 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* Bannière si en révision Achats */}
+        {/* Bannière si en révision Achats - Actions pour les Achats */}
         {da.status === 'en_revision_achats' && (
           <Card className="border-warning bg-warning/10">
-            <CardContent className="flex items-center gap-3 py-4">
-              <RotateCcw className="h-6 w-6 text-warning" />
-              <div>
-                <p className="font-bold text-warning">Révision demandée</p>
-                <p className="text-sm text-foreground">
-                  {da.revision_comment || 'La Direction demande une révision de cette DA.'}
-                </p>
+            <CardContent className="space-y-4 py-4">
+              <div className="flex items-start gap-3">
+                <RotateCcw className="mt-0.5 h-6 w-6 shrink-0 text-warning" />
+                <div className="flex-1">
+                  <p className="font-bold text-warning">Révision demandée par la Direction</p>
+                  <p className="text-sm text-foreground">
+                    {da.revision_comment || 'La Direction demande une révision de cette DA.'}
+                  </p>
+                  {da.revision_requested_by_profile && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Demandée par {da.revision_requested_by_profile.first_name} {da.revision_requested_by_profile.last_name}
+                      {da.revision_requested_at && ` le ${format(new Date(da.revision_requested_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}`}
+                    </p>
+                  )}
+                </div>
               </div>
+              
+              {/* Actions pour les Achats */}
+              {(isAchats || isAdmin) && (
+                <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">Prendre en charge la révision</p>
+                    <p className="text-sm text-muted-foreground">
+                      Modifiez les prix ou le fournisseur puis resoumettez à validation.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleMarkAsChiffree} disabled={isSaving || total === 0}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Valider les modifications
+                    </Button>
+                    <Button onClick={handleSubmitToValidation} disabled={isSaving}>
+                      <FileCheck className="mr-2 h-4 w-4" />
+                      Resoumettre à validation
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
