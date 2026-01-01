@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -22,11 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
 import { DemandeAchat, DA_STATUS_LABELS, DA_PRIORITY_LABELS, DAStatus } from '@/types/kpm';
 import { FileText, Search, Clock, Send, XCircle, BarChart3, CheckCircle, FileCheck, ShieldCheck, Ban, RotateCcw, Banknote, BookX } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { ListSkeleton } from '@/components/ui/ListSkeleton';
+import { PaginationControls } from '@/components/ui/PaginationControls';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const statusColors: Record<DAStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -65,52 +68,94 @@ const priorityColors: Record<string, string> = {
   urgente: 'bg-destructive/10 text-destructive',
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
+
 export default function DAList() {
   const { roles, isAdmin } = useAuth();
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [demandes, setDemandes] = useState<DemandeAchat[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  
+  const debouncedSearch = useDebounce(search, 300);
 
-  const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
-  const isAchats = roles.some((r) => ['responsable_achats', 'agent_achats'].includes(r));
-  const isDG = roles.includes('dg');
+  // Fetch function with pagination
+  const fetchDemandes = useCallback(async () => {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-  useEffect(() => {
-    fetchDemandes();
-  }, []);
+    let query = supabase
+      .from('demandes_achat')
+      .select(`
+        *,
+        department:departments(id, name),
+        created_by_profile:profiles!demandes_achat_created_by_fkey(id, first_name, last_name),
+        besoin:besoins(id, title)
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-  const fetchDemandes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('demandes_achat')
-        .select(`
-          *,
-          department:departments(id, name),
-          created_by_profile:profiles!demandes_achat_created_by_fkey(id, first_name, last_name),
-          besoin:besoins(id, title)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDemandes((data as unknown as DemandeAchat[]) || []);
-    } catch (error: any) {
-      console.error('Error fetching DA:', error);
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter as DAStatus);
     }
+
+    // Apply search filter
+    if (debouncedSearch) {
+      query = query.or(`reference.ilike.%${debouncedSearch}%,description.ilike.%${debouncedSearch}%`);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return {
+      demandes: (data as unknown as DemandeAchat[]) || [],
+      totalCount: count || 0,
+    };
+  }, [page, pageSize, statusFilter, debouncedSearch]);
+
+  // React Query with cache
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['demandes-achat', page, pageSize, statusFilter, debouncedSearch],
+    queryFn: fetchDemandes,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    placeholderData: (previousData) => previousData,
+  });
+
+  // Prefetch next page
+  useEffect(() => {
+    if (data && page < Math.ceil(data.totalCount / pageSize)) {
+      queryClient.prefetchQuery({
+        queryKey: ['demandes-achat', page + 1, pageSize, statusFilter, debouncedSearch],
+        queryFn: fetchDemandes,
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+  }, [data, page, pageSize, statusFilter, debouncedSearch, queryClient, fetchDemandes]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, debouncedSearch]);
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
   };
 
-  const filteredDemandes = demandes.filter((da) => {
-    const matchesSearch =
-      da.reference.toLowerCase().includes(search.toLowerCase()) ||
-      da.description.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || da.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 0;
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <ListSkeleton rows={8} columns={7} />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -177,69 +222,83 @@ export default function DAList() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {filteredDemandes.length} demande{filteredDemandes.length !== 1 ? 's' : ''}
+              {data?.totalCount || 0} demande{(data?.totalCount || 0) !== 1 ? 's' : ''}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              </div>
-            ) : filteredDemandes.length === 0 ? (
+            {data?.demandes.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
                 Aucune demande d'achat trouvée.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Référence</TableHead>
-                      <TableHead>Besoin source</TableHead>
-                      <TableHead>Département</TableHead>
-                      <TableHead>Priorité</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDemandes.map((da) => {
-                      const StatusIcon = statusIcons[da.status];
-                      return (
-                        <TableRow key={da.id}>
-                          <TableCell className="font-medium">{da.reference}</TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {(da.besoin as any)?.title || 'N/A'}
-                          </TableCell>
-                          <TableCell>{da.department?.name || 'N/A'}</TableCell>
-                          <TableCell>
-                            <Badge className={priorityColors[da.priority]}>
-                              {DA_PRIORITY_LABELS[da.priority]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={statusColors[da.status]}>
-                              <StatusIcon className="mr-1 h-3 w-3" />
-                              {DA_STATUS_LABELS[da.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(da.created_at), 'dd MMM yyyy', { locale: fr })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Link to={`/demandes-achat/${da.id}`}>
-                              <Button variant="ghost" size="sm">
-                                Voir
-                              </Button>
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              <>
+                <div className={`overflow-x-auto ${isFetching ? 'opacity-70' : ''}`}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Référence</TableHead>
+                        <TableHead>Besoin source</TableHead>
+                        <TableHead>Département</TableHead>
+                        <TableHead>Priorité</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.demandes.map((da) => {
+                        const StatusIcon = statusIcons[da.status];
+                        return (
+                          <TableRow key={da.id}>
+                            <TableCell className="font-medium">{da.reference}</TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {(da.besoin as any)?.title || 'N/A'}
+                            </TableCell>
+                            <TableCell>{da.department?.name || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Badge className={priorityColors[da.priority]}>
+                                {DA_PRIORITY_LABELS[da.priority]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={statusColors[da.status]}>
+                                <StatusIcon className="mr-1 h-3 w-3" />
+                                {DA_STATUS_LABELS[da.status]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(da.created_at), 'dd MMM yyyy', { locale: fr })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Link to={`/demandes-achat/${da.id}`}>
+                                <Button variant="ghost" size="sm">
+                                  Voir
+                                </Button>
+                              </Link>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="border-t p-4 mt-4">
+                    <PaginationControls
+                      page={page}
+                      totalPages={totalPages}
+                      totalCount={data?.totalCount || 0}
+                      pageSize={pageSize}
+                      onPageChange={setPage}
+                      onPageSizeChange={handlePageSizeChange}
+                      isLoading={isFetching}
+                      pageSizeOptions={PAGE_SIZE_OPTIONS}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
