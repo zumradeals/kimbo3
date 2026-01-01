@@ -5,7 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/kimbo3/",
+  // Keep base at root for Lovable hosting; BrowserRouter uses BASE_URL.
+  base: "/",
   server: {
     host: "::",
     port: 8080,
