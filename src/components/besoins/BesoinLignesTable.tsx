@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,6 +28,7 @@ import {
 } from '@/types/kpm';
 import { BesoinStockSelector } from './BesoinStockSelector';
 import { ArticleCatalogSelector } from './ArticleCatalogSelector';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface BesoinLigneInput {
   id: string;
@@ -48,9 +49,31 @@ interface BesoinLignesTableProps {
   showCatalog?: boolean;
 }
 
-const UNITS = ['pc', 'lot', 'jour', 'course', 'heure', 'unité', 'kg', 'litre', 'mètre', 'boîte'];
+interface Unit {
+  id: string;
+  code: string;
+  label: string;
+}
+
+const FALLBACK_UNITS = ['unité', 'pièce', 'kg', 't', 'litre', 'mètre', 'boîte', 'lot'];
 
 export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStockSelector = false, showCatalog = false }: BesoinLignesTableProps) {
+  const [units, setUnits] = useState<Unit[]>([]);
+
+  useEffect(() => {
+    const fetchUnits = async () => {
+      const { data, error } = await supabase
+        .from('units')
+        .select('id, code, label')
+        .eq('is_active', true)
+        .order('sort_order');
+      
+      if (!error && data) {
+        setUnits(data);
+      }
+    };
+    fetchUnits();
+  }, []);
   const addLigne = () => {
     const newLigne: BesoinLigneInput = {
       id: `temp-${crypto.randomUUID()}`,
@@ -253,9 +276,9 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {UNITS.map((unit) => (
-                            <SelectItem key={unit} value={unit}>
-                              {unit}
+                          {(units.length > 0 ? units : FALLBACK_UNITS.map(u => ({ code: u, label: u }))).map((unit) => (
+                            <SelectItem key={typeof unit === 'string' ? unit : unit.code} value={typeof unit === 'string' ? unit : unit.code}>
+                              {typeof unit === 'string' ? unit : unit.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
