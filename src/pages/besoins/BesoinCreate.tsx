@@ -318,7 +318,7 @@ export default function BesoinCreate() {
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link to="/besoins">

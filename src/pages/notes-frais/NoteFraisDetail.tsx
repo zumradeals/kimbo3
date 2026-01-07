@@ -45,7 +45,19 @@ import {
   Calendar,
   FolderKanban,
   FileText,
+  Edit,
+  Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportDechargeComptableToPDF } from '@/utils/pdfExport';
@@ -83,6 +95,7 @@ export default function NoteFraisDetail() {
 
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showPayDialog, setShowPayDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [paymentData, setPaymentData] = useState({
     mode_paiement: '',
@@ -254,6 +267,40 @@ export default function NoteFraisDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!note) return;
+    setIsSaving(true);
+
+    try {
+      // Delete lignes first
+      const { error: lignesError } = await supabase
+        .from('note_frais_lignes')
+        .delete()
+        .eq('note_frais_id', note.id);
+
+      if (lignesError) throw lignesError;
+
+      // Delete note
+      const { error } = await supabase
+        .from('notes_frais')
+        .delete()
+        .eq('id', note.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Note supprimée', description: 'La note de frais a été supprimée.' });
+      navigate('/notes-frais');
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const canEdit = isCreator && (note?.status === 'brouillon' || note?.status === 'rejetee');
+  const canDelete = (isCreator || isAdmin) && (note?.status === 'brouillon' || note?.status === 'rejetee');
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -295,6 +342,27 @@ export default function NoteFraisDetail() {
               </div>
               <p className="text-muted-foreground">{note.title}</p>
             </div>
+          </div>
+          <div className="flex gap-2">
+            {canEdit && (
+              <Link to={`/notes-frais/${note.id}/modifier`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Modifier
+                </Button>
+              </Link>
+            )}
+            {canDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Supprimer
+              </Button>
+            )}
           </div>
         </div>
 
@@ -655,6 +723,28 @@ export default function NoteFraisDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la note de frais ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La note {note.reference} et toutes ses lignes seront définitivement supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Suppression...' : 'Supprimer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

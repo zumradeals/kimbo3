@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,13 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -24,9 +17,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Receipt } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
+import { NoteFraisLigne } from '@/types/kpm';
 
 interface LigneInput {
   id: string;
@@ -35,14 +28,18 @@ interface LigneInput {
   projet_id: string;
   montant: number;
   observations: string;
+  isNew?: boolean;
 }
 
-export default function NoteFraisCreate() {
+export default function NoteFraisEdit() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [note, setNote] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -50,16 +47,62 @@ export default function NoteFraisCreate() {
     projet_id: '',
   });
 
-  const [lignes, setLignes] = useState<LigneInput[]>([
-    {
-      id: crypto.randomUUID(),
-      date_depense: new Date().toISOString().split('T')[0],
-      motif: '',
-      projet_id: '',
-      montant: 0,
-      observations: '',
-    },
-  ]);
+  const [lignes, setLignes] = useState<LigneInput[]>([]);
+  const [deletedLigneIds, setDeletedLigneIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (id) fetchNote();
+  }, [id]);
+
+  const fetchNote = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notes_frais')
+        .select('*, lignes:note_frais_lignes(*)')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast({ title: 'Erreur', description: 'Note de frais introuvable.', variant: 'destructive' });
+        navigate('/notes-frais');
+        return;
+      }
+
+      // Check if user can edit
+      const canEdit = data.user_id === user?.id || isAdmin;
+      const isEditable = data.status === 'brouillon' || data.status === 'rejetee';
+
+      if (!canEdit || !isEditable) {
+        toast({ title: 'Accès refusé', description: 'Vous ne pouvez pas modifier cette note.', variant: 'destructive' });
+        navigate(`/notes-frais/${id}`);
+        return;
+      }
+
+      setNote(data);
+      setFormData({
+        title: data.title || '',
+        description: data.description || '',
+        projet_id: data.projet_id || '',
+      });
+
+      setLignes(
+        (data.lignes || []).map((l: NoteFraisLigne) => ({
+          id: l.id,
+          date_depense: l.date_depense,
+          motif: l.motif,
+          projet_id: l.projet_id || '',
+          montant: l.montant,
+          observations: l.observations || '',
+          isNew: false,
+        }))
+      );
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const addLigne = () => {
     setLignes([
@@ -71,6 +114,7 @@ export default function NoteFraisCreate() {
         projet_id: formData.projet_id || '',
         montant: 0,
         observations: '',
+        isNew: true,
       },
     ]);
   };
@@ -80,13 +124,16 @@ export default function NoteFraisCreate() {
   };
 
   const removeLigne = (id: string) => {
-    if (lignes.length === 1) return;
+    const ligne = lignes.find((l) => l.id === id);
+    if (ligne && !ligne.isNew) {
+      setDeletedLigneIds([...deletedLigneIds, id]);
+    }
     setLignes(lignes.filter((l) => l.id !== id));
   };
 
   const totalAmount = lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
 
-  const handleSubmit = async (asBrouillon: boolean) => {
+  const handleSubmit = async () => {
     if (!formData.title.trim()) {
       toast({ title: 'Erreur', description: 'Le titre est requis.', variant: 'destructive' });
       return;
@@ -100,65 +147,55 @@ export default function NoteFraisCreate() {
 
     setIsSubmitting(true);
     try {
-      // Generate reference
-      const { data: refData } = await supabase.rpc('generate_ndf_reference');
-      const reference = refData || `NDF-${Date.now()}`;
-
-      // Create note de frais - ALWAYS create as 'brouillon' first to allow line insertion
-      const { data: noteData, error: noteError } = await supabase
+      // Update note
+      const { error: noteError } = await supabase
         .from('notes_frais')
-        .insert({
-          reference,
-          user_id: user?.id,
-          department_id: profile?.department_id,
-          projet_id: formData.projet_id || null,
+        .update({
           title: formData.title,
           description: formData.description || null,
+          projet_id: formData.projet_id || null,
           total_amount: totalAmount,
-          status: 'brouillon', // Always start as brouillon
+          updated_at: new Date().toISOString(),
         })
-        .select()
-        .single();
+        .eq('id', id);
 
       if (noteError) throw noteError;
 
-      // Create lignes (RLS allows this because note is in 'brouillon' status)
-      const lignesData = validLignes.map((l) => ({
-        note_frais_id: noteData.id,
-        date_depense: l.date_depense,
-        motif: l.motif,
-        projet_id: l.projet_id || null,
-        montant: l.montant,
-        observations: l.observations || null,
-      }));
+      // Delete removed lignes
+      if (deletedLigneIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('note_frais_lignes')
+          .delete()
+          .in('id', deletedLigneIds);
 
-      const { error: lignesError } = await supabase
-        .from('note_frais_lignes')
-        .insert(lignesData);
-
-      if (lignesError) throw lignesError;
-
-      // If submitting (not saving as brouillon), update status to 'soumise'
-      if (!asBrouillon) {
-        const { error: updateError } = await supabase
-          .from('notes_frais')
-          .update({
-            status: 'soumise',
-            submitted_at: new Date().toISOString(),
-          })
-          .eq('id', noteData.id);
-
-        if (updateError) throw updateError;
+        if (deleteError) throw deleteError;
       }
 
-      toast({
-        title: asBrouillon ? 'Brouillon enregistré' : 'Note soumise',
-        description: asBrouillon
-          ? 'Votre note de frais a été enregistrée comme brouillon.'
-          : 'Votre note de frais a été soumise pour validation.',
-      });
+      // Update existing lignes & insert new ones
+      for (const ligne of validLignes) {
+        const ligneData = {
+          note_frais_id: id,
+          date_depense: ligne.date_depense,
+          motif: ligne.motif,
+          projet_id: ligne.projet_id || null,
+          montant: ligne.montant,
+          observations: ligne.observations || null,
+        };
 
-      navigate(`/notes-frais/${noteData.id}`);
+        if (ligne.isNew) {
+          const { error } = await supabase.from('note_frais_lignes').insert(ligneData);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('note_frais_lignes')
+            .update(ligneData)
+            .eq('id', ligne.id);
+          if (error) throw error;
+        }
+      }
+
+      toast({ title: 'Modifications enregistrées', description: 'La note de frais a été mise à jour.' });
+      navigate(`/notes-frais/${id}`);
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -166,23 +203,31 @@ export default function NoteFraisCreate() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link to="/notes-frais">
+          <Link to={`/notes-frais/${id}`}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
             <h1 className="font-serif text-2xl font-bold text-foreground">
-              Nouvelle note de frais
+              Modifier la note de frais
             </h1>
-            <p className="text-muted-foreground">
-              Créez une demande de remboursement
-            </p>
+            <p className="text-muted-foreground font-mono">{note?.reference}</p>
           </div>
         </div>
 
@@ -215,10 +260,10 @@ export default function NoteFraisCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="projet">Projet rattaché (optionnel)</Label>
+                <Label htmlFor="projet">Projet rattaché</Label>
                 <ProjetSelector
                   value={formData.projet_id}
-                  onChange={(id) => setFormData({ ...formData, projet_id: id })}
+                  onChange={(pid) => setFormData({ ...formData, projet_id: pid })}
                   placeholder="Sélectionner un projet..."
                 />
               </div>
@@ -239,7 +284,7 @@ export default function NoteFraisCreate() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Lignes de dépenses</CardTitle>
-                <CardDescription>Ajoutez les dépenses à rembourser</CardDescription>
+                <CardDescription>{lignes.length} ligne(s)</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={addLigne}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -280,7 +325,7 @@ export default function NoteFraisCreate() {
                         <TableCell>
                           <ProjetSelector
                             value={ligne.projet_id}
-                            onChange={(id) => updateLigne(ligne.id, 'projet_id', id)}
+                            onChange={(pid) => updateLigne(ligne.id, 'projet_id', pid)}
                             placeholder="-"
                           />
                         </TableCell>
@@ -322,19 +367,12 @@ export default function NoteFraisCreate() {
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
-          <Link to="/notes-frais">
+          <Link to={`/notes-frais/${id}`}>
             <Button variant="outline">Annuler</Button>
           </Link>
-          <Button
-            variant="outline"
-            onClick={() => handleSubmit(true)}
-            disabled={isSubmitting}
-          >
-            Enregistrer brouillon
-          </Button>
-          <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
-            <Receipt className="mr-2 h-4 w-4" />
-            {isSubmitting ? 'Envoi...' : 'Soumettre pour validation'}
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" />
+            {isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}
           </Button>
         </div>
       </div>
