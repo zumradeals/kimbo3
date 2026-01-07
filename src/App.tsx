@@ -57,6 +57,7 @@ import ProjetDetail from "./pages/projets/ProjetDetail";
 import NotesFraisList from "./pages/notes-frais/NotesFraisList";
 import NoteFraisCreate from "./pages/notes-frais/NoteFraisCreate";
 import NoteFraisDetail from "./pages/notes-frais/NoteFraisDetail";
+import NoteFraisEdit from "./pages/notes-frais/NoteFraisEdit";
 
 // Notifications
 import Notifications from "./pages/Notifications";
@@ -147,6 +148,7 @@ function AppRoutes() {
       <Route path="/notes-frais" element={<ProtectedRoute><NotesFraisList /></ProtectedRoute>} />
       <Route path="/notes-frais/nouveau" element={<ProtectedRoute><NoteFraisCreate /></ProtectedRoute>} />
       <Route path="/notes-frais/:id" element={<ProtectedRoute><NoteFraisDetail /></ProtectedRoute>} />
+      <Route path="/notes-frais/:id/modifier" element={<ProtectedRoute><NoteFraisEdit /></ProtectedRoute>} />
       
       {/* Notifications */}
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
