@@ -78,6 +78,8 @@ import {
   Download,
   Upload,
   Paperclip,
+  Edit,
+  Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -140,6 +142,7 @@ export default function DADetail() {
   const [financeComment, setFinanceComment] = useState('');
   const [revisionComment, setRevisionComment] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<{ id: string; quantity: number } | null>(null);
 
   const [priceForm, setPriceForm] = useState({
     fournisseur_id: '',
@@ -395,6 +398,28 @@ export default function DADetail() {
       
       fetchArticlePrices(articleId);
       toast({ title: 'Prix sélectionné' });
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateArticleQuantity = async (articleId: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      toast({ title: 'Erreur', description: 'La quantité doit être supérieure à 0.', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('da_articles')
+        .update({ quantity: newQuantity })
+        .eq('id', articleId);
+      if (error) throw error;
+      toast({ title: 'Quantité mise à jour' });
+      setEditingArticle(null);
+      fetchArticles();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -1331,19 +1356,65 @@ export default function DADetail() {
               articles.map((art) => {
                 const prices = articlePrices[art.id] || [];
                 const selectedPrice = prices.find((p) => p.is_selected);
+                const isEditing = editingArticle?.id === art.id;
                 return (
                   <div key={art.id} className="rounded-lg border p-4">
                     <div className="mb-3 flex items-start justify-between">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{art.designation}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {art.quantity} {art.unit}
-                          {selectedPrice && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {isEditing ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={editingArticle.quantity}
+                                onChange={(e) => setEditingArticle({ ...editingArticle, quantity: parseInt(e.target.value) || 1 })}
+                                className="h-7 w-20"
+                              />
+                              <span>{art.unit}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-success hover:bg-success/10"
+                                onClick={() => handleUpdateArticleQuantity(art.id, editingArticle.quantity)}
+                                disabled={isSaving}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-destructive hover:bg-destructive/10"
+                                onClick={() => setEditingArticle(null)}
+                                disabled={isSaving}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <span>{art.quantity} {art.unit}</span>
+                              {canPrice && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-1 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setEditingArticle({ id: art.id, quantity: art.quantity })}
+                                  title="Modifier la quantité"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          {selectedPrice && !isEditing && (
                             <span className="ml-2 text-success">
                               → {(selectedPrice.unit_price * art.quantity).toLocaleString()} {selectedPrice.currency}
                             </span>
                           )}
-                        </p>
+                        </div>
                       </div>
                       {canPrice && (
                         <Button
