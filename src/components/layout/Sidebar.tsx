@@ -44,12 +44,17 @@ const navItems: NavItem[] = [
     module: 'dashboard',
   },
   {
+    label: 'Utilisateurs',
+    href: '/utilisateurs',
+    icon: Users,
+  },
+  {
     label: 'Administration',
     href: '/admin',
     icon: Shield,
     module: 'administration',
     children: [
-      { label: 'Utilisateurs', href: '/admin/users', icon: Users, permission: 'administration.gerer_users' },
+      { label: 'Gestion utilisateurs', href: '/admin/users', icon: Users, permission: 'administration.gerer_users' },
       { label: 'Départements', href: '/admin/departments', icon: Building2, permission: 'administration.gerer_departements' },
       { label: 'Rôles & Permissions', href: '/admin/roles', icon: Shield, permission: 'administration.gerer_roles' },
       { label: 'Unités de mesure', href: '/admin/units', icon: Ruler, permission: 'administration.gerer_unites' },
