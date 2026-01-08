@@ -55,6 +55,7 @@ import {
   Fournisseur,
   DAArticlePrice,
 } from '@/types/kpm';
+import { UserBadge } from '@/components/ui/UserBadge';
 import {
   ArrowLeft,
   Clock,
@@ -184,7 +185,8 @@ export default function DADetail() {
           *,
           department:departments(id, name),
           selected_fournisseur:fournisseurs(id, name, address, phone, email),
-          besoin:besoins(id, title, user_id)
+          besoin:besoins(id, title, user_id),
+          created_by_user:profiles!demandes_achat_created_by_fkey(id, first_name, last_name, photo_url, fonction)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -1290,10 +1292,17 @@ export default function DADetail() {
                 <p className="font-medium">{da.department?.name || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Créée par</p>
-                <p className="font-medium">
-                  {da.created_by_profile?.first_name} {da.created_by_profile?.last_name}
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">Créée par</p>
+                <UserBadge
+                  userId={(da as any).created_by_user?.id || da.created_by}
+                  photoUrl={(da as any).created_by_user?.photo_url}
+                  firstName={(da as any).created_by_user?.first_name || da.created_by_profile?.first_name}
+                  lastName={(da as any).created_by_user?.last_name || da.created_by_profile?.last_name}
+                  fonction={(da as any).created_by_user?.fonction}
+                  departmentName={da.department?.name}
+                  showFonction
+                  linkToProfile
+                />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Catégorie</p>

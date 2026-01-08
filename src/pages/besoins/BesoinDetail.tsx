@@ -38,6 +38,7 @@ import {
   BESOIN_TYPE_ENUM_LABELS,
   BesoinTypeEnum,
 } from '@/types/kpm';
+import { UserBadge } from '@/components/ui/UserBadge';
 import {
   ArrowLeft,
   Clock,
@@ -151,9 +152,9 @@ export default function BesoinDetail() {
         .select(`
           *,
           department:departments(id, name),
-          user:profiles!besoins_user_id_fkey(id, first_name, last_name, email),
-          taken_by_profile:profiles!besoins_taken_by_fkey(id, first_name, last_name),
-          decided_by_profile:profiles!besoins_decided_by_fkey(id, first_name, last_name)
+          user:profiles!besoins_user_id_fkey(id, first_name, last_name, email, photo_url, fonction),
+          taken_by_profile:profiles!besoins_taken_by_fkey(id, first_name, last_name, photo_url, fonction),
+          decided_by_profile:profiles!besoins_decided_by_fkey(id, first_name, last_name, photo_url, fonction)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -715,21 +716,19 @@ export default function BesoinDetail() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="flex items-start gap-3">
-                <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Demandeur</p>
-                  <p className="font-medium">
-                    {besoin.user?.first_name} {besoin.user?.last_name}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Département</p>
-                  <p className="font-medium">{besoin.department?.name || 'N/A'}</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Demandeur</p>
+                <UserBadge
+                  userId={(besoin.user as any)?.id}
+                  photoUrl={(besoin.user as any)?.photo_url}
+                  firstName={(besoin.user as any)?.first_name}
+                  lastName={(besoin.user as any)?.last_name}
+                  fonction={(besoin.user as any)?.fonction}
+                  departmentName={besoin.department?.name}
+                  showFonction
+                  showDepartment
+                  linkToProfile
+                />
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />

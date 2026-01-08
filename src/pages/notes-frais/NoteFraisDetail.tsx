@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { NoteFrais, NoteFraisLigne, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS, PaymentMethod, SYSCOHADA_CLASSES } from '@/types/kpm';
+import { UserBadge } from '@/components/ui/UserBadge';
 import {
   ArrowLeft,
   Clock,
@@ -153,12 +154,12 @@ export default function NoteFraisDetail() {
         .from('notes_frais')
         .select(`
           *,
-          user:profiles!notes_frais_user_id_fkey(id, first_name, last_name, email),
+          user:profiles!notes_frais_user_id_fkey(id, first_name, last_name, email, photo_url, fonction),
           department:departments(id, name),
           projet:projets(id, code, name),
-          validated_daf_by_profile:profiles!notes_frais_validated_daf_by_fkey(id, first_name, last_name),
-          paid_by_profile:profiles!notes_frais_paid_by_fkey(id, first_name, last_name),
-          rejected_by_profile:profiles!notes_frais_rejected_by_fkey(id, first_name, last_name)
+          validated_daf_by_profile:profiles!notes_frais_validated_daf_by_fkey(id, first_name, last_name, photo_url, fonction),
+          paid_by_profile:profiles!notes_frais_paid_by_fkey(id, first_name, last_name, photo_url, fonction),
+          rejected_by_profile:profiles!notes_frais_rejected_by_fkey(id, first_name, last_name, photo_url, fonction)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -645,14 +646,18 @@ export default function NoteFraisDetail() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Demandeur</CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center gap-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">
-                  {note.user?.first_name} {note.user?.last_name}
-                </p>
-                <p className="text-sm text-muted-foreground">{note.department?.name}</p>
-              </div>
+            <CardContent>
+              <UserBadge
+                userId={(note.user as any)?.id}
+                photoUrl={(note.user as any)?.photo_url}
+                firstName={(note.user as any)?.first_name}
+                lastName={(note.user as any)?.last_name}
+                fonction={(note.user as any)?.fonction}
+                departmentName={note.department?.name}
+                showFonction
+                showDepartment
+                linkToProfile
+              />
             </CardContent>
           </Card>
           <Card>
