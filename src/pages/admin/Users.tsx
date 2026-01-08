@@ -41,7 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus } from '@/types/kpm';
+import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus, PositionDepartement, StatutUtilisateur } from '@/types/kpm';
 import { Plus, Pencil, Trash2, Search, Mail, Key } from 'lucide-react';
 
 const ALL_ROLES: AppRole[] = [
@@ -50,8 +50,10 @@ const ALL_ROLES: AppRole[] = [
   'responsable_departement', 'employe', 'lecture_seule'
 ];
 
-interface UserWithRoles extends Profile {
+interface UserWithRoles extends Omit<Profile, 'position_departement' | 'statut_utilisateur'> {
   roles: AppRole[];
+  position_departement?: string | null;
+  statut_utilisateur?: string | null;
 }
 
 export default function AdminUsers() {
