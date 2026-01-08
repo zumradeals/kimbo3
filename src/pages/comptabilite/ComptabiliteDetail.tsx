@@ -80,10 +80,16 @@ export default function ComptabiliteDetail() {
   });
   
   // Formulaire Paiement
-  const [paymentForm, setPaymentForm] = useState({
+  const [paymentForm, setPaymentForm] = useState<{
+    category_id: string;
+    method_id: string;
+    details: Record<string, string>;
+    payment_class?: 'REGLEMENT' | 'DEPENSE';
+  }>({
     category_id: '',
     method_id: '',
-    details: {} as Record<string, string>,
+    details: {},
+    payment_class: 'REGLEMENT',
   });
   
   // Caisse sélectionnée pour le paiement
@@ -206,6 +212,7 @@ export default function ComptabiliteDetail() {
           details: typeof data.payment_details === 'object' && data.payment_details !== null 
             ? data.payment_details as Record<string, string> 
             : {},
+          payment_class: (data as any).payment_class || 'REGLEMENT',
         });
       }
     } catch (error: any) {
@@ -251,6 +258,7 @@ export default function ComptabiliteDetail() {
           payment_category_id: paymentForm.category_id || null,
           payment_method_id: paymentForm.method_id || null,
           payment_details: paymentForm.details,
+          payment_class: paymentForm.payment_class || 'REGLEMENT',
           caisse_id: selectedCaisseId && selectedCaisseId !== '_none' ? selectedCaisseId : null,
           comptabilise_by: user?.id,
           comptabilise_at: new Date().toISOString(),
@@ -501,6 +509,7 @@ export default function ComptabiliteDetail() {
                   value={paymentForm}
                   onChange={setPaymentForm}
                   disabled={false}
+                  showPaymentClass={true}
                 />
               </div>
 

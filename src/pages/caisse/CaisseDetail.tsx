@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AccessDenied } from '@/components/ui/AccessDenied';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, Minus, Calendar, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, Minus, Calendar, User, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -43,6 +44,7 @@ interface CaisseMouvement {
   observations: string | null;
   da_id: string | null;
   note_frais_id: string | null;
+  payment_class: 'REGLEMENT' | 'DEPENSE' | null;
   created_at: string;
   created_by: string;
   created_by_profile?: {
@@ -50,6 +52,16 @@ interface CaisseMouvement {
     last_name: string | null;
   };
 }
+
+const PAYMENT_CLASS_COLORS: Record<string, string> = {
+  REGLEMENT: 'bg-blue-100 text-blue-700',
+  DEPENSE: 'bg-purple-100 text-purple-700',
+};
+
+const PAYMENT_CLASS_LABELS: Record<string, string> = {
+  REGLEMENT: 'Règlement',
+  DEPENSE: 'Dépenses',
+};
 
 const TYPE_LABELS: Record<string, string> = {
   principale: 'Principale',
@@ -84,6 +96,7 @@ export default function CaisseDetail() {
   const [caisse, setCaisse] = useState<Caisse | null>(null);
   const [mouvements, setMouvements] = useState<CaisseMouvement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentClassFilter, setPaymentClassFilter] = useState<string>('all');
 
   const canView = roles.some(r => ['admin', 'daf', 'dg', 'comptable'].includes(r));
 
@@ -305,9 +318,24 @@ export default function CaisseDetail() {
 
         {/* Mouvements */}
         <Card>
-          <CardHeader>
-            <CardTitle>Historique des Mouvements</CardTitle>
-            <CardDescription>Les 100 derniers mouvements de cette caisse</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Historique des Mouvements</CardTitle>
+              <CardDescription>Les 100 derniers mouvements de cette caisse</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={paymentClassFilter} onValueChange={setPaymentClassFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filtrer par classe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les classes</SelectItem>
+                  <SelectItem value="REGLEMENT">Règlement</SelectItem>
+                  <SelectItem value="DEPENSE">Dépenses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -315,6 +343,7 @@ export default function CaisseDetail() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Classe</TableHead>
                   <TableHead>Référence</TableHead>
                   <TableHead>Motif</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
@@ -323,14 +352,22 @@ export default function CaisseDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mouvements.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Aucun mouvement enregistré
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  mouvements.map((mouvement) => {
+                {(() => {
+                  const filteredMouvements = paymentClassFilter === 'all' 
+                    ? mouvements 
+                    : mouvements.filter(m => m.payment_class === paymentClassFilter);
+                  
+                  if (filteredMouvements.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          {paymentClassFilter !== 'all' ? 'Aucun mouvement pour cette classe' : 'Aucun mouvement enregistré'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                  
+                  return filteredMouvements.map((mouvement) => {
                     const Icon = MOUVEMENT_ICONS[mouvement.type] || Minus;
                     return (
                       <TableRow key={mouvement.id}>
@@ -342,6 +379,15 @@ export default function CaisseDetail() {
                             <Icon className="h-3 w-3 mr-1" />
                             {mouvement.type.charAt(0).toUpperCase() + mouvement.type.slice(1)}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {mouvement.payment_class ? (
+                            <Badge className={PAYMENT_CLASS_COLORS[mouvement.payment_class]}>
+                              {PAYMENT_CLASS_LABELS[mouvement.payment_class]}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {mouvement.reference}
@@ -362,8 +408,8 @@ export default function CaisseDetail() {
                         </TableCell>
                       </TableRow>
                     );
-                  })
-                )}
+                  });
+                })()}
               </TableBody>
             </Table>
           </CardContent>

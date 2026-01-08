@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Wallet, Building2, Receipt, Banknote, HelpCircle } from 'lucide-react';
+import { Wallet, Building2, Receipt, Banknote, HelpCircle, Tags } from 'lucide-react';
 
 interface PaymentCategory {
   id: string;
@@ -33,17 +33,21 @@ interface Caisse {
   devise: string;
 }
 
-interface PaymentFormData {
+export type PaymentClassType = 'REGLEMENT' | 'DEPENSE';
+
+export interface PaymentFormData {
   category_id: string;
   method_id: string;
   details: Record<string, string>;
   caisse_id?: string;
+  payment_class?: PaymentClassType;
 }
 
 interface PaymentFormDynamicProps {
   value: PaymentFormData;
   onChange: (data: PaymentFormData) => void;
   disabled?: boolean;
+  showPaymentClass?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -63,7 +67,12 @@ const FIELD_LABELS: Record<string, string> = {
   nom_banque: 'Nom de la banque',
 };
 
-export function PaymentFormDynamic({ value, onChange, disabled = false }: PaymentFormDynamicProps) {
+const PAYMENT_CLASS_LABELS: Record<PaymentClassType, string> = {
+  REGLEMENT: 'Règlement',
+  DEPENSE: 'Dépenses',
+};
+
+export function PaymentFormDynamic({ value, onChange, disabled = false, showPaymentClass = false }: PaymentFormDynamicProps) {
   const [categories, setCategories] = useState<PaymentCategory[]>([]);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [caisses, setCaisses] = useState<Caisse[]>([]);
@@ -201,6 +210,35 @@ export function PaymentFormDynamic({ value, onChange, disabled = false }: Paymen
 
   return (
     <div className="space-y-4">
+      {/* Classe de paiement */}
+      {showPaymentClass && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Tags className="h-4 w-4 text-muted-foreground" />
+            Classe de paiement *
+          </Label>
+          <Select
+            value={value.payment_class || 'REGLEMENT'}
+            onValueChange={(v) => onChange({ ...value, payment_class: v as PaymentClassType })}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner une classe" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.entries(PAYMENT_CLASS_LABELS) as [PaymentClassType, string][]).map(([code, label]) => (
+                <SelectItem key={code} value={code}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Règlement : paiement standard (DA/fournisseur). Dépenses : sortie de caisse classée dépense.
+          </p>
+        </div>
+      )}
+
       {/* Catégorie de paiement */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
