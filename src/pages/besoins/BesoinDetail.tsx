@@ -719,7 +719,7 @@ export default function BesoinDetail() {
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Demandeur</p>
                 <UserBadge
-                  userId={(besoin.user as any)?.id}
+                  userId={besoin.user_id}
                   photoUrl={(besoin.user as any)?.photo_url}
                   firstName={(besoin.user as any)?.first_name}
                   lastName={(besoin.user as any)?.last_name}
