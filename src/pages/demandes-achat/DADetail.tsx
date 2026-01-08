@@ -290,9 +290,26 @@ export default function DADetail() {
     const arts = (data as DAArticle[]) || [];
     setArticles(arts);
 
-    // Fetch prices for each article
-    for (const art of arts) {
-      fetchArticlePrices(art.id);
+    // Fetch all prices in parallel for all articles
+    if (arts.length > 0) {
+      const articleIds = arts.map(a => a.id);
+      const { data: pricesData } = await supabase
+        .from('da_article_prices')
+        .select('*, fournisseur:fournisseurs(id, name)')
+        .in('da_article_id', articleIds)
+        .order('created_at');
+      
+      // Group prices by article_id
+      const pricesMap: Record<string, DAArticlePrice[]> = {};
+      for (const art of arts) {
+        pricesMap[art.id] = [];
+      }
+      for (const price of (pricesData as DAArticlePrice[]) || []) {
+        if (pricesMap[price.da_article_id]) {
+          pricesMap[price.da_article_id].push(price);
+        }
+      }
+      setArticlePrices(pricesMap);
     }
   };
 
