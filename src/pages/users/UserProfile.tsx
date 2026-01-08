@@ -189,20 +189,30 @@ export default function UserProfile() {
 
         {/* Header Card */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-              <UserAvatar
-                photoUrl={profile.photo_url}
-                firstName={profile.first_name}
-                lastName={profile.last_name}
-                size="xl"
-              />
-              <div className="flex-1 text-center sm:text-left">
+          <CardContent className="p-8">
+            <div className="flex flex-col items-center gap-6">
+              {/* Grande photo de profil carrée */}
+              <div className="relative">
+                {profile.photo_url ? (
+                  <img
+                    src={profile.photo_url}
+                    alt={fullName}
+                    className="h-40 w-40 rounded-lg object-cover border-4 border-primary/20 shadow-lg"
+                  />
+                ) : (
+                  <div className="h-40 w-40 rounded-lg bg-primary/10 flex items-center justify-center border-4 border-primary/20 shadow-lg">
+                    <span className="text-5xl font-bold text-primary">
+                      {`${profile.first_name?.charAt(0) || ''}${profile.last_name?.charAt(0) || ''}`.toUpperCase() || <User className="h-16 w-16" />}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="text-center">
                 <h1 className="text-2xl font-bold text-foreground">{fullName}</h1>
                 {profile.fonction && (
                   <p className="text-lg text-muted-foreground mt-1">{profile.fonction}</p>
                 )}
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                <div className="flex flex-wrap justify-center gap-2 mt-3">
                   {profile.statut_utilisateur && (
                     <Badge variant={profile.statut_utilisateur === 'actif' ? 'default' : 'secondary'}>
                       {profile.statut_utilisateur === 'actif' ? 'Actif' : profile.statut_utilisateur === 'absent' ? 'Absent' : profile.statut_utilisateur}

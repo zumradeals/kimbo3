@@ -6,7 +6,7 @@ interface UserAvatarProps {
   photoUrl?: string | null;
   firstName?: string | null;
   lastName?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
   className?: string;
 }
 
@@ -16,6 +16,7 @@ const sizeClasses = {
   md: 'h-10 w-10 text-base',
   lg: 'h-12 w-12 text-lg',
   xl: 'h-16 w-16 text-xl',
+  xxl: 'h-32 w-32 text-3xl',
 };
 
 export function UserAvatar({ photoUrl, firstName, lastName, size = 'md', className }: UserAvatarProps) {
