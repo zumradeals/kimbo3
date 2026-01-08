@@ -41,7 +41,7 @@ import {
   BLArticle,
   BL_STATUS_LABELS,
   BLStatus,
-  LOGISTICS_ROLES,
+  OPERATIONAL_ROLES,
   DA_CATEGORY_LABELS,
 } from '@/types/kpm';
 import {
@@ -110,15 +110,16 @@ export default function BLDetail() {
   const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
   const [isCreatingDA, setIsCreatingDA] = useState(false);
 
-  const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
+  // Mutualisation: Logistique ET Achats partagent les capacités opérationnelles
+  const isOperational = roles.some((r) => OPERATIONAL_ROLES.includes(r));
   const isDAF = roles.includes('daf');
 
   // DAF validates BL when in 'en_attente_validation' status
   const canValidate = (isDAF || isAdmin) && bl?.status === 'en_attente_validation';
-  // Logistics can deliver once DAF has validated
-  const canDeliver = (isLogistics || isAdmin) && bl?.status === 'valide';
-  // Logistics submits BL for DAF validation
-  const canRequestValidation = (isLogistics || isAdmin) && bl?.status === 'prepare';
+  // Operational roles (Logistics + Purchasing) can deliver once DAF has validated
+  const canDeliver = (isOperational || isAdmin) && bl?.status === 'valide';
+  // Operational roles submit BL for DAF validation
+  const canRequestValidation = (isOperational || isAdmin) && bl?.status === 'prepare';
   // DAF can refuse BL
   const canRefuse = (isDAF || isAdmin) && bl?.status === 'en_attente_validation';
   const canDelete = isAdmin;
@@ -131,7 +132,7 @@ export default function BLDetail() {
   });
 
   const hasReliquat = bl?.status === 'livree_partiellement' && reliquatArticles.length > 0;
-  const canCreateDAFromReliquat = (isLogistics || isAdmin) && hasReliquat;
+  const canCreateDAFromReliquat = (isOperational || isAdmin) && hasReliquat;
 
   useEffect(() => {
     if (id) {

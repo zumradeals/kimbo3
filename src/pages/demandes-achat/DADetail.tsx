@@ -50,7 +50,7 @@ import {
   DA_CATEGORY_LABELS,
   DA_PRIORITY_LABELS,
   DAStatus,
-  LOGISTICS_ROLES,
+  OPERATIONAL_ROLES,
   ACHATS_ROLES,
   Fournisseur,
   DAArticlePrice,
@@ -152,19 +152,21 @@ export default function DADetail() {
     conditions: '',
   });
 
-  const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
+  // Mutualisation: Logistique ET Achats partagent les capacités opérationnelles
+  const isOperational = roles.some((r) => OPERATIONAL_ROLES.includes(r));
   const isAchats = roles.some((r) => ACHATS_ROLES.includes(r));
   const isDG = roles.includes('dg');
   const isDAF = roles.includes('daf');
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
 
-  const canSubmitToAchats = (isLogistics || isAdmin) && da?.status === 'brouillon';
-  const canAnalyze = (isAchats || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
-  const canSubmitToValidation = (isAchats || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
+  // Mutualisation: Les deux peuvent soumettre aux Achats
+  const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
+  const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
+  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
+  const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   const canDelete = isAdmin;
-  const canUploadAttachment = (isAchats || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
+  const canUploadAttachment = (isAchats || isOperational || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
 
   useEffect(() => {
     if (id) {

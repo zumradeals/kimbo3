@@ -104,6 +104,7 @@ export function usePermissions(): UsePermissionsReturn {
 export const MODULE_ROUTES: Record<string, string[]> = {
   dashboard: ['/dashboard'],
   administration: ['/admin', '/admin/users', '/admin/departments', '/admin/roles', '/admin/units', '/admin/payment-categories', '/admin/comptes-comptables', '/admin/settings'],
+  expressions: ['/expressions-besoin'],
   besoins: ['/besoins'],
   da: ['/demandes-achat'],
   bl: ['/bons-livraison'],
@@ -121,6 +122,7 @@ export const MODULE_ROUTES: Record<string, string[]> = {
 export const MODULE_LABELS: Record<string, string> = {
   dashboard: 'Tableau de bord',
   administration: 'Administration',
+  expressions: 'Expressions de besoin',
   besoins: 'Besoins internes',
   da: 'Demandes d\'achat',
   bl: 'Bons de livraison',

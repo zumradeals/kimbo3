@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Besoin, LOGISTICS_ROLES } from '@/types/kpm';
+import { Besoin, OPERATIONAL_ROLES } from '@/types/kpm';
 import { ArrowLeft, Plus, Trash2, AlertTriangle, Package, Link as LinkIcon, Unlink } from 'lucide-react';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { StockArticleSelector } from '@/components/bons-livraison/StockArticleSelector';
@@ -46,8 +46,9 @@ export default function BLCreate() {
   const [articles, setArticles] = useState<ArticleForm[]>([]);
   const [lignesLoaded, setLignesLoaded] = useState(false);
 
-  const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
-  const hasAccess = isLogistics || isAdmin;
+  // Mutualisation: Logistique ET Achats peuvent créer des BL
+  const isOperational = roles.some((r) => OPERATIONAL_ROLES.includes(r));
+  const hasAccess = isOperational || isAdmin;
 
   useEffect(() => {
     if (besoinId) {

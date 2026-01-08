@@ -345,6 +345,26 @@ export const ACHATS_ROLES: AppRole[] = [
   'agent_achats',
 ];
 
+// Rôles opérationnels mutualisés (Logistique + Achats)
+// Ces rôles partagent les mêmes capacités opérationnelles
+export const OPERATIONAL_ROLES: AppRole[] = [
+  'responsable_logistique',
+  'agent_logistique',
+  'responsable_achats',
+  'agent_achats',
+];
+
+// Rôles avec vision globale (toutes les expressions, besoins, DA, BL)
+export const GLOBAL_VISION_ROLES: AppRole[] = [
+  'admin',
+  'dg',
+  'daf',
+  'responsable_logistique',
+  'agent_logistique',
+  'responsable_achats',
+  'agent_achats',
+];
+
 // ==================== MODULE DEMANDE D'ACHAT (DA) ====================
 
 export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
