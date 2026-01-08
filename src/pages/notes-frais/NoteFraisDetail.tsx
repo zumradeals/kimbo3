@@ -125,11 +125,13 @@ export default function NoteFraisDetail() {
     method_id: string;
     details: Record<string, string>;
     caisse_id?: string;
+    payment_class?: 'REGLEMENT' | 'DEPENSE';
   }>({
     category_id: '',
     method_id: '',
     details: {},
     caisse_id: undefined,
+    payment_class: 'REGLEMENT',
   });
 
   // Additional payment fields
@@ -360,6 +362,7 @@ export default function NoteFraisDetail() {
           payment_category_id: paymentFormData.category_id,
           payment_method_id: paymentFormData.method_id,
           payment_details: paymentDetailsJson,
+          payment_class: paymentFormData.payment_class || 'REGLEMENT',
           paid_by: user.id,
           paid_at: new Date().toISOString(),
           comptabilise_by: user.id,
@@ -890,6 +893,7 @@ export default function NoteFraisDetail() {
               <PaymentFormDynamic
                 value={paymentFormData}
                 onChange={setPaymentFormData}
+                showPaymentClass={true}
               />
 
               <div className="space-y-2">

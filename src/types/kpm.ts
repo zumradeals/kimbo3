@@ -761,6 +761,13 @@ export const NOTE_FRAIS_STATUS_LABELS: Record<NoteFraisStatus, string> = {
 
 // ==================== MODULE PAIEMENT ====================
 
+export type PaymentClass = 'REGLEMENT' | 'DEPENSE';
+
+export const PAYMENT_CLASS_LABELS: Record<PaymentClass, string> = {
+  REGLEMENT: 'Règlement',
+  DEPENSE: 'Dépenses',
+};
+
 export interface PaymentMethod {
   id: string;
   code: string;

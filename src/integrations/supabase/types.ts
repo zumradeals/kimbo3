@@ -586,6 +586,7 @@ export type Database = {
           motif: string
           note_frais_id: string | null
           observations: string | null
+          payment_class: Database["public"]["Enums"]["payment_class"] | null
           reference: string
           solde_apres: number
           solde_avant: number
@@ -601,6 +602,7 @@ export type Database = {
           motif: string
           note_frais_id?: string | null
           observations?: string | null
+          payment_class?: Database["public"]["Enums"]["payment_class"] | null
           reference: string
           solde_apres: number
           solde_avant: number
@@ -616,6 +618,7 @@ export type Database = {
           motif?: string
           note_frais_id?: string | null
           observations?: string | null
+          payment_class?: Database["public"]["Enums"]["payment_class"] | null
           reference?: string
           solde_apres?: number
           solde_avant?: number
@@ -868,6 +871,7 @@ export type Database = {
           mode_paiement: string | null
           observations: string | null
           payment_category_id: string | null
+          payment_class: Database["public"]["Enums"]["payment_class"] | null
           payment_details: Json | null
           payment_method_id: string | null
           priced_at: string | null
@@ -922,6 +926,7 @@ export type Database = {
           mode_paiement?: string | null
           observations?: string | null
           payment_category_id?: string | null
+          payment_class?: Database["public"]["Enums"]["payment_class"] | null
           payment_details?: Json | null
           payment_method_id?: string | null
           priced_at?: string | null
@@ -976,6 +981,7 @@ export type Database = {
           mode_paiement?: string | null
           observations?: string | null
           payment_category_id?: string | null
+          payment_class?: Database["public"]["Enums"]["payment_class"] | null
           payment_details?: Json | null
           payment_method_id?: string | null
           priced_at?: string | null
@@ -1502,6 +1508,7 @@ export type Database = {
           paid_at: string | null
           paid_by: string | null
           payment_category_id: string | null
+          payment_class: Database["public"]["Enums"]["payment_class"] | null
           payment_details: Json | null
           payment_method_id: string | null
           projet_id: string | null
@@ -1536,6 +1543,7 @@ export type Database = {
           paid_at?: string | null
           paid_by?: string | null
           payment_category_id?: string | null
+          payment_class?: Database["public"]["Enums"]["payment_class"] | null
           payment_details?: Json | null
           payment_method_id?: string | null
           projet_id?: string | null
@@ -1570,6 +1578,7 @@ export type Database = {
           paid_at?: string | null
           paid_by?: string | null
           payment_category_id?: string | null
+          payment_class?: Database["public"]["Enums"]["payment_class"] | null
           payment_details?: Json | null
           payment_method_id?: string | null
           projet_id?: string | null
@@ -2384,6 +2393,7 @@ export type Database = {
         | "validee_daf"
         | "payee"
         | "rejetee"
+      payment_class: "REGLEMENT" | "DEPENSE"
       stock_movement_type:
         | "entree"
         | "sortie"
@@ -2597,6 +2607,7 @@ export const Constants = {
         "payee",
         "rejetee",
       ],
+      payment_class: ["REGLEMENT", "DEPENSE"],
       stock_movement_type: [
         "entree",
         "sortie",
