@@ -29,7 +29,10 @@ export function UserBadge({
   linkToProfile = false,
   className,
 }: UserBadgeProps) {
-  const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Utilisateur';
+  // Only show "Utilisateur" if both firstName and lastName are empty/null
+  const fullName = (firstName || lastName) 
+    ? [firstName, lastName].filter(Boolean).join(' ') 
+    : 'Utilisateur';
   
   const avatarSize = size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md';
   

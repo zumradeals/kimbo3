@@ -45,32 +45,72 @@ export default function UserProfile() {
       
       setIsLoading(true);
       try {
-        // Fetch profile data
+        // Use RPC function to bypass RLS and get public profile data
+        const { data: publicProfiles, error: rpcError } = await supabase
+          .rpc('get_public_profiles', { _user_ids: [id] });
+
+        if (rpcError) throw rpcError;
+        
+        if (!publicProfiles || publicProfiles.length === 0) {
+          setProfile(null);
+          return;
+        }
+
+        const publicProfile = publicProfiles[0];
+
+        // Also fetch additional profile data that the user can see
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select(`
             id,
-            first_name,
-            last_name,
-            email,
             photo_url,
             fonction,
             position_departement,
             statut_utilisateur,
-            department:departments(id, name),
-            chef_hierarchique:profiles!profiles_chef_hierarchique_id_fkey(
-              id,
-              first_name,
-              last_name,
-              photo_url,
-              fonction
-            )
+            chef_hierarchique_id,
+            department:departments(id, name)
           `)
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
-        if (profileError) throw profileError;
-        setProfile(profileData as unknown as UserProfileData);
+        // Fetch chef hierarchique info if exists
+        let chefData = null;
+        if (profileData?.chef_hierarchique_id) {
+          const { data: chefProfiles } = await supabase
+            .rpc('get_public_profiles', { _user_ids: [profileData.chef_hierarchique_id] });
+          
+          if (chefProfiles && chefProfiles.length > 0) {
+            const { data: chefPhoto } = await supabase
+              .from('profiles')
+              .select('photo_url, fonction')
+              .eq('id', profileData.chef_hierarchique_id)
+              .maybeSingle();
+            
+            chefData = {
+              id: profileData.chef_hierarchique_id,
+              first_name: chefProfiles[0].first_name,
+              last_name: chefProfiles[0].last_name,
+              photo_url: chefPhoto?.photo_url || null,
+              fonction: chefPhoto?.fonction || null,
+            };
+          }
+        }
+
+        setProfile({
+          id: publicProfile.id,
+          first_name: publicProfile.first_name,
+          last_name: publicProfile.last_name,
+          email: publicProfile.email,
+          photo_url: profileData?.photo_url || null,
+          fonction: profileData?.fonction || null,
+          position_departement: profileData?.position_departement || null,
+          statut_utilisateur: profileData?.statut_utilisateur || null,
+          department: profileData?.department ? {
+            id: (profileData.department as any).id,
+            name: (profileData.department as any).name,
+          } : null,
+          chef_hierarchique: chefData,
+        });
 
         // Fetch roles
         const { data: rolesData, error: rolesError } = await supabase
@@ -78,10 +118,12 @@ export default function UserProfile() {
           .select('role')
           .eq('user_id', id);
 
-        if (rolesError) throw rolesError;
-        setRoles(rolesData?.map(r => r.role as AppRole) || []);
+        if (!rolesError) {
+          setRoles(rolesData?.map(r => r.role as AppRole) || []);
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
+        setProfile(null);
       } finally {
         setIsLoading(false);
       }

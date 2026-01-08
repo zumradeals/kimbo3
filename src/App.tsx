@@ -67,9 +67,10 @@ import NoteFraisEdit from "./pages/notes-frais/NoteFraisEdit";
 // Notifications
 import Notifications from "./pages/Notifications";
 
-// Profil
+// Profil et Utilisateurs
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/users/UserProfile";
+import UsersList from "./pages/users/UsersList";
 
 // Module Caisse
 import CaisseList from "./pages/caisse/CaisseList";
@@ -168,8 +169,9 @@ function AppRoutes() {
       <Route path="/caisse" element={<ProtectedRoute><CaisseList /></ProtectedRoute>} />
       <Route path="/caisse/:id" element={<ProtectedRoute><CaisseDetail /></ProtectedRoute>} />
       
-      {/* Profil */}
+      {/* Profil et Utilisateurs */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/utilisateurs" element={<ProtectedRoute><UsersList /></ProtectedRoute>} />
       <Route path="/utilisateurs/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
