@@ -835,7 +835,7 @@ export default function DADetail() {
                 Annuler
               </Button>
             )}
-            {canDelete && da.status === 'brouillon' && (
+            {canDelete && da.status !== 'payee' && (
               <Button
                 variant="outline"
                 size="sm"
