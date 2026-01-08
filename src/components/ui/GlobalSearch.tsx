@@ -239,15 +239,14 @@ export function GlobalSearch() {
   return (
     <>
       <Button
-        variant="outline"
-        className="relative h-9 w-9 p-0 xl:h-10 xl:w-60 xl:justify-start xl:px-3 xl:py-2"
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 shrink-0"
         onClick={() => setOpen(true)}
+        title="Rechercher (⌘K)"
       >
-        <Search className="h-4 w-4 xl:mr-2" />
-        <span className="hidden xl:inline-flex">Rechercher...</span>
-        <kbd className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 xl:flex">
-          <span className="text-xs">⌘</span>K
-        </kbd>
+        <Search className="h-5 w-5" />
+        <span className="sr-only">Rechercher</span>
       </Button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
