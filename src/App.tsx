@@ -69,6 +69,7 @@ import Notifications from "./pages/Notifications";
 
 // Profil
 import Profile from "./pages/Profile";
+import UserProfile from "./pages/users/UserProfile";
 
 // Module Caisse
 import CaisseList from "./pages/caisse/CaisseList";
@@ -169,6 +170,7 @@ function AppRoutes() {
       
       {/* Profil */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/utilisateurs/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
