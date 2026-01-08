@@ -1725,36 +1725,58 @@ export type Database = {
       }
       profiles: {
         Row: {
+          chef_hierarchique_id: string | null
           created_at: string
           department_id: string | null
           email: string
           first_name: string | null
+          fonction: string | null
           id: string
           last_name: string | null
+          photo_url: string | null
+          position_departement: string | null
           status: Database["public"]["Enums"]["user_status"]
+          statut_utilisateur: string | null
           updated_at: string
         }
         Insert: {
+          chef_hierarchique_id?: string | null
           created_at?: string
           department_id?: string | null
           email: string
           first_name?: string | null
+          fonction?: string | null
           id: string
           last_name?: string | null
+          photo_url?: string | null
+          position_departement?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          statut_utilisateur?: string | null
           updated_at?: string
         }
         Update: {
+          chef_hierarchique_id?: string | null
           created_at?: string
           department_id?: string | null
           email?: string
           first_name?: string | null
+          fonction?: string | null
           id?: string
           last_name?: string | null
+          photo_url?: string | null
+          position_departement?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          statut_utilisateur?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_chef_hierarchique_id_fkey"
+            columns: ["chef_hierarchique_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_department_id_fkey"
             columns: ["department_id"]

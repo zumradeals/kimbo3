@@ -24,6 +24,9 @@ export interface Department {
   updated_at: string;
 }
 
+export type PositionDepartement = 'membre' | 'chef_departement' | 'adjoint';
+export type StatutUtilisateur = 'actif' | 'interim' | 'absent';
+
 export interface Profile {
   id: string;
   email: string;
@@ -34,7 +37,25 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   department?: Department | null;
+  // Nouveaux champs enrichis
+  photo_url?: string | null;
+  fonction?: string | null;
+  chef_hierarchique_id?: string | null;
+  position_departement?: PositionDepartement | null;
+  statut_utilisateur?: StatutUtilisateur | null;
 }
+
+export const POSITION_DEPARTEMENT_LABELS: Record<PositionDepartement, string> = {
+  membre: 'Membre',
+  chef_departement: 'Chef de département',
+  adjoint: 'Adjoint',
+};
+
+export const STATUT_UTILISATEUR_LABELS: Record<StatutUtilisateur, string> = {
+  actif: 'Actif',
+  interim: 'Intérim',
+  absent: 'Absent',
+};
 
 export interface UserRole {
   id: string;
