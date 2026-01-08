@@ -83,7 +83,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { exportDAToPDF } from '@/utils/pdfExport';
+import { exportDAToPDF, exportDAFValidationToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
 import { CancelDialog } from '@/components/ui/CancelDialog';
 
@@ -597,6 +597,49 @@ export default function DADetail() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // === EXPORT PDF VALIDATION FINANCIÈRE DAF ===
+  const handleExportDAFValidation = () => {
+    if (!da) return;
+    
+    const articlesData = articles.map((art) => {
+      const prices = articlePrices[art.id] || [];
+      const selectedPrice = prices.find((p) => p.is_selected);
+      return {
+        designation: art.designation,
+        quantity: art.quantity,
+        unit: art.unit,
+        fournisseur: selectedPrice ? (selectedPrice.fournisseur as Fournisseur)?.name || '-' : '-',
+        unitPrice: selectedPrice?.unit_price || 0,
+        total: selectedPrice ? selectedPrice.unit_price * art.quantity : 0,
+        currency: selectedPrice?.currency || 'XOF',
+      };
+    });
+
+    const createdByProfile = da.created_by_profile as { first_name?: string; last_name?: string } | undefined;
+    const createdByName = createdByProfile
+      ? `${createdByProfile.first_name || ''} ${createdByProfile.last_name || ''}`.trim() || 'N/A'
+      : 'N/A';
+
+    exportDAFValidationToPDF({
+      reference: da.reference,
+      department: (da.department as { name: string })?.name || '-',
+      category: DA_CATEGORY_LABELS[da.category] || da.category,
+      priority: da.priority,
+      priorityLabel: DA_PRIORITY_LABELS[da.priority] || da.priority,
+      totalAmount: da.total_amount || 0,
+      currency: da.currency || 'XOF',
+      fournisseur: (da.selected_fournisseur as Fournisseur)?.name || 'Multiple',
+      justification: da.fournisseur_justification || undefined,
+      createdBy: createdByName,
+      createdAt: da.created_at,
+      articles: articlesData,
+      besoinTitle: (da.besoin as { title: string })?.title || undefined,
+      besoinId: (da.besoin as { id: string })?.id || undefined,
+    });
+
+    toast({ title: 'PDF exporté', description: 'Fiche de validation financière téléchargée.' });
   };
 
   const handleRequestRevision = async () => {
@@ -1113,6 +1156,13 @@ export default function DADetail() {
                 >
                   <Ban className="mr-2 h-4 w-4" />
                   Refuser
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportDAFValidation}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Exporter PDF
                 </Button>
               </div>
             </CardContent>
