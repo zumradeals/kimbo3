@@ -1315,3 +1315,300 @@ function drawDottedLine(doc: jsPDF, startX: number, y: number, endX: number): vo
     doc.line(x, y + 1, x + 0.5, y + 1);
   }
 }
+
+// ===================== FICHE VALIDATION FINANCIÈRE DAF =====================
+export interface DAFValidationExportData {
+  reference: string;
+  department: string;
+  category: string;
+  priority: string;
+  priorityLabel: string;
+  totalAmount: number;
+  currency: string;
+  fournisseur: string;
+  justification?: string;
+  createdBy: string;
+  createdAt: string;
+  articles: Array<{
+    designation: string;
+    quantity: number;
+    unit: string;
+    fournisseur: string;
+    unitPrice: number;
+    total: number;
+    currency: string;
+  }>;
+  besoinTitle?: string;
+  besoinId?: string;
+}
+
+export const exportDAFValidationToPDF = async (data: DAFValidationExportData): Promise<void> => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - (margin * 2);
+
+  // ========== EN-TÊTE ==========
+  let y = 10;
+
+  // Bande supérieure orange
+  doc.setFillColor(...COLORS.orange);
+  doc.rect(0, 0, pageWidth, 3, 'F');
+
+  // Logo KIMBO
+  drawKimboLogo(doc, margin, y, 50);
+
+  // Titre du document
+  doc.setFontSize(14);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FICHE DE VALIDATION FINANCIÈRE', pageWidth - margin, y + 6, { align: 'right' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textSecondary);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${data.reference}`, pageWidth - margin, y + 12, { align: 'right' });
+
+  // Date d'impression
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.text(`Imprimé le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm", { locale: fr })}`, pageWidth - margin, y + 17, { align: 'right' });
+
+  // Ligne séparatrice
+  y = 32;
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.8);
+  doc.line(margin, y, pageWidth - margin, y);
+
+  y = 38;
+
+  // ========== RÉCAPITULATIF GÉNÉRAL ==========
+  doc.setFillColor(...COLORS.grisTresClair);
+  doc.setDrawColor(...COLORS.borderLight);
+  doc.roundedRect(margin, y, contentWidth, 28, 2, 2, 'FD');
+
+  // Montant total en grand
+  doc.setFontSize(11);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('MONTANT TOTAL', margin + 5, y + 8);
+
+  doc.setFontSize(18);
+  doc.setTextColor(...COLORS.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatMontant(data.totalAmount, data.currency), margin + 5, y + 18);
+
+  // Infos à droite
+  const rightColX = margin + contentWidth * 0.55;
+  
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Fournisseur principal', rightColX, y + 6);
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.fournisseur || 'Multiple', rightColX, y + 11);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Priorité', rightColX, y + 18);
+  
+  const isPriorityHigh = ['urgente', 'haute'].includes(data.priority?.toLowerCase() || '');
+  doc.setFontSize(9);
+  doc.setTextColor(...(isPriorityHigh ? COLORS.danger : COLORS.textPrimary));
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.priorityLabel || data.priority, rightColX, y + 23);
+
+  y = y + 34;
+
+  // ========== INFORMATIONS GÉNÉRALES ==========
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INFORMATIONS GÉNÉRALES', margin, y);
+
+  y += 5;
+  doc.setFillColor(...COLORS.grisAlternate);
+  doc.roundedRect(margin, y, contentWidth, 20, 1.5, 1.5, 'F');
+
+  const colWidth = contentWidth / 4;
+  const labels = ['Département', 'Catégorie', 'Demandeur', 'Créée le'];
+  const values = [data.department, data.category, data.createdBy, formatDate(data.createdAt)];
+
+  for (let i = 0; i < 4; i++) {
+    const x = margin + 4 + (i * colWidth);
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text(labels[i], x, y + 6);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'bold');
+    const value = values[i] || '-';
+    // Tronquer si trop long
+    const maxWidth = colWidth - 8;
+    let displayValue = value;
+    while (doc.getTextWidth(displayValue) > maxWidth && displayValue.length > 3) {
+      displayValue = displayValue.slice(0, -1);
+    }
+    if (displayValue !== value) displayValue += '...';
+    doc.text(displayValue, x, y + 12);
+  }
+
+  // Besoin source si présent
+  if (data.besoinTitle) {
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Besoin source', margin + 4, y + 17);
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'normal');
+    doc.text(data.besoinTitle, margin + 4 + colWidth, y + 17);
+  }
+
+  y += 26;
+
+  // ========== TABLEAU DES ARTICLES CHIFFRÉS ==========
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DÉTAIL DES ARTICLES CHIFFRÉS', margin, y);
+
+  y += 3;
+
+  autoTable(doc, {
+    startY: y,
+    head: [[
+      { content: 'Désignation', styles: { halign: 'left' } },
+      { content: 'Qté', styles: { halign: 'center' } },
+      { content: 'Fournisseur', styles: { halign: 'left' } },
+      { content: 'Prix unitaire', styles: { halign: 'right' } },
+      { content: 'Total', styles: { halign: 'right' } },
+    ]],
+    body: data.articles.map((art) => [
+      art.designation,
+      `${art.quantity} ${art.unit}`,
+      art.fournisseur || '-',
+      formatMontant(art.unitPrice, art.currency),
+      formatMontant(art.total, art.currency),
+    ]),
+    foot: [[
+      { content: 'TOTAL', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: COLORS.orangeLight } },
+      { content: formatMontant(data.totalAmount, data.currency), styles: { halign: 'right', fontStyle: 'bold', textColor: COLORS.marron, fillColor: COLORS.orangeLight } },
+    ]],
+    theme: 'grid',
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      textColor: COLORS.textPrimary,
+      lineColor: COLORS.borderLight,
+      lineWidth: 0.3,
+    },
+    headStyles: {
+      fillColor: COLORS.marron,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 8,
+    },
+    alternateRowStyles: {
+      fillColor: COLORS.grisAlternate,
+    },
+    columnStyles: {
+      0: { cellWidth: 55 },
+      1: { cellWidth: 22, halign: 'center' },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 33, halign: 'right' },
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ========== JUSTIFICATION DU CHOIX ==========
+  if (data.justification) {
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.marron);
+    doc.setFont('helvetica', 'bold');
+    doc.text('JUSTIFICATION DU CHOIX DE FOURNISSEUR', margin, y);
+
+    y += 4;
+    doc.setFillColor(...COLORS.orangeLight);
+    doc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
+
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'normal');
+    const justifLines = doc.splitTextToSize(data.justification, contentWidth - 8);
+    doc.text(justifLines.slice(0, 3), margin + 4, y + 6);
+
+    y += 22;
+  }
+
+  // ========== ZONE DE DÉCISION ==========
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DÉCISION FINANCIÈRE', margin, y);
+
+  y += 4;
+  doc.setDrawColor(...COLORS.border);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(margin, y, contentWidth, 40, 2, 2, 'S');
+
+  // Cases à cocher
+  const checkboxSize = 4;
+  const checkboxY = y + 10;
+
+  doc.setFontSize(9);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'normal');
+
+  // Option Approuvée
+  doc.rect(margin + 8, checkboxY, checkboxSize, checkboxSize, 'S');
+  doc.text('APPROUVÉE', margin + 15, checkboxY + 3);
+
+  // Option Refusée
+  doc.rect(margin + 50, checkboxY, checkboxSize, checkboxSize, 'S');
+  doc.text('REFUSÉE', margin + 57, checkboxY + 3);
+
+  // Option Révision
+  doc.rect(margin + 85, checkboxY, checkboxSize, checkboxSize, 'S');
+  doc.text('RÉVISION DEMANDÉE', margin + 92, checkboxY + 3);
+
+  // Ligne commentaire
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.text('Commentaire:', margin + 8, y + 22);
+  drawDottedLine(doc, margin + 30, y + 21, pageWidth - margin - 8);
+  drawDottedLine(doc, margin + 8, y + 28, pageWidth - margin - 8);
+
+  // Signature
+  doc.text('Date et signature du DAF:', margin + 8, y + 37);
+  drawDottedLine(doc, margin + 50, y + 36, pageWidth - margin - 8);
+
+  // ========== PIED DE PAGE ==========
+  const footerY = doc.internal.pageSize.getHeight() - 12;
+  
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.5);
+  doc.line(margin, footerY - 3, pageWidth - margin, footerY - 3);
+
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.textMuted);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${COMPANY_INFO.name} - ${COMPANY_INFO.address} ${COMPANY_INFO.addressLine2}`, pageWidth / 2, footerY + 1, { align: 'center' });
+  doc.text(`Tél: ${COMPANY_INFO.phone1} | Email: ${COMPANY_INFO.email}`, pageWidth / 2, footerY + 5, { align: 'center' });
+
+  // Sauvegarde
+  doc.save(`VALIDATION_DAF_${data.reference}.pdf`);
+};
