@@ -299,7 +299,8 @@ export default function NoteFraisDetail() {
   };
 
   const canEdit = isCreator && (note?.status === 'brouillon' || note?.status === 'rejetee');
-  const canDelete = (isCreator || isAdmin) && (note?.status === 'brouillon' || note?.status === 'rejetee');
+  // Admin peut supprimer toute note non payée ; le créateur peut supprimer brouillon/rejetée
+  const canDelete = (isAdmin && note?.status !== 'payee') || (isCreator && ['brouillon', 'rejetee'].includes(note?.status || ''));
 
   if (isLoading) {
     return (
