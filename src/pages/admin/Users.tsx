@@ -42,7 +42,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus, PositionDepartement, StatutUtilisateur, POSITION_DEPARTEMENT_LABELS, STATUT_UTILISATEUR_LABELS } from '@/types/kpm';
-import { Plus, Pencil, Trash2, Search, Mail, Key } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Mail, Key, Upload, X, User } from 'lucide-react';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 const ALL_ROLES: AppRole[] = [
   'admin', 'dg', 'daf', 'comptable', 'responsable_logistique',
@@ -79,8 +80,11 @@ export default function AdminUsers() {
     chef_hierarchique_id: '',
     position_departement: '' as PositionDepartement | '',
     statut_utilisateur: '' as StatutUtilisateur | '',
+    photo_url: '' as string | null,
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+  const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
 
   // Create modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -97,6 +101,8 @@ export default function AdminUsers() {
     statut_utilisateur: '' as StatutUtilisateur | '',
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [createPhotoFile, setCreatePhotoFile] = useState<File | null>(null);
+  const [createPhotoPreview, setCreatePhotoPreview] = useState<string | null>(null);
 
   // Delete confirmation
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
@@ -257,7 +263,10 @@ export default function AdminUsers() {
       chef_hierarchique_id: (userToEdit as any).chef_hierarchique_id || '',
       position_departement: (userToEdit as any).position_departement || '',
       statut_utilisateur: (userToEdit as any).statut_utilisateur || '',
+      photo_url: userToEdit.photo_url || null,
     });
+    setEditPhotoPreview(userToEdit.photo_url || null);
+    setEditPhotoFile(null);
   };
 
   const resetCreateForm = () => {
@@ -344,6 +353,19 @@ export default function AdminUsers() {
         throw new Error(response.data.error || 'Erreur lors de la création');
       }
 
+      const newUserId = response.data.user.id;
+
+      // Upload photo if provided
+      if (createPhotoFile && newUserId) {
+        const photoUrl = await uploadPhoto(createPhotoFile, newUserId);
+        if (photoUrl) {
+          await supabase
+            .from('profiles')
+            .update({ photo_url: photoUrl })
+            .eq('id', newUserId);
+        }
+      }
+
       toast({
         title: 'Utilisateur créé',
         description: `${createForm.first_name} ${createForm.last_name} a été créé avec succès.`,
@@ -351,6 +373,8 @@ export default function AdminUsers() {
 
       setIsCreateOpen(false);
       resetCreateForm();
+      setCreatePhotoFile(null);
+      setCreatePhotoPreview(null);
       fetchData();
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -375,7 +399,55 @@ export default function AdminUsers() {
       chef_hierarchique_id: '',
       position_departement: '',
       statut_utilisateur: '',
+      photo_url: null,
     });
+    setEditPhotoFile(null);
+    setEditPhotoPreview(null);
+  };
+
+  const handlePhotoChange = (file: File | null, type: 'edit' | 'create') => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (type === 'edit') {
+          setEditPhotoPreview(reader.result as string);
+          setEditPhotoFile(file);
+        } else {
+          setCreatePhotoPreview(reader.result as string);
+          setCreatePhotoFile(file);
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      if (type === 'edit') {
+        setEditPhotoPreview(editForm.photo_url);
+        setEditPhotoFile(null);
+      } else {
+        setCreatePhotoPreview(null);
+        setCreatePhotoFile(null);
+      }
+    }
+  };
+
+  const uploadPhoto = async (file: File, userId: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}.${fileExt}`;
+    const filePath = fileName;
+
+    const { error: uploadError } = await supabase.storage
+      .from('profile-photos')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw uploadError;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from('profile-photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl.publicUrl;
   };
 
   const handleSave = async () => {
@@ -383,6 +455,13 @@ export default function AdminUsers() {
     setIsSaving(true);
 
     try {
+      let photoUrl = editForm.photo_url;
+
+      // Upload new photo if selected
+      if (editPhotoFile) {
+        photoUrl = await uploadPhoto(editPhotoFile, editingUser.id);
+      }
+
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -395,6 +474,7 @@ export default function AdminUsers() {
           chef_hierarchique_id: editForm.chef_hierarchique_id || null,
           position_departement: editForm.position_departement || null,
           statut_utilisateur: editForm.statut_utilisateur || null,
+          photo_url: photoUrl,
         })
         .eq('id', editingUser.id);
 
@@ -603,6 +683,63 @@ export default function AdminUsers() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* Photo Upload */}
+            <div className="space-y-2">
+              <Label>Photo de profil</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  {editPhotoPreview ? (
+                    <img
+                      src={editPhotoPreview}
+                      alt="Preview"
+                      className="h-20 w-20 rounded-lg object-cover border-2 border-border"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                      <User className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="relative"
+                      onClick={() => document.getElementById('edit-photo-input')?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choisir une photo
+                    </Button>
+                    {editPhotoPreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditPhotoFile(null);
+                          setEditPhotoPreview(null);
+                          setEditForm({ ...editForm, photo_url: null });
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Supprimer
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    id="edit-photo-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handlePhotoChange(e.target.files?.[0] || null, 'edit')}
+                  />
+                  <p className="text-xs text-muted-foreground">JPG, PNG ou GIF. Max 5 Mo.</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="first_name">Prénom</Label>
@@ -802,6 +939,62 @@ export default function AdminUsers() {
                 value={createForm.password}
                 onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
               />
+            </div>
+
+            {/* Photo Upload */}
+            <div className="space-y-2">
+              <Label>Photo de profil</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  {createPhotoPreview ? (
+                    <img
+                      src={createPhotoPreview}
+                      alt="Preview"
+                      className="h-20 w-20 rounded-lg object-cover border-2 border-border"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                      <User className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="relative"
+                      onClick={() => document.getElementById('create-photo-input')?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choisir une photo
+                    </Button>
+                    {createPhotoPreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setCreatePhotoFile(null);
+                          setCreatePhotoPreview(null);
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Supprimer
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    id="create-photo-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handlePhotoChange(e.target.files?.[0] || null, 'create')}
+                  />
+                  <p className="text-xs text-muted-foreground">JPG, PNG ou GIF. Max 5 Mo.</p>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

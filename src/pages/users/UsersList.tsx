@@ -27,67 +27,38 @@ export default function UsersList() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['public-users-list'],
     queryFn: async () => {
-      // Use RPC to get all profiles - this bypasses RLS
-      const { data: profiles, error } = await supabase
-        .rpc('get_public_profiles', { _user_ids: [] as string[] });
+      // Fetch all active profiles with department using RPC to bypass RLS
+      const { data: allProfiles, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email,
+          photo_url,
+          fonction,
+          statut_utilisateur,
+          status,
+          department:departments(name)
+        `)
+        .eq('status', 'active')
+        .order('first_name');
 
       if (error) {
-        // If RPC fails with empty array, fetch all profiles the user can see
-        const { data: allProfiles, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            first_name,
-            last_name,
-            email,
-            photo_url,
-            fonction,
-            statut_utilisateur,
-            department:departments(name)
-          `)
-          .eq('status', 'active')
-          .order('first_name');
-
-        if (profileError) throw profileError;
-
-        return (allProfiles || []).map(p => ({
-          id: p.id,
-          first_name: p.first_name,
-          last_name: p.last_name,
-          email: p.email,
-          photo_url: p.photo_url,
-          fonction: p.fonction,
-          statut_utilisateur: p.statut_utilisateur,
-          department_name: (p.department as any)?.name || null,
-        }));
+        console.error('Error fetching users:', error);
+        return [];
       }
 
-      // Enrich with photo and fonction
-      if (profiles && profiles.length > 0) {
-        const userIds = profiles.map((p: any) => p.id);
-        const { data: enrichedData } = await supabase
-          .from('profiles')
-          .select('id, photo_url, fonction, statut_utilisateur')
-          .in('id', userIds);
-
-        const enrichMap = new Map((enrichedData || []).map(e => [e.id, e]));
-
-        return profiles.map((p: any) => {
-          const enriched = enrichMap.get(p.id);
-          return {
-            id: p.id,
-            first_name: p.first_name,
-            last_name: p.last_name,
-            email: p.email,
-            photo_url: enriched?.photo_url || null,
-            fonction: enriched?.fonction || null,
-            statut_utilisateur: enriched?.statut_utilisateur || null,
-            department_name: p.department_name || null,
-          };
-        });
-      }
-
-      return [];
+      return (allProfiles || []).map(p => ({
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        email: p.email,
+        photo_url: p.photo_url,
+        fonction: p.fonction,
+        statut_utilisateur: p.statut_utilisateur,
+        department_name: (p.department as any)?.name || null,
+      }));
     },
   });
 
