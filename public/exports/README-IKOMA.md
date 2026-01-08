@@ -4,6 +4,46 @@
 
 ---
 
+## 🤖 IKOMA MCP Deployment
+
+Ce projet est compatible avec **IKOMA MCP** (Runner / Deployer / Gateway). Le fichier `ikoma.release.json` à la racine du repo contient toutes les métadonnées nécessaires au déploiement automatisé.
+
+### Comment IKOMA MCP utilise ikoma.release.json
+
+1. **Preflight Check** : IKOMA vérifie que :
+   - Docker est installé (`required_bins`)
+   - Les fichiers requis existent (`required_files`)
+   - Docker Compose est supporté (`compose_supported`)
+
+2. **Déploiement** : IKOMA exécute :
+   ```bash
+   cd public/exports
+   ./start.sh start
+   ```
+
+3. **Health Check** : IKOMA vérifie les endpoints :
+   - Frontend : `http://localhost:3000`
+   - API : `http://localhost:8000`
+   - REST : `http://localhost:8000/rest/v1/`
+   - Auth : `http://localhost:8000/auth/v1/health`
+
+4. **Gestion** : Commandes disponibles via IKOMA :
+   | Commande | Action |
+   |----------|--------|
+   | `start` | Démarrer les services |
+   | `stop` | Arrêter les services |
+   | `restart` | Redémarrer |
+   | `status` | Vérifier l'état |
+   | `logs` | Afficher les logs |
+
+5. **Post-déploiement** : Scripts à exécuter après démarrage :
+   ```bash
+   ./scripts/migrate.sh      # Migration BDD
+   ./scripts/seed.sh         # Données initiales
+   ./scripts/create-admin.sh # Premier admin
+   ```
+
+---
 ## 📋 Contenu du Package
 
 Ce package contient **TOUS** les éléments nécessaires au déploiement autonome de KPM, sans aucune dépendance à Lovable ou à une infrastructure propriétaire.
