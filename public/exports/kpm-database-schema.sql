@@ -1,7 +1,7 @@
 -- =============================================================================
 -- KPM (KIMBO Procurement Management) - Complete Database Schema
 -- Export for self-hosted deployment (VPS, Supabase self-hosted, etc.)
--- Generated: 2026-01-01 (v1.1 - Fixed handle_new_user trigger)
+-- Generated: 2026-01-08 (v1.2 - Added payment_class enum)
 -- =============================================================================
 
 -- =============================================================================
@@ -11,6 +11,10 @@
 CREATE TYPE public.app_role AS ENUM (
   'admin', 'dg', 'daf', 'responsable_departement', 'responsable_logistique', 
   'agent_logistique', 'responsable_achats', 'agent_achats', 'comptable', 'employe'
+);
+
+CREATE TYPE public.payment_class AS ENUM (
+  'REGLEMENT', 'DEPENSE'
 );
 
 CREATE TYPE public.besoin_status AS ENUM (
@@ -401,6 +405,7 @@ CREATE TABLE public.demandes_achat (
   payment_method_id UUID REFERENCES public.payment_methods(id),
   payment_details JSONB DEFAULT '{}'::jsonb,
   caisse_id UUID REFERENCES public.caisses(id),
+  payment_class public.payment_class NOT NULL DEFAULT 'REGLEMENT',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -504,6 +509,7 @@ CREATE TABLE public.notes_frais (
   payment_category_id UUID REFERENCES public.payment_categories(id),
   payment_method_id UUID REFERENCES public.payment_methods(id),
   payment_details JSONB DEFAULT '{}'::jsonb,
+  payment_class public.payment_class NOT NULL DEFAULT 'REGLEMENT',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -577,6 +583,7 @@ CREATE TABLE public.caisse_mouvements (
   da_id UUID REFERENCES public.demandes_achat(id),
   note_frais_id UUID REFERENCES public.notes_frais(id),
   observations TEXT,
+  payment_class public.payment_class NOT NULL DEFAULT 'REGLEMENT',
   created_by UUID NOT NULL REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
