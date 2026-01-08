@@ -146,15 +146,12 @@ export default function BesoinDetail() {
 
   const fetchBesoin = async () => {
     try {
-      // Fetch besoin with relations
+      // Fetch besoin with department only (profiles via RPC to bypass RLS)
       const { data, error } = await supabase
         .from('besoins')
         .select(`
           *,
-          department:departments(id, name),
-          user:profiles!besoins_user_id_fkey(id, first_name, last_name, email, photo_url, fonction),
-          taken_by_profile:profiles!besoins_taken_by_fkey(id, first_name, last_name, photo_url, fonction),
-          decided_by_profile:profiles!besoins_decided_by_fkey(id, first_name, last_name, photo_url, fonction)
+          department:departments(id, name)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -164,6 +161,18 @@ export default function BesoinDetail() {
         navigate('/besoins');
         return;
       }
+
+      // Collect all user IDs to fetch via RPC
+      const userIds = [data.user_id, data.taken_by, data.decided_by].filter(Boolean) as string[];
+      
+      // Fetch public profiles via RPC (bypasses RLS)
+      const { data: publicProfiles } = await supabase.rpc('get_public_profiles', {
+        _user_ids: userIds,
+      });
+
+      const profilesMap = new Map(
+        (publicProfiles || []).map((p: any) => [p.id, p])
+      );
 
       // Fetch lignes
       const { data: lignesData } = await supabase
@@ -179,8 +188,16 @@ export default function BesoinDetail() {
         .eq('besoin_id', id)
         .order('created_at', { ascending: true });
 
+      // Enrich besoin with profile data
+      const userProfile = profilesMap.get(data.user_id);
+      const takenByProfile = data.taken_by ? profilesMap.get(data.taken_by) : null;
+      const decidedByProfile = data.decided_by ? profilesMap.get(data.decided_by) : null;
+
       setBesoin({
         ...data,
+        user: userProfile || null,
+        taken_by_profile: takenByProfile || null,
+        decided_by_profile: decidedByProfile || null,
         lignes: lignesData || [],
         attachments: attachmentsData || [],
       } as BesoinWithRelations);
