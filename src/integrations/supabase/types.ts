@@ -1154,7 +1154,7 @@ export type Database = {
           created_at: string
           created_by: string
           credit: number
-          da_id: string
+          da_id: string | null
           date_ecriture: string
           debit: number
           devise: string
@@ -1163,6 +1163,7 @@ export type Database = {
           libelle: string
           mode_paiement: string | null
           nature_charge: string
+          note_frais_id: string | null
           observations: string | null
           reference: string
           reference_paiement: string | null
@@ -1176,7 +1177,7 @@ export type Database = {
           created_at?: string
           created_by: string
           credit?: number
-          da_id: string
+          da_id?: string | null
           date_ecriture?: string
           debit?: number
           devise?: string
@@ -1185,6 +1186,7 @@ export type Database = {
           libelle: string
           mode_paiement?: string | null
           nature_charge: string
+          note_frais_id?: string | null
           observations?: string | null
           reference: string
           reference_paiement?: string | null
@@ -1198,7 +1200,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           credit?: number
-          da_id?: string
+          da_id?: string | null
           date_ecriture?: string
           debit?: number
           devise?: string
@@ -1207,6 +1209,7 @@ export type Database = {
           libelle?: string
           mode_paiement?: string | null
           nature_charge?: string
+          note_frais_id?: string | null
           observations?: string | null
           reference?: string
           reference_paiement?: string | null
@@ -1226,6 +1229,13 @@ export type Database = {
             columns: ["da_id"]
             isOneToOne: false
             referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecritures_comptables_note_frais_id_fkey"
+            columns: ["note_frais_id"]
+            isOneToOne: false
+            referencedRelation: "notes_frais"
             referencedColumns: ["id"]
           },
           {
@@ -1394,6 +1404,9 @@ export type Database = {
       }
       notes_frais: {
         Row: {
+          caisse_id: string | null
+          comptabilise_at: string | null
+          comptabilise_by: string | null
           created_at: string
           currency: string
           department_id: string
@@ -1413,6 +1426,10 @@ export type Database = {
           rejection_reason: string | null
           status: Database["public"]["Enums"]["note_frais_status"]
           submitted_at: string | null
+          syscohada_centre_cout: string | null
+          syscohada_classe: number | null
+          syscohada_compte: string | null
+          syscohada_nature_charge: string | null
           title: string
           total_amount: number
           updated_at: string
@@ -1421,6 +1438,9 @@ export type Database = {
           validated_daf_by: string | null
         }
         Insert: {
+          caisse_id?: string | null
+          comptabilise_at?: string | null
+          comptabilise_by?: string | null
           created_at?: string
           currency?: string
           department_id: string
@@ -1440,6 +1460,10 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["note_frais_status"]
           submitted_at?: string | null
+          syscohada_centre_cout?: string | null
+          syscohada_classe?: number | null
+          syscohada_compte?: string | null
+          syscohada_nature_charge?: string | null
           title: string
           total_amount?: number
           updated_at?: string
@@ -1448,6 +1472,9 @@ export type Database = {
           validated_daf_by?: string | null
         }
         Update: {
+          caisse_id?: string | null
+          comptabilise_at?: string | null
+          comptabilise_by?: string | null
           created_at?: string
           currency?: string
           department_id?: string
@@ -1467,6 +1494,10 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["note_frais_status"]
           submitted_at?: string | null
+          syscohada_centre_cout?: string | null
+          syscohada_classe?: number | null
+          syscohada_compte?: string | null
+          syscohada_nature_charge?: string | null
           title?: string
           total_amount?: number
           updated_at?: string
@@ -1475,6 +1506,20 @@ export type Database = {
           validated_daf_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notes_frais_caisse_id_fkey"
+            columns: ["caisse_id"]
+            isOneToOne: false
+            referencedRelation: "caisses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_comptabilise_by_fkey"
+            columns: ["comptabilise_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notes_frais_department_id_fkey"
             columns: ["department_id"]

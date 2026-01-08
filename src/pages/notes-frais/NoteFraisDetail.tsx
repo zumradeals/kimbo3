@@ -33,7 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { NoteFrais, NoteFraisLigne, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS, PaymentMethod } from '@/types/kpm';
+import { NoteFrais, NoteFraisLigne, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS, PaymentMethod, SYSCOHADA_CLASSES } from '@/types/kpm';
 import {
   ArrowLeft,
   Clock,
@@ -47,6 +47,7 @@ import {
   FileText,
   Edit,
   Trash2,
+  Building2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -61,6 +62,8 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportDechargeComptableToPDF } from '@/utils/pdfExport';
+import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
+import { CompteComptableAutocomplete } from '@/components/ui/CompteComptableAutocomplete';
 
 const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -82,6 +85,14 @@ interface NoteFraisWithRelations extends NoteFrais {
   lignes?: NoteFraisLigne[];
 }
 
+interface Caisse {
+  id: string;
+  code: string;
+  name: string;
+  solde_actuel: number;
+  devise: string;
+}
+
 export default function NoteFraisDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -90,6 +101,7 @@ export default function NoteFraisDetail() {
 
   const [note, setNote] = useState<NoteFraisWithRelations | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [caisses, setCaisses] = useState<Caisse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -97,10 +109,30 @@ export default function NoteFraisDetail() {
   const [showPayDialog, setShowPayDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [paymentData, setPaymentData] = useState({
-    mode_paiement: '',
-    reference_paiement: '',
+
+  // SYSCOHADA form state
+  const [syscohadaData, setSyscohadaData] = useState({
+    classe: 0,
+    compte: '',
+    nature_charge: '',
+    centre_cout: '',
   });
+
+  // Payment form state (compatible with PaymentFormDynamic)
+  const [paymentFormData, setPaymentFormData] = useState<{
+    category_id: string;
+    method_id: string;
+    details: Record<string, string>;
+    caisse_id?: string;
+  }>({
+    category_id: '',
+    method_id: '',
+    details: {},
+    caisse_id: undefined,
+  });
+
+  // Additional payment fields
+  const [referencePaiement, setReferencePaiement] = useState('');
 
   const isDAF = roles.includes('daf');
   const isComptable = roles.includes('comptable');
@@ -111,6 +143,7 @@ export default function NoteFraisDetail() {
     if (id) {
       fetchNote();
       fetchPaymentMethods();
+      fetchCaisses();
     }
   }, [id]);
 
@@ -143,6 +176,17 @@ export default function NoteFraisDetail() {
         .eq('note_frais_id', id)
         .order('date_depense');
 
+      // Load existing SYSCOHADA data if present
+      const noteData = data as any;
+      if (noteData.syscohada_classe) {
+        setSyscohadaData({
+          classe: noteData.syscohada_classe || 0,
+          compte: noteData.syscohada_compte || '',
+          nature_charge: noteData.syscohada_nature_charge || '',
+          centre_cout: noteData.syscohada_centre_cout || '',
+        });
+      }
+
       setNote({
         ...data,
         lignes: lignesData || [],
@@ -161,6 +205,15 @@ export default function NoteFraisDetail() {
       .eq('is_active', true)
       .order('sort_order');
     setPaymentMethods((data as PaymentMethod[]) || []);
+  };
+
+  const fetchCaisses = async () => {
+    const { data } = await supabase
+      .from('caisses')
+      .select('id, code, name, solde_actuel, devise')
+      .eq('is_active', true)
+      .order('name');
+    setCaisses((data as Caisse[]) || []);
   };
 
   const handleSubmit = async () => {
@@ -239,25 +292,113 @@ export default function NoteFraisDetail() {
     }
   };
 
+  const validateForms = () => {
+    // Validate SYSCOHADA
+    if (!syscohadaData.classe || !syscohadaData.compte || !syscohadaData.nature_charge) {
+      toast({
+        title: 'Champs manquants',
+        description: 'Veuillez remplir tous les champs SYSCOHADA obligatoires.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+    // Validate payment
+    if (!paymentFormData.category_id || !paymentFormData.method_id) {
+      toast({
+        title: 'Champs manquants',
+        description: 'Veuillez sélectionner une catégorie et un mode de paiement.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handlePay = async () => {
-    if (!note || !paymentData.mode_paiement) return;
+    if (!note || !user) return;
+    if (!validateForms()) return;
+
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
+      // Get payment method details
+      const selectedMethod = paymentMethods.find((m) => m.id === paymentFormData.method_id);
+
+      // Build payment details JSON
+      const paymentDetailsJson: Record<string, string> = {
+        ...paymentFormData.details,
+        category_id: paymentFormData.category_id,
+        method_id: paymentFormData.method_id,
+      };
+      if (paymentFormData.caisse_id) {
+        paymentDetailsJson.caisse_id = paymentFormData.caisse_id;
+        // We'll fetch caisse info for the PDF later
+        const { data: caisseData } = await supabase
+          .from('caisses')
+          .select('name, code')
+          .eq('id', paymentFormData.caisse_id)
+          .single();
+        if (caisseData) {
+          paymentDetailsJson.caisse_name = caisseData.name;
+          paymentDetailsJson.caisse_code = caisseData.code;
+        }
+      }
+
+      // Update note with SYSCOHADA + payment info
+      const { error: noteError } = await supabase
         .from('notes_frais')
         .update({
           status: 'payee',
-          mode_paiement: paymentData.mode_paiement,
-          reference_paiement: paymentData.reference_paiement || null,
-          paid_by: user?.id,
+          syscohada_classe: syscohadaData.classe,
+          syscohada_compte: syscohadaData.compte,
+          syscohada_nature_charge: syscohadaData.nature_charge,
+          syscohada_centre_cout: syscohadaData.centre_cout || null,
+          caisse_id: paymentFormData.caisse_id || null,
+          mode_paiement: selectedMethod?.label || null,
+          reference_paiement: referencePaiement || null,
+          payment_category_id: paymentFormData.category_id,
+          payment_method_id: paymentFormData.method_id,
+          payment_details: paymentDetailsJson,
+          paid_by: user.id,
           paid_at: new Date().toISOString(),
+          comptabilise_by: user.id,
+          comptabilise_at: new Date().toISOString(),
         })
         .eq('id', note.id);
 
-      if (error) throw error;
+      if (noteError) throw noteError;
 
-      toast({ title: 'Paiement effectué', description: 'La note de frais a été payée.' });
+      // Generate accounting entry reference
+      const { data: refData } = await supabase.rpc('generate_ecriture_reference');
+      const ecritureRef = refData || `EC-NDF-${note.reference}`;
+
+      // Create accounting entry
+      const { error: ecritureError } = await supabase.from('ecritures_comptables').insert({
+        note_frais_id: note.id,
+        reference: ecritureRef,
+        libelle: `Remboursement frais: ${note.title}`,
+        classe_syscohada: syscohadaData.classe,
+        compte_comptable: syscohadaData.compte,
+        nature_charge: syscohadaData.nature_charge,
+        centre_cout: syscohadaData.centre_cout || null,
+        debit: note.total_amount || 0,
+        credit: 0,
+        devise: note.currency || 'XOF',
+        mode_paiement: selectedMethod?.label || null,
+        reference_paiement: referencePaiement || null,
+        date_ecriture: new Date().toISOString(),
+        created_by: user.id,
+        is_validated: true,
+        validated_by: user.id,
+        validated_at: new Date().toISOString(),
+      });
+
+      if (ecritureError) {
+        console.error('Erreur écriture comptable:', ecritureError);
+        // Non-blocking - continue even if accounting entry fails
+      }
+
+      toast({ title: 'Paiement effectué', description: 'La note de frais a été payée et comptabilisée.' });
       setShowPayDialog(false);
       fetchNote();
     } catch (error: any) {
@@ -673,42 +814,87 @@ export default function NoteFraisDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Pay Dialog */}
+      {/* Pay Dialog - Enhanced with SYSCOHADA and Payment Forms */}
       <Dialog open={showPayDialog} onOpenChange={setShowPayDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Marquer comme payée</DialogTitle>
+            <DialogTitle>Traitement comptable et paiement</DialogTitle>
             <DialogDescription>
-              Confirmez le paiement de {formatAmount(note.total_amount, note.currency)}.
+              Configurez les informations SYSCOHADA et le mode de paiement pour {formatAmount(note.total_amount, note.currency)}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="mode">Mode de paiement *</Label>
-              <Select
-                value={paymentData.mode_paiement}
-                onValueChange={(v) => setPaymentData({ ...paymentData, mode_paiement: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((pm) => (
-                    <SelectItem key={pm.id} value={pm.label}>
-                      {pm.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-6 py-4">
+            {/* SYSCOHADA Section */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Imputation SYSCOHADA
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Classe comptable *</Label>
+                  <Select
+                    value={syscohadaData.classe?.toString() || ''}
+                    onValueChange={(v) => setSyscohadaData({ ...syscohadaData, classe: parseInt(v) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une classe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(SYSCOHADA_CLASSES).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          Classe {key} - {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Compte comptable *</Label>
+                  <CompteComptableAutocomplete
+                    value={syscohadaData.compte}
+                    onChange={(code) => setSyscohadaData({ ...syscohadaData, compte: code })}
+                    placeholder="Rechercher un compte..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nature de la charge *</Label>
+                  <Input
+                    value={syscohadaData.nature_charge}
+                    onChange={(e) => setSyscohadaData({ ...syscohadaData, nature_charge: e.target.value })}
+                    placeholder="Ex: Frais de déplacement"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Centre de coût</Label>
+                  <Input
+                    value={syscohadaData.centre_cout}
+                    onChange={(e) => setSyscohadaData({ ...syscohadaData, centre_cout: e.target.value })}
+                    placeholder="Ex: Département, Projet..."
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ref">Référence paiement</Label>
-              <Input
-                id="ref"
-                value={paymentData.reference_paiement}
-                onChange={(e) => setPaymentData({ ...paymentData, reference_paiement: e.target.value })}
-                placeholder="N° transaction, chèque..."
+
+            {/* Payment Section */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Mode de paiement
+              </h3>
+              <PaymentFormDynamic
+                value={paymentFormData}
+                onChange={setPaymentFormData}
               />
+
+              <div className="space-y-2">
+                <Label>Référence paiement</Label>
+                <Input
+                  value={referencePaiement}
+                  onChange={(e) => setReferencePaiement(e.target.value)}
+                  placeholder="N° transaction, chèque..."
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -717,9 +903,9 @@ export default function NoteFraisDetail() {
             </Button>
             <Button
               onClick={handlePay}
-              disabled={isSaving || !paymentData.mode_paiement}
+              disabled={isSaving || !paymentFormData.category_id || !paymentFormData.method_id || !syscohadaData.classe || !syscohadaData.compte}
             >
-              Confirmer le paiement
+              {isSaving ? 'Traitement...' : 'Valider et payer'}
             </Button>
           </DialogFooter>
         </DialogContent>
