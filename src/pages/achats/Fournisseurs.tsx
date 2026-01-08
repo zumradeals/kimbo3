@@ -62,7 +62,8 @@ export default function Fournisseurs() {
   });
 
   const isAchats = roles.some((r) => ACHATS_ROLES.includes(r));
-  const hasAccess = isAchats || isAdmin;
+  const isDaf = roles.includes('daf');
+  const hasAccess = isAchats || isDaf || isAdmin;
 
   useEffect(() => {
     fetchFournisseurs();
@@ -181,7 +182,7 @@ export default function Fournisseurs() {
   if (!hasAccess) {
     return (
       <AppLayout>
-        <AccessDenied message="Seul le Service Achats peut gérer les fournisseurs." />
+        <AccessDenied message="Seul le Service Achats ou le DAF peut gérer les fournisseurs." />
       </AppLayout>
     );
   }
@@ -279,7 +280,7 @@ export default function Fournisseurs() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            {(isAchats || isAdmin) && (
+                            {(isAchats || isDaf || isAdmin) && (
                               <Button
                                 variant="ghost"
                                 size="icon"

@@ -86,7 +86,8 @@ export default function ProjetsList() {
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
-  const canManage = isLogistics || isAdmin;
+  const isDaf = roles.includes('daf');
+  const canManage = isLogistics || isDaf || isAdmin;
 
   useEffect(() => {
     fetchProjets();
