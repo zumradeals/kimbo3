@@ -1,0 +1,59 @@
+{
+  "app": {
+    "name": "kpm",
+    "version": "1.0.0",
+    "description": "KPM - KIMBO Procurement Management - Export autonome déployable via IKOMA MCP"
+  },
+  "source": {
+    "repo": "https://github.com/your-org/kpm",
+    "ref": "main"
+  },
+  "deploy": {
+    "type": "docker_compose",
+    "workdir": "public/exports",
+    "compose_file": "public/exports/docker-compose.yml",
+    "commands": {
+      "start": "./start.sh start",
+      "stop": "./start.sh stop",
+      "restart": "./start.sh restart",
+      "status": "./start.sh status",
+      "logs": "./start.sh logs"
+    }
+  },
+  "preflight": {
+    "required_bins": ["docker"],
+    "compose_supported": true,
+    "required_files": [
+      "public/exports/docker-compose.yml",
+      "public/exports/start.sh",
+      "public/exports/.env.example",
+      "public/exports/kpm-database-schema.sql",
+      "public/exports/scripts/migrate.sh",
+      "public/exports/scripts/seed.sh",
+      "public/exports/scripts/create-admin.sh"
+    ]
+  },
+  "health": {
+    "endpoints": [
+      {"name": "frontend", "url": "http://localhost:3000"},
+      {"name": "api", "url": "http://localhost:8000"},
+      {"name": "rest", "url": "http://localhost:8000/rest/v1/"},
+      {"name": "auth", "url": "http://localhost:8000/auth/v1/health"}
+    ],
+    "ports": [3000, 8000, 5432, 9000]
+  },
+  "notes": {
+    "secrets_policy": "Aucun secret dans le repo. .env à créer depuis .env.example.",
+    "operator_steps": [
+      "cp public/exports/.env.example public/exports/.env",
+      "nano public/exports/.env  # Configurer les variables",
+      "chmod +x public/exports/start.sh public/exports/scripts/*.sh",
+      "cd public/exports && ./start.sh start"
+    ],
+    "post_deploy": [
+      "./scripts/migrate.sh",
+      "./scripts/seed.sh",
+      "./scripts/create-admin.sh"
+    ]
+  }
+}
