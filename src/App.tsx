@@ -20,6 +20,11 @@ import AdminComptesComptables from "./pages/admin/ComptesComptables";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 
+// Module Expressions de besoin
+import ExpressionsList from "./pages/expressions-besoin/ExpressionsList";
+import ExpressionCreate from "./pages/expressions-besoin/ExpressionCreate";
+import ExpressionDetail from "./pages/expressions-besoin/ExpressionDetail";
+
 // Module Besoins
 import BesoinsList from "./pages/besoins/BesoinsList";
 import BesoinCreate from "./pages/besoins/BesoinCreate";
@@ -110,6 +115,11 @@ function AppRoutes() {
       <Route path="/admin/payment-categories" element={<ProtectedRoute><AdminPaymentCategories /></ProtectedRoute>} />
       <Route path="/admin/comptes-comptables" element={<ProtectedRoute><AdminComptesComptables /></ProtectedRoute>} />
       <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+      
+      {/* Module Expressions de besoin */}
+      <Route path="/expressions-besoin" element={<ProtectedRoute><ExpressionsList /></ProtectedRoute>} />
+      <Route path="/expressions-besoin/nouveau" element={<ProtectedRoute><ExpressionCreate /></ProtectedRoute>} />
+      <Route path="/expressions-besoin/:id" element={<ProtectedRoute><ExpressionDetail /></ProtectedRoute>} />
       
       {/* Module Besoins */}
       <Route path="/besoins" element={<ProtectedRoute><BesoinsList /></ProtectedRoute>} />

@@ -23,6 +23,7 @@ import {
   Ruler,
   BookOpen,
   Warehouse,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -73,6 +74,12 @@ const navItems: NavItem[] = [
 
 // Module navigation items
 const moduleNavItems: NavItem[] = [
+  {
+    label: 'Expressions de besoin',
+    href: '/expressions-besoin',
+    icon: MessageSquarePlus,
+    module: 'expressions',
+  },
   {
     label: 'Besoins internes',
     href: '/besoins',

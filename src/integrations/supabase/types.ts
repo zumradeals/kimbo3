@@ -1247,6 +1247,92 @@ export type Database = {
           },
         ]
       }
+      expressions_besoin: {
+        Row: {
+          besoin_id: string | null
+          chef_validateur_id: string | null
+          commentaire: string | null
+          created_at: string
+          department_id: string
+          id: string
+          nom_article: string
+          precision_technique: string | null
+          quantite: number | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["expression_besoin_status"]
+          unite: string | null
+          updated_at: string
+          user_id: string
+          validated_at: string | null
+        }
+        Insert: {
+          besoin_id?: string | null
+          chef_validateur_id?: string | null
+          commentaire?: string | null
+          created_at?: string
+          department_id: string
+          id?: string
+          nom_article: string
+          precision_technique?: string | null
+          quantite?: number | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["expression_besoin_status"]
+          unite?: string | null
+          updated_at?: string
+          user_id: string
+          validated_at?: string | null
+        }
+        Update: {
+          besoin_id?: string | null
+          chef_validateur_id?: string | null
+          commentaire?: string | null
+          created_at?: string
+          department_id?: string
+          id?: string
+          nom_article?: string
+          precision_technique?: string | null
+          quantite?: number | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["expression_besoin_status"]
+          unite?: string | null
+          updated_at?: string
+          user_id?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expressions_besoin_besoin_id_fkey"
+            columns: ["besoin_id"]
+            isOneToOne: false
+            referencedRelation: "besoins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expressions_besoin_chef_validateur_id_fkey"
+            columns: ["chef_validateur_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expressions_besoin_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expressions_besoin_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fournisseurs: {
         Row: {
           address: string | null
@@ -2291,6 +2377,7 @@ export type Database = {
         | "payee"
         | "rejetee_comptabilite"
         | "annulee"
+      expression_besoin_status: "en_attente" | "validee" | "rejetee"
       note_frais_status:
         | "brouillon"
         | "soumise"
@@ -2502,6 +2589,7 @@ export const Constants = {
         "rejetee_comptabilite",
         "annulee",
       ],
+      expression_besoin_status: ["en_attente", "validee", "rejetee"],
       note_frais_status: [
         "brouillon",
         "soumise",
