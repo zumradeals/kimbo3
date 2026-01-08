@@ -115,12 +115,15 @@ export default function BesoinDetail() {
   const [lockReason, setLockReason] = useState('');
   const [canTransform, setCanTransform] = useState(false);
 
+  // Logistique ET Achats partagent les mêmes capacités opérationnelles (mutualisation)
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
+  const isAchats = roles.some((r) => ['responsable_achats', 'agent_achats'].includes(r));
   const isDG = roles.includes('dg');
   const isCreator = besoin?.user_id === user?.id;
   const canEdit = isCreator && (besoin?.status === 'cree' || besoin?.status === 'retourne');
   const canResubmit = isCreator && besoin?.status === 'retourne';
-  const canManage = isLogistics || isAdmin;
+  // Mutualisation: Logistique ET Achats peuvent gérer les besoins
+  const canManage = isLogistics || isAchats || isAdmin;
   const canDelete = isAdmin;
 
   useEffect(() => {

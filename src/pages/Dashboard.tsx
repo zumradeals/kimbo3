@@ -587,13 +587,12 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Role-Specific Dashboards */}
-        {hasAnyRole(['responsable_logistique', 'agent_logistique']) && (
-          <LogistiqueDashboard />
-        )}
-
-        {hasAnyRole(['responsable_achats', 'agent_achats']) && (
-          <AchatsDashboard />
+        {/* Role-Specific Dashboards - Mutualisés: Les deux voient les deux */}
+        {hasAnyRole(['responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats']) && (
+          <>
+            <LogistiqueDashboard />
+            <AchatsDashboard />
+          </>
         )}
 
         {hasAnyRole(['comptable']) && (

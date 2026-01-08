@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Besoin, DACategory, DAPriority, DA_CATEGORY_LABELS, DA_PRIORITY_LABELS, LOGISTICS_ROLES } from '@/types/kpm';
+import { Besoin, DACategory, DAPriority, DA_CATEGORY_LABELS, DA_PRIORITY_LABELS, OPERATIONAL_ROLES } from '@/types/kpm';
 import { ArrowLeft, Plus, Trash2, Info, AlertTriangle } from 'lucide-react';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
@@ -53,8 +53,9 @@ export default function DACreate() {
   const [articles, setArticles] = useState<ArticleForm[]>([]);
   const [lignesLoaded, setLignesLoaded] = useState(false);
 
-  const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
-  const hasAccess = isLogistics || isAdmin;
+  // Mutualisation: Logistique ET Achats peuvent créer des DA
+  const isOperational = roles.some((r) => OPERATIONAL_ROLES.includes(r));
+  const hasAccess = isOperational || isAdmin;
 
   useEffect(() => {
     if (besoinId) {
