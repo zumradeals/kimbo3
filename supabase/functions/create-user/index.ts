@@ -14,6 +14,10 @@ interface CreateUserRequest {
   department_id?: string;
   roles?: string[];
   role?: string; // backward compatibility
+  fonction?: string;
+  chef_hierarchique_id?: string;
+  position_departement?: string;
+  statut_utilisateur?: string;
 }
 
 serve(async (req) => {
@@ -53,7 +57,10 @@ serve(async (req) => {
       throw new Error("Only admins can create users");
     }
 
-    const { email, password, first_name, last_name, department_id, roles, role }: CreateUserRequest = await req.json();
+    const { 
+      email, password, first_name, last_name, department_id, roles, role,
+      fonction, chef_hierarchique_id, position_departement, statut_utilisateur 
+    }: CreateUserRequest = await req.json();
 
     // Support both single role (backward compat) and multiple roles
     const userRoles: string[] = roles && roles.length > 0 ? roles : (role ? [role] : ['employe']);
@@ -86,11 +93,18 @@ serve(async (req) => {
       throw new Error("Failed to create user");
     }
 
-    // Update profile with department if provided
-    if (department_id) {
+    // Update profile with all provided fields
+    const profileUpdate: Record<string, unknown> = {};
+    if (department_id) profileUpdate.department_id = department_id;
+    if (fonction) profileUpdate.fonction = fonction;
+    if (chef_hierarchique_id) profileUpdate.chef_hierarchique_id = chef_hierarchique_id;
+    if (position_departement) profileUpdate.position_departement = position_departement;
+    if (statut_utilisateur) profileUpdate.statut_utilisateur = statut_utilisateur;
+
+    if (Object.keys(profileUpdate).length > 0) {
       const { error: profileError } = await supabaseAdmin
         .from("profiles")
-        .update({ department_id })
+        .update(profileUpdate)
         .eq("id", newUser.user.id);
 
       if (profileError) {

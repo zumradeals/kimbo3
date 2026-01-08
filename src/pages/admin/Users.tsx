@@ -41,7 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus, PositionDepartement, StatutUtilisateur } from '@/types/kpm';
+import { AppRole, Department, Profile, ROLE_LABELS, STATUS_LABELS, UserStatus, PositionDepartement, StatutUtilisateur, POSITION_DEPARTEMENT_LABELS, STATUT_UTILISATEUR_LABELS } from '@/types/kpm';
 import { Plus, Pencil, Trash2, Search, Mail, Key } from 'lucide-react';
 
 const ALL_ROLES: AppRole[] = [
@@ -64,6 +64,9 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Liste des utilisateurs pour le chef hiérarchique
+  const [allUsers, setAllUsers] = useState<Profile[]>([]);
+
   // Edit modal
   const [editingUser, setEditingUser] = useState<UserWithRoles | null>(null);
   const [editForm, setEditForm] = useState({
@@ -72,6 +75,10 @@ export default function AdminUsers() {
     department_id: '',
     status: 'active' as UserStatus,
     roles: ['employe'] as AppRole[],
+    fonction: '',
+    chef_hierarchique_id: '',
+    position_departement: '' as PositionDepartement | '',
+    statut_utilisateur: '' as StatutUtilisateur | '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -84,6 +91,10 @@ export default function AdminUsers() {
     last_name: '',
     department_id: '',
     roles: ['employe'] as AppRole[],
+    fonction: '',
+    chef_hierarchique_id: '',
+    position_departement: '' as PositionDepartement | '',
+    statut_utilisateur: '' as StatutUtilisateur | '',
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -189,6 +200,19 @@ export default function AdminUsers() {
         return;
       }
 
+      // Store all users for chef hiérarchique selection
+      setAllUsers((profilesData || []).map(p => ({
+        id: p.id,
+        email: p.email,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        department_id: p.department_id,
+        status: p.status,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        department: p.department,
+      })));
+
       // Fetch all user roles
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
@@ -229,6 +253,10 @@ export default function AdminUsers() {
       department_id: userToEdit.department_id || '',
       status: userToEdit.status,
       roles: userToEdit.roles.length > 0 ? userToEdit.roles : ['employe'],
+      fonction: (userToEdit as any).fonction || '',
+      chef_hierarchique_id: (userToEdit as any).chef_hierarchique_id || '',
+      position_departement: (userToEdit as any).position_departement || '',
+      statut_utilisateur: (userToEdit as any).statut_utilisateur || '',
     });
   };
 
@@ -240,6 +268,10 @@ export default function AdminUsers() {
       last_name: '',
       department_id: '',
       roles: ['employe'],
+      fonction: '',
+      chef_hierarchique_id: '',
+      position_departement: '',
+      statut_utilisateur: '',
     });
   };
 
@@ -297,6 +329,10 @@ export default function AdminUsers() {
           last_name: createForm.last_name,
           department_id: createForm.department_id || null,
           roles: createForm.roles,
+          fonction: createForm.fonction || null,
+          chef_hierarchique_id: createForm.chef_hierarchique_id || null,
+          position_departement: createForm.position_departement || null,
+          statut_utilisateur: createForm.statut_utilisateur || null,
         },
       });
 
@@ -335,6 +371,10 @@ export default function AdminUsers() {
       department_id: '',
       status: 'active',
       roles: ['employe'],
+      fonction: '',
+      chef_hierarchique_id: '',
+      position_departement: '',
+      statut_utilisateur: '',
     });
   };
 
@@ -351,6 +391,10 @@ export default function AdminUsers() {
           last_name: editForm.last_name,
           department_id: editForm.department_id || null,
           status: editForm.status,
+          fonction: editForm.fonction || null,
+          chef_hierarchique_id: editForm.chef_hierarchique_id || null,
+          position_departement: editForm.position_departement || null,
+          statut_utilisateur: editForm.statut_utilisateur || null,
         })
         .eq('id', editingUser.id);
 
@@ -550,7 +594,7 @@ export default function AdminUsers() {
 
       {/* Edit Modal */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && closeEditModal()}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">Modifier l'utilisateur</DialogTitle>
             <DialogDescription>
@@ -579,28 +623,98 @@ export default function AdminUsers() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Département</Label>
-              <Select
-                value={editForm.department_id || "none"}
-                onValueChange={(value) => setEditForm({ ...editForm, department_id: value === "none" ? "" : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un département" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun département</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="edit_fonction">Fonction / Poste</Label>
+              <Input
+                id="edit_fonction"
+                placeholder="Ex: Directeur Commercial, Ingénieur BTP..."
+                value={editForm.fonction}
+                onChange={(e) => setEditForm({ ...editForm, fonction: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="department">Département</Label>
+                <Select
+                  value={editForm.department_id || "none"}
+                  onValueChange={(value) => setEditForm({ ...editForm, department_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un département" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun département</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_position">Position dans le département</Label>
+                <Select
+                  value={editForm.position_departement || "none"}
+                  onValueChange={(value) => setEditForm({ ...editForm, position_departement: value === "none" ? "" : value as PositionDepartement })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non défini</SelectItem>
+                    <SelectItem value="membre">{POSITION_DEPARTEMENT_LABELS.membre}</SelectItem>
+                    <SelectItem value="adjoint">{POSITION_DEPARTEMENT_LABELS.adjoint}</SelectItem>
+                    <SelectItem value="chef_departement">{POSITION_DEPARTEMENT_LABELS.chef_departement}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_chef">Chef hiérarchique</Label>
+                <Select
+                  value={editForm.chef_hierarchique_id || "none"}
+                  onValueChange={(value) => setEditForm({ ...editForm, chef_hierarchique_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un chef" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {allUsers
+                      .filter(u => u.id !== editingUser?.id)
+                      .map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.first_name} {u.last_name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_statut_utilisateur">Statut utilisateur</Label>
+                <Select
+                  value={editForm.statut_utilisateur || "none"}
+                  onValueChange={(value) => setEditForm({ ...editForm, statut_utilisateur: value === "none" ? "" : value as StatutUtilisateur })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non défini</SelectItem>
+                    <SelectItem value="actif">{STATUT_UTILISATEUR_LABELS.actif}</SelectItem>
+                    <SelectItem value="interim">{STATUT_UTILISATEUR_LABELS.interim}</SelectItem>
+                    <SelectItem value="absent">{STATUT_UTILISATEUR_LABELS.absent}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label>Rôles (sélection multiple)</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
                 {ALL_ROLES.map((role) => (
                   <label
                     key={role}
@@ -626,7 +740,7 @@ export default function AdminUsers() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Statut</Label>
+              <Label htmlFor="status">Statut du compte</Label>
               <Select
                 value={editForm.status}
                 onValueChange={(value) => setEditForm({ ...editForm, status: value as UserStatus })}
@@ -659,7 +773,7 @@ export default function AdminUsers() {
         setIsCreateOpen(open);
         if (!open) resetCreateForm();
       }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">Créer un utilisateur</DialogTitle>
             <DialogDescription>
@@ -710,28 +824,96 @@ export default function AdminUsers() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="create_department">Département</Label>
-              <Select
-                value={createForm.department_id || "none"}
-                onValueChange={(value) => setCreateForm({ ...createForm, department_id: value === "none" ? "" : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un département" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun département</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="create_fonction">Fonction / Poste</Label>
+              <Input
+                id="create_fonction"
+                placeholder="Ex: Directeur Commercial, Ingénieur BTP..."
+                value={createForm.fonction}
+                onChange={(e) => setCreateForm({ ...createForm, fonction: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create_department">Département</Label>
+                <Select
+                  value={createForm.department_id || "none"}
+                  onValueChange={(value) => setCreateForm({ ...createForm, department_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un département" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun département</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create_position">Position dans le département</Label>
+                <Select
+                  value={createForm.position_departement || "none"}
+                  onValueChange={(value) => setCreateForm({ ...createForm, position_departement: value === "none" ? "" : value as PositionDepartement })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non défini</SelectItem>
+                    <SelectItem value="membre">{POSITION_DEPARTEMENT_LABELS.membre}</SelectItem>
+                    <SelectItem value="adjoint">{POSITION_DEPARTEMENT_LABELS.adjoint}</SelectItem>
+                    <SelectItem value="chef_departement">{POSITION_DEPARTEMENT_LABELS.chef_departement}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create_chef">Chef hiérarchique</Label>
+                <Select
+                  value={createForm.chef_hierarchique_id || "none"}
+                  onValueChange={(value) => setCreateForm({ ...createForm, chef_hierarchique_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un chef" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {allUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.first_name} {u.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create_statut_utilisateur">Statut utilisateur</Label>
+                <Select
+                  value={createForm.statut_utilisateur || "none"}
+                  onValueChange={(value) => setCreateForm({ ...createForm, statut_utilisateur: value === "none" ? "" : value as StatutUtilisateur })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non défini</SelectItem>
+                    <SelectItem value="actif">{STATUT_UTILISATEUR_LABELS.actif}</SelectItem>
+                    <SelectItem value="interim">{STATUT_UTILISATEUR_LABELS.interim}</SelectItem>
+                    <SelectItem value="absent">{STATUT_UTILISATEUR_LABELS.absent}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label>Rôles * (sélection multiple)</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
                 {ALL_ROLES.map((role) => (
                   <label
                     key={role}
