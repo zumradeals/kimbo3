@@ -61,7 +61,7 @@ export function UserBadge({
 
   if (linkToProfile && userId) {
     return (
-      <Link to={`/admin/users?user=${userId}`} className="hover:opacity-80 transition-opacity">
+      <Link to={`/utilisateurs/${userId}`} className="hover:opacity-80 transition-opacity">
         {content}
       </Link>
     );
