@@ -526,7 +526,7 @@ export default function BesoinDetail() {
                 Annuler
               </Button>
             )}
-            {canDelete && ['cree', 'pris_en_charge', 'accepte', 'retourne'].includes(besoin.status) && (
+            {canDelete && ['cree', 'pris_en_charge', 'accepte', 'retourne', 'annulee'].includes(besoin.status) && (
               <Button
                 variant="outline"
                 size="sm"
