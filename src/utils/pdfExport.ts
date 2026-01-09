@@ -73,7 +73,9 @@ const formatMontant = (value: number | null, currency?: string) => {
   if (!value && value !== 0) return '0 FCFA';
   // Utiliser un espace comme séparateur de milliers pour éviter les problèmes d'affichage PDF
   const formatted = Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return formatted + ' ' + (currency === 'XOF' ? 'FCFA' : (currency || 'FCFA'));
+  // XOF et XAF sont tous deux des Francs CFA
+  const currencyLabel = (currency === 'XOF' || currency === 'XAF') ? 'FCFA' : (currency || 'FCFA');
+  return formatted + ' ' + currencyLabel;
 };
 
 const formatDate = (dateString: string | undefined): string => {
