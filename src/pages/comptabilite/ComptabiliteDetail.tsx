@@ -136,7 +136,8 @@ export default function ComptabiliteDetail() {
           *,
           department:departments(id, name),
           selected_fournisseur:fournisseurs(id, name, address, phone, email),
-          besoin:besoins(id, title, user_id)
+          besoin:besoins(id, title, user_id),
+          articles:da_articles(id, designation, quantity, unit)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -424,6 +425,11 @@ export default function ComptabiliteDetail() {
                     description: da.description,
                     modePaiement: da.mode_paiement || undefined,
                     referencePaiement: da.reference_paiement || undefined,
+                    articles: ((da as any).articles || []).map((art: any) => ({
+                      designation: art.designation,
+                      quantity: art.quantity,
+                      unit: art.unit,
+                    })),
                   });
                 }}
               >

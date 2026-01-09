@@ -1031,6 +1031,14 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
 };
 
 // ===================== DÉCHARGE COMPTABLE PDF - STYLE KIMBO =====================
+interface DechargeArticle {
+  designation: string;
+  quantity?: number;
+  unit?: string;
+  montant?: number;
+  date?: string;
+}
+
 interface DechargeComptableData {
   type: 'DA' | 'NOTE_FRAIS';
   reference: string;
@@ -1044,6 +1052,7 @@ interface DechargeComptableData {
   description?: string;
   modePaiement?: string;
   referencePaiement?: string;
+  articles?: DechargeArticle[];
 }
 
 // Convertir un montant en lettres (français)
@@ -1241,6 +1250,78 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
   doc.text(splitDesc, margin, y);
   
   y += splitDesc.length * 5 + lineHeight * 0.8;
+  
+  // ========== TABLEAU DES ARTICLES (si fournis) ==========
+  if (data.articles && data.articles.length > 0) {
+    y += 5;
+    
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.marron);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Détail des éléments :', margin, y);
+    
+    y += 5;
+    
+    // Préparer les données du tableau selon le type
+    const isNoteFrais = data.type === 'NOTE_FRAIS';
+    
+    const tableHead = isNoteFrais
+      ? [['Date', 'Désignation', 'Montant']]
+      : [['Désignation', 'Qté', 'Unité']];
+    
+    const tableBody = data.articles.map(article => {
+      if (isNoteFrais) {
+        return [
+          article.date ? formatDate(article.date) : '-',
+          article.designation,
+          article.montant ? formatMontant(article.montant, data.currency) : '-'
+        ];
+      } else {
+        return [
+          article.designation,
+          article.quantity?.toString() || '-',
+          article.unit || '-'
+        ];
+      }
+    });
+    
+    (doc as any).autoTable({
+      startY: y,
+      head: tableHead,
+      body: tableBody,
+      theme: 'striped',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        textColor: COLORS.textPrimary,
+        lineColor: COLORS.border,
+      },
+      headStyles: {
+        fillColor: COLORS.marron,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'left',
+      },
+      alternateRowStyles: {
+        fillColor: [250, 250, 247],
+      },
+      columnStyles: isNoteFrais 
+        ? { 
+            0: { cellWidth: 25 }, 
+            1: { cellWidth: 'auto' }, 
+            2: { cellWidth: 35, halign: 'right' as const } 
+          }
+        : { 
+            0: { cellWidth: 'auto' }, 
+            1: { cellWidth: 20, halign: 'center' as const }, 
+            2: { cellWidth: 25, halign: 'center' as const } 
+          },
+      margin: { left: margin, right: margin },
+      tableWidth: contentWidth,
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 8;
+  }
   
   // Ligne pointillée de fin
   drawDottedLine(doc, margin, y, dotLineEndX);

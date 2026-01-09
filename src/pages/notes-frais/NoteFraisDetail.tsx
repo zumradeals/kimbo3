@@ -634,6 +634,11 @@ export default function NoteFraisDetail() {
                     description: note.title,
                     modePaiement: note.mode_paiement || undefined,
                     referencePaiement: note.reference_paiement || undefined,
+                    articles: (note.lignes || []).map((ligne: any) => ({
+                      designation: ligne.motif,
+                      montant: ligne.montant,
+                      date: ligne.date_depense,
+                    })),
                   });
                 }}
               >
