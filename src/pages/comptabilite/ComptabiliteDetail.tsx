@@ -248,6 +248,20 @@ export default function ComptabiliteDetail() {
     
     setIsSaving(true);
     try {
+      // Construire payment_details avec infos de caisse
+      const paymentDetailsJson: Record<string, string> = {
+        ...paymentForm.details,
+      };
+      
+      // Si une caisse est sélectionnée, récupérer ses infos
+      if (selectedCaisseId && selectedCaisseId !== '_none') {
+        const selectedCaisse = caisses.find(c => c.id === selectedCaisseId);
+        if (selectedCaisse) {
+          paymentDetailsJson.caisse_name = selectedCaisse.name;
+          paymentDetailsJson.caisse_code = selectedCaisse.code;
+        }
+      }
+      
       const { error } = await supabase
         .from('demandes_achat')
         .update({
@@ -258,7 +272,7 @@ export default function ComptabiliteDetail() {
           syscohada_centre_cout: syscohadaForm.centre_cout.trim() || null,
           payment_category_id: paymentForm.category_id || null,
           payment_method_id: paymentForm.method_id || null,
-          payment_details: paymentForm.details,
+          payment_details: paymentDetailsJson,
           payment_class: paymentForm.payment_class || 'REGLEMENT',
           caisse_id: selectedCaisseId && selectedCaisseId !== '_none' ? selectedCaisseId : null,
           comptabilise_by: user?.id,
@@ -415,16 +429,20 @@ export default function ComptabiliteDetail() {
                   // Récupérer les infos de caisse depuis payment_details (stockées lors du paiement)
                   const daAny = da as any;
                   const paymentDetails = typeof daAny.payment_details === 'object' && daAny.payment_details !== null
-                    ? daAny.payment_details as Record<string, string>
+                    ? (daAny.payment_details as Record<string, any>)
                     : {};
+                  
+                  // Support rétro-compatibilité: certains anciens paiements stockent la caisse ailleurs
+                  const caisseName = paymentDetails.caisse_name || (daAny as any).caisse?.name || 'Caisse';
+                  const caisseCode = paymentDetails.caisse_code || (daAny as any).caisse?.code || 'N/A';
                   
                   exportDechargeComptableToPDF({
                     type: 'DA',
                     reference: da.reference,
                     montant: da.total_amount || 0,
                     currency: da.currency || 'XOF',
-                    caisseName: paymentDetails.caisse_name || 'Caisse',
-                    caisseCode: paymentDetails.caisse_code || 'N/A',
+                    caisseName,
+                    caisseCode,
                     comptableName: comptableFullName,
                     paidAt: da.comptabilise_at || new Date().toISOString(),
                     beneficiaire: da.selected_fournisseur?.name,

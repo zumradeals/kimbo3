@@ -1286,7 +1286,7 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
       }
     });
     
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: y,
       head: tableHead,
       body: tableBody,
@@ -1306,16 +1306,16 @@ export const exportDechargeComptableToPDF = async (data: DechargeComptableData) 
       alternateRowStyles: {
         fillColor: [250, 250, 247],
       },
-      columnStyles: isNoteFrais 
-        ? { 
-            0: { cellWidth: 25 }, 
-            1: { cellWidth: 'auto' }, 
-            2: { cellWidth: 35, halign: 'right' as const } 
+      columnStyles: isNoteFrais
+        ? {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 35, halign: 'right' as const },
           }
-        : { 
-            0: { cellWidth: 'auto' }, 
-            1: { cellWidth: 20, halign: 'center' as const }, 
-            2: { cellWidth: 25, halign: 'center' as const } 
+        : {
+            0: { cellWidth: 'auto' },
+            1: { cellWidth: 20, halign: 'center' as const },
+            2: { cellWidth: 25, halign: 'center' as const },
           },
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
