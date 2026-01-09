@@ -69,13 +69,12 @@ const COLORS = {
   dangerLight: [254, 226, 226] as [number, number, number],
 };
 
-const formatMontant = (value: number | null, currency?: string) => {
+const formatMontant = (value: number | null, _currency?: string) => {
   if (!value && value !== 0) return '0 FCFA';
   // Utiliser un espace comme séparateur de milliers pour éviter les problèmes d'affichage PDF
   const formatted = Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  // XOF et XAF sont tous deux des Francs CFA
-  const currencyLabel = (currency === 'XOF' || currency === 'XAF') ? 'FCFA' : (currency || 'FCFA');
-  return formatted + ' ' + currencyLabel;
+  // KPM utilise exclusivement le XOF (Franc CFA) - paramètre currency ignoré
+  return formatted + ' FCFA';
 };
 
 const formatDate = (dateString: string | undefined): string => {
