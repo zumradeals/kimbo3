@@ -406,19 +406,25 @@ export default function ComptabiliteDetail() {
                 variant="default"
                 size="sm"
                 onClick={() => {
-                  const selectedCaisse = caisses.find(c => c.id === selectedCaisseId);
                   // Récupérer le nom du comptable (celui qui a traité la DA ou l'utilisateur connecté)
                   const comptableProfile = (da as any).comptabilise_by_profile;
                   const comptableFullName = comptableProfile 
                     ? `${comptableProfile.first_name || ''} ${comptableProfile.last_name || ''}`.trim() 
                     : user?.email?.split('@')[0] || 'Comptable';
+                  
+                  // Récupérer les infos de caisse depuis payment_details (stockées lors du paiement)
+                  const daAny = da as any;
+                  const paymentDetails = typeof daAny.payment_details === 'object' && daAny.payment_details !== null
+                    ? daAny.payment_details as Record<string, string>
+                    : {};
+                  
                   exportDechargeComptableToPDF({
                     type: 'DA',
                     reference: da.reference,
                     montant: da.total_amount || 0,
                     currency: da.currency || 'XOF',
-                    caisseName: selectedCaisse?.name || 'Caisse',
-                    caisseCode: selectedCaisse?.code || 'N/A',
+                    caisseName: paymentDetails.caisse_name || 'Caisse',
+                    caisseCode: paymentDetails.caisse_code || 'N/A',
                     comptableName: comptableFullName,
                     paidAt: da.comptabilise_at || new Date().toISOString(),
                     beneficiaire: da.selected_fournisseur?.name,
