@@ -2317,6 +2317,10 @@ export type Database = {
       is_comptable: { Args: { _user_id: string }; Returns: boolean }
       is_dg: { Args: { _user_id: string }; Returns: boolean }
       is_logistics: { Args: { _user_id: string }; Returns: boolean }
+      recalculate_caisse_solde: {
+        Args: { p_caisse_id: string }
+        Returns: number
+      }
       user_can_insert_besoin_ligne: {
         Args: { _besoin_id: string; _user_id: string }
         Returns: boolean
