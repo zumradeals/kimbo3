@@ -76,6 +76,9 @@ import UsersList from "./pages/users/UsersList";
 import CaisseList from "./pages/caisse/CaisseList";
 import CaisseDetail from "./pages/caisse/CaisseDetail";
 
+// Quick Actions (Mobile)
+import QuickActions from "./pages/QuickActions";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -168,6 +171,9 @@ function AppRoutes() {
       {/* Module Caisse */}
       <Route path="/caisse" element={<ProtectedRoute><CaisseList /></ProtectedRoute>} />
       <Route path="/caisse/:id" element={<ProtectedRoute><CaisseDetail /></ProtectedRoute>} />
+      
+      {/* Quick Actions (Mobile) */}
+      <Route path="/actions-rapides" element={<ProtectedRoute><QuickActions /></ProtectedRoute>} />
       
       {/* Profil et Utilisateurs */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
