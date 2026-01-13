@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   LayoutDashboard,
   Users,
@@ -24,15 +25,23 @@ import {
   BookOpen,
   Warehouse,
   MessageSquarePlus,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from '@/components/ui/drawer';
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  module?: string; // Permission module to check
-  permission?: string; // Specific permission code to check
+  module?: string;
+  permission?: string;
   children?: NavItem[];
 }
 
@@ -77,7 +86,6 @@ const navItems: NavItem[] = [
   },
 ];
 
-// Module navigation items
 const moduleNavItems: NavItem[] = [
   {
     label: 'Expressions de besoin',
@@ -150,23 +158,25 @@ export function Sidebar() {
   const { profile, signOut, isAdmin } = useAuth();
   const { canViewModule, hasPermission, isLoading: permissionsLoading } = usePermissions();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['/admin']);
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
   const hasAccess = (item: NavItem): boolean => {
-    // Admin always has access
     if (isAdmin) return true;
-    
-    // Check specific permission first
     if (item.permission) {
       return hasPermission(item.permission);
     }
-    
-    // Check module access
     if (item.module) {
       return canViewModule(item.module);
     }
-    
     return true;
   };
 
@@ -188,7 +198,6 @@ export function Sidebar() {
     const isExpanded = expandedItems.includes(item.href);
     const active = isActive(item.href);
 
-    // Don't show parent if no children are accessible
     if (hasChildren && visibleChildren.length === 0) return null;
 
     return (
@@ -197,15 +206,15 @@ export function Sidebar() {
           <button
             onClick={() => toggleExpanded(item.href)}
             className={cn(
-              'flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              'flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors touch-manipulation',
               active
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50 active:bg-sidebar-accent/70'
             )}
             style={{ paddingLeft: `${12 + depth * 12}px` }}
           >
             <div className="flex items-center gap-3">
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-5 w-5" />
               <span>{item.label}</span>
             </div>
             <ChevronDown
@@ -215,16 +224,16 @@ export function Sidebar() {
         ) : (
           <Link
             to={item.href}
-            onClick={() => setIsOpen(false)}
+            onClick={() => isMobile && setIsOpen(false)}
             className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors touch-manipulation',
               active
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50 active:bg-sidebar-accent/70'
             )}
             style={{ paddingLeft: `${12 + depth * 12}px` }}
           >
-            <item.icon className="h-4 w-4" />
+            <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
           </Link>
         )}
@@ -237,89 +246,127 @@ export function Sidebar() {
     );
   };
 
-  // Filter module items based on permissions
   const visibleModuleItems = moduleNavItems.filter(item => hasAccess(item));
 
-  return (
+  const SidebarContent = () => (
     <>
-      {/* Mobile toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed left-4 top-4 z-50 lg:hidden"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </Button>
+      {/* Logo */}
+      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-primary">
+          <span className="text-lg font-bold text-sidebar-primary-foreground">K</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-serif text-lg font-bold text-sidebar-foreground truncate">
+            KPM SYSTEME
+          </h1>
+          <p className="text-xs text-sidebar-muted">KIMBO AFRICA SA</p>
+        </div>
+        {isMobile && (
+          <DrawerClose asChild>
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <X className="h-5 w-5" />
+            </Button>
+          </DrawerClose>
+        )}
+      </div>
 
-      {/* Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
+      {/* Quick Actions Link - Mobile only */}
+      {isMobile && (
+        <div className="px-4 pt-4">
+          <Link
+            to="/actions-rapides"
+            onClick={() => setIsOpen(false)}
+            className={cn(
+              'flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-3 text-sm font-medium text-primary transition-colors touch-manipulation',
+              'hover:bg-primary/20 active:bg-primary/30',
+              isActive('/actions-rapides') && 'bg-primary text-primary-foreground'
+            )}
+          >
+            <Zap className="h-5 w-5" />
+            <span>Actions rapides</span>
+          </Link>
+        </div>
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar transition-transform lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+        {navItems.map((item) => renderNavItem(item))}
+        
+        {visibleModuleItems.length > 0 && (
+          <>
+            <div className="mt-4 mb-2 px-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-sidebar-muted">
+                Modules métier
+              </p>
+            </div>
+            {visibleModuleItems.map((item) => renderNavItem(item))}
+          </>
         )}
-      >
-        {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-primary">
-            <span className="text-lg font-bold text-sidebar-primary-foreground">K</span>
-          </div>
-          <div>
-            <h1 className="font-serif text-lg font-bold text-sidebar-foreground">
-              KPM SYSTEME
-            </h1>
-            <p className="text-xs text-sidebar-muted">KIMBO AFRICA SA</p>
-          </div>
-        </div>
+      </nav>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-          {navItems.map((item) => renderNavItem(item))}
-          
-          {/* Module items */}
-          {visibleModuleItems.length > 0 && (
-            <>
-              <div className="mt-4 mb-2 px-3">
-                <p className="text-xs font-medium uppercase tracking-wider text-sidebar-muted">
-                  Modules métier
-                </p>
-              </div>
-              {visibleModuleItems.map((item) => renderNavItem(item))}
-            </>
-          )}
-        </nav>
-
-        {/* User & Logout */}
-        <div className="border-t border-sidebar-border p-4">
-          <Link
-            to="/profile"
-            onClick={() => setIsOpen(false)}
-            className="mb-3 block rounded-md px-3 py-2 hover:bg-sidebar-accent/50 transition-colors"
-          >
-            <p className="text-sm font-medium text-sidebar-foreground">
-              {profile?.first_name} {profile?.last_name}
-            </p>
-            <p className="text-xs text-sidebar-muted">{profile?.email}</p>
-            <p className="text-xs text-primary mt-1">Voir mon profil →</p>
-          </Link>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            onClick={signOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Déconnexion
-          </Button>
-        </div>
-      </aside>
+      {/* User & Logout */}
+      <div className="border-t border-sidebar-border p-4">
+        <Link
+          to="/profile"
+          onClick={() => isMobile && setIsOpen(false)}
+          className="mb-3 block rounded-md px-3 py-2 hover:bg-sidebar-accent/50 active:bg-sidebar-accent/70 transition-colors touch-manipulation"
+        >
+          <p className="text-sm font-medium text-sidebar-foreground truncate">
+            {profile?.first_name} {profile?.last_name}
+          </p>
+          <p className="text-xs text-sidebar-muted truncate">{profile?.email}</p>
+          <p className="text-xs text-primary mt-1">Voir mon profil →</p>
+        </Link>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground touch-manipulation"
+          onClick={signOut}
+        >
+          <LogOut className="h-4 w-4" />
+          Déconnexion
+        </Button>
+      </div>
     </>
+  );
+
+  // Mobile: Use Drawer component
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile toggle button - Fixed position */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed left-4 top-4 z-50 h-10 w-10 rounded-lg bg-background/80 backdrop-blur-sm shadow-sm border lg:hidden"
+          onClick={() => setIsOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
+        <Drawer open={isOpen} onOpenChange={setIsOpen} direction="left">
+          <DrawerContent 
+            className="h-full w-[280px] max-w-[85vw] rounded-none border-r bg-sidebar"
+            style={{ 
+              position: 'fixed', 
+              left: 0, 
+              top: 0, 
+              bottom: 0,
+              borderRadius: 0,
+            }}
+          >
+            <div className="flex h-full flex-col">
+              <SidebarContent />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+
+  // Desktop: Standard sidebar
+  return (
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar lg:flex">
+      <SidebarContent />
+    </aside>
   );
 }
