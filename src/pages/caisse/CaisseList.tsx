@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Plus, Search, Wallet, Edit, Trash2, Eye, TrendingUp, TrendingDown, Users } from 'lucide-react';
 import { AccessDenied } from '@/components/ui/AccessDenied';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 
 interface Caisse {
   id: string;
@@ -77,6 +78,7 @@ export default function CaisseList() {
 
   const canManage = roles.some(r => ['admin', 'daf'].includes(r));
   const canView = roles.some(r => ['admin', 'daf', 'dg', 'comptable'].includes(r));
+  const isReadOnly = roles.includes('comptable') && !roles.some(r => ['admin', 'daf'].includes(r));
 
   useEffect(() => {
     if (!authLoading && canView) {
@@ -281,14 +283,17 @@ export default function CaisseList() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
-            Gestion des Caisses
-          </h1>
-          <p className="text-muted-foreground">
-            Gérez les différentes caisses de l'entreprise
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Wallet className="h-6 w-6" />
+              Gestion des Caisses
+            </h1>
+            <p className="text-muted-foreground">
+              {isReadOnly ? 'Consultation des caisses' : 'Gérez les différentes caisses de l\'entreprise'}
+            </p>
+          </div>
+          {isReadOnly && <ReadOnlyBadge />}
         </div>
         {canManage && (
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

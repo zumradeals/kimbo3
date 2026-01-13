@@ -37,6 +37,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Fournisseur, ACHATS_ROLES } from '@/types/kpm';
 import { AccessDenied } from '@/components/ui/AccessDenied';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import { Plus, Edit, Trash2, Search, Building2, Phone, Mail } from 'lucide-react';
 
 export default function Fournisseurs() {
@@ -63,7 +64,9 @@ export default function Fournisseurs() {
 
   const isAchats = roles.some((r) => ACHATS_ROLES.includes(r));
   const isDaf = roles.includes('daf');
-  const hasAccess = isAchats || isDaf || isAdmin;
+  const isComptable = roles.includes('comptable');
+  const hasAccess = isAchats || isDaf || isAdmin || isComptable;
+  const isReadOnly = isComptable && !isAchats && !isDaf && !isAdmin;
 
   useEffect(() => {
     fetchFournisseurs();
@@ -192,14 +195,21 @@ export default function Fournisseurs() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-serif text-2xl font-bold text-foreground">Fournisseurs</h1>
-            <p className="text-muted-foreground">Gérez la liste des fournisseurs</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="font-serif text-2xl font-bold text-foreground">Fournisseurs</h1>
+              <p className="text-muted-foreground">
+                {isReadOnly ? 'Consultation des fournisseurs' : 'Gérez la liste des fournisseurs'}
+              </p>
+            </div>
+            {isReadOnly && <ReadOnlyBadge />}
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau fournisseur
-          </Button>
+          {!isReadOnly && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau fournisseur
+            </Button>
+          )}
         </div>
 
         {/* Search */}
@@ -276,21 +286,23 @@ export default function Fournisseurs() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {(isAchats || isDaf || isAdmin) && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:bg-destructive/10"
-                                onClick={() => { setDeletingId(f.id); setShowDeleteDialog(true); }}
-                              >
-                                <Trash2 className="h-4 w-4" />
+                          {!isReadOnly && (
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            )}
-                          </div>
+                              {(isAchats || isDaf || isAdmin) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:bg-destructive/10"
+                                  onClick={() => { setDeletingId(f.id); setShowDeleteDialog(true); }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

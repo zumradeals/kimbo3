@@ -41,6 +41,7 @@ import {
   LOGISTICS_ROLES,
   StockCategory,
 } from '@/types/kpm';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import {
   Package,
   Search,
@@ -119,7 +120,9 @@ export default function StockList() {
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
   const isDAF = hasRole('daf');
+  const isComptable = hasRole('comptable');
   const canManage = isLogistics || isAdmin || isDAF;
+  const isReadOnly = isComptable && !isLogistics && !isDAF && !isAdmin;
 
   useEffect(() => {
     fetchData();
@@ -230,13 +233,16 @@ export default function StockList() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-serif text-2xl font-bold text-foreground">
-              Gestion du Stock
-            </h1>
-            <p className="text-muted-foreground">
-              Inventaire et mouvements de stock
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="font-serif text-2xl font-bold text-foreground">
+                Gestion du Stock
+              </h1>
+              <p className="text-muted-foreground">
+                {isReadOnly ? 'Consultation du stock' : 'Inventaire et mouvements de stock'}
+              </p>
+            </div>
+            {isReadOnly && <ReadOnlyBadge />}
           </div>
           {canManage && (
             <Button onClick={() => setShowAddDialog(true)}>
