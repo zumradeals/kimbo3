@@ -56,6 +56,7 @@ import {
   DAArticlePrice,
 } from '@/types/kpm';
 import { UserBadge } from '@/components/ui/UserBadge';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import {
   ArrowLeft,
   Clock,
@@ -158,6 +159,10 @@ export default function DADetail() {
   const isAchats = roles.some((r) => ACHATS_ROLES.includes(r));
   const isDG = roles.includes('dg');
   const isDAF = roles.includes('daf');
+  const isComptable = roles.includes('comptable');
+  
+  // Le comptable peut voir la DA et payer si validée
+  const isReadOnly = isComptable && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin;
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
 
   // Mutualisation: Les deux peuvent soumettre aux Achats
@@ -167,7 +172,7 @@ export default function DADetail() {
   const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   const canDelete = isAdmin;
-  const canUploadAttachment = (isAchats || isOperational || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
+  const canUploadAttachment = !isReadOnly && (isAchats || isOperational || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
 
   useEffect(() => {
     if (id) {
@@ -925,6 +930,21 @@ export default function DADetail() {
                   {da.status === 'soumise_validation' 
                     ? ' Vous pouvez valider ou refuser cette demande.'
                     : ' Les actions de validation ne sont disponibles qu\'au statut "Soumise à validation".'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière lecture seule pour comptable */}
+        {isReadOnly && (
+          <Card className="border-muted bg-muted/20">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ReadOnlyBadge />
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Vous consultez cette DA en lecture seule.
+                  {da.status === 'validee_finance' && ' Le paiement peut être effectué depuis le module Comptabilité.'}
                 </p>
               </div>
             </CardContent>
