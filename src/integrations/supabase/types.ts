@@ -2249,6 +2249,10 @@ export type Database = {
     Functions: {
       can_create_besoin: { Args: { _user_id: string }; Returns: boolean }
       can_transform_besoin: { Args: { _besoin_id: string }; Returns: boolean }
+      can_validate_expression: {
+        Args: { _expression_id: string }
+        Returns: boolean
+      }
       create_notification: {
         Args: {
           _link?: string
@@ -2317,6 +2321,10 @@ export type Database = {
       is_comptable: { Args: { _user_id: string }; Returns: boolean }
       is_dg: { Args: { _user_id: string }; Returns: boolean }
       is_logistics: { Args: { _user_id: string }; Returns: boolean }
+      is_manager_of: {
+        Args: { _employee_id: string; _manager_id: string }
+        Returns: boolean
+      }
       recalculate_caisse_solde: {
         Args: { p_caisse_id: string }
         Returns: number
