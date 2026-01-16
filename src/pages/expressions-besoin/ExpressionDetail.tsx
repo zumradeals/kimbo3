@@ -104,12 +104,16 @@ export default function ExpressionDetail() {
   });
 
   // Permission check (server-side) to avoid relying on direct profiles reads
-  const { data: canValidate } = useQuery({
+  const { data: canValidate, isLoading: isCheckingPermission } = useQuery({
     queryKey: ['can-validate-expression', id, user?.id],
     queryFn: async () => {
       if (!id || !user?.id) return false;
-      const { data, error } = await supabase.rpc('can_validate_expression' as any, { _expression_id: id } as any);
-      if (error) return false;
+      const { data, error } = await supabase.rpc('can_validate_expression', { _expression_id: id });
+      if (error) {
+        console.error('can_validate_expression error:', error);
+        return false;
+      }
+      console.log('can_validate_expression result:', data, 'for user:', user.id, 'expression:', id);
       return !!data;
     },
     enabled: !!id && !!user?.id && !authLoading,
@@ -495,7 +499,14 @@ export default function ExpressionDetail() {
             </Card>
 
             {/* Actions for manager */}
-            {canValidate && isPending && (
+            {isPending && isCheckingPermission && (
+              <Card className="border-muted">
+                <CardContent className="py-4">
+                  <p className="text-muted-foreground text-sm">Vérification des permissions...</p>
+                </CardContent>
+              </Card>
+            )}
+            {canValidate && isPending && !isCheckingPermission && (
               <Card className="border-warning/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
