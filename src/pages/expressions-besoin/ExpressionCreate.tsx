@@ -10,18 +10,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2 } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
+import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+interface ArticleLine {
+  id: string;
+  nomArticle: string;
+}
 
 export default function ExpressionCreate() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form fields (STRICTEMENT LIMITÉS)
-  const [nomArticle, setNomArticle] = useState('');
+  // Multi-line articles
+  const [articles, setArticles] = useState<ArticleLine[]>([
+    { id: crypto.randomUUID(), nomArticle: '' }
+  ]);
   const [commentaire, setCommentaire] = useState('');
 
   // Fetch manager info
@@ -42,13 +52,29 @@ export default function ExpressionCreate() {
 
   const canCreate = !!profile?.department_id;
 
+  const addArticle = () => {
+    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '' }]);
+  };
+
+  const removeArticle = (id: string) => {
+    if (articles.length > 1) {
+      setArticles(articles.filter(a => a.id !== id));
+    }
+  };
+
+  const updateArticle = (id: string, value: string) => {
+    setArticles(articles.map(a => a.id === id ? { ...a, nomArticle: value } : a));
+  };
+
+  const validArticles = articles.filter(a => a.nomArticle.trim());
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!nomArticle.trim()) {
+    if (validArticles.length === 0) {
       toast({
         title: 'Erreur',
-        description: 'Le nom de l\'article est obligatoire.',
+        description: 'Ajoutez au moins un article.',
         variant: 'destructive',
       });
       return;
@@ -66,32 +92,40 @@ export default function ExpressionCreate() {
     setIsSubmitting(true);
 
     try {
+      // Insert all articles as separate expressions
+      const expressionsToCreate = validArticles.map(article => ({
+        user_id: user?.id,
+        department_id: profile.department_id,
+        nom_article: article.nomArticle.trim(),
+        commentaire: commentaire.trim() || null,
+      }));
+
       const { data, error } = await supabase
         .from('expressions_besoin')
-        .insert({
-          user_id: user?.id,
-          department_id: profile.department_id,
-          nom_article: nomArticle.trim(),
-          commentaire: commentaire.trim() || null,
-        })
-        .select()
-        .single();
+        .insert(expressionsToCreate)
+        .select();
 
       if (error) throw error;
 
+      const count = data?.length || validArticles.length;
       toast({
-        title: 'Expression créée',
+        title: `${count} expression${count > 1 ? 's' : ''} créée${count > 1 ? 's' : ''}`,
         description: manager 
-          ? `Votre expression a été soumise à ${manager.first_name} ${manager.last_name} pour validation.`
-          : 'Votre expression a été enregistrée.',
+          ? `Vos expressions ont été soumises à ${manager.first_name} ${manager.last_name} pour validation.`
+          : 'Vos expressions ont été enregistrées.',
       });
 
-      navigate(`/expressions-besoin/${data.id}`);
+      // Navigate to list or first expression
+      if (data && data.length === 1) {
+        navigate(`/expressions-besoin/${data[0].id}`);
+      } else {
+        navigate('/expressions-besoin');
+      }
     } catch (error: any) {
-      console.error('Error creating expression:', error);
+      console.error('Error creating expressions:', error);
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de créer l\'expression.',
+        description: error.message || 'Impossible de créer les expressions.',
         variant: 'destructive',
       });
     } finally {
@@ -107,6 +141,28 @@ export default function ExpressionCreate() {
     );
   }
 
+  const formActions = (
+    <>
+      <Link to="/expressions-besoin" className="flex-1 sm:flex-none">
+        <Button type="button" variant="outline" disabled={isSubmitting} className="w-full">
+          Annuler
+        </Button>
+      </Link>
+      <Button 
+        type="submit" 
+        disabled={isSubmitting || validArticles.length === 0}
+        className="flex-1 sm:flex-none"
+      >
+        {isSubmitting 
+          ? 'Envoi...' 
+          : validArticles.length > 1 
+            ? `Soumettre ${validArticles.length} articles` 
+            : 'Soumettre'
+        }
+      </Button>
+    </>
+  );
+
   return (
     <AppLayout>
       <div className="mx-auto max-w-2xl space-y-6">
@@ -118,11 +174,11 @@ export default function ExpressionCreate() {
             </Button>
           </Link>
           <div>
-            <h1 className="font-serif text-2xl font-bold text-foreground">
+            <h1 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
               Nouvelle expression de besoin
             </h1>
-            <p className="text-muted-foreground">
-              Décrivez simplement votre besoin
+            <p className="text-sm text-muted-foreground">
+              Listez les articles dont vous avez besoin
             </p>
           </div>
         </div>
@@ -134,8 +190,8 @@ export default function ExpressionCreate() {
             <div className="text-sm">
               <p className="font-medium text-foreground">Expression simple, sans engagement</p>
               <p className="text-muted-foreground">
-                Indiquez uniquement le nom de l'article et un commentaire optionnel. 
-                Votre chef hiérarchique validera et précisera la quantité si nécessaire.
+                Indiquez les noms des articles souhaités. 
+                Votre chef hiérarchique validera et précisera les quantités.
               </p>
             </div>
           </CardContent>
@@ -181,9 +237,9 @@ export default function ExpressionCreate() {
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
-              <CardTitle>Informations du besoin</CardTitle>
+              <CardTitle>Articles demandés</CardTitle>
               <CardDescription>
-                Seulement le nom et un commentaire optionnel
+                Ajoutez un ou plusieurs articles
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -207,35 +263,57 @@ export default function ExpressionCreate() {
                 </div>
               </div>
 
-              {/* Nom de l'article */}
-              <div className="space-y-2">
-                <Label htmlFor="nom_article">Nom de l'article *</Label>
-                <Input
-                  id="nom_article"
-                  placeholder="Ex: Cartouches d'encre, Clavier sans fil, Vis inox 6mm..."
-                  value={nomArticle}
-                  onChange={(e) => setNomArticle(e.target.value)}
-                  maxLength={200}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  {nomArticle.length}/200 caractères
-                </p>
+              {/* Articles list */}
+              <div className="space-y-3">
+                <Label>Nom des articles *</Label>
+                {articles.map((article, index) => (
+                  <div key={article.id} className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder={`Article ${index + 1} (ex: Cartouches d'encre, Clavier...)`}
+                        value={article.nomArticle}
+                        onChange={(e) => updateArticle(article.id, e.target.value)}
+                        maxLength={200}
+                      />
+                    </div>
+                    {articles.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeArticle(article.id)}
+                        className="shrink-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addArticle}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un article
+                </Button>
               </div>
 
-              {/* Commentaire */}
+              {/* Commentaire global */}
               <div className="space-y-2">
-                <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
+                <Label htmlFor="commentaire">Commentaire global (optionnel)</Label>
                 <Textarea
                   id="commentaire"
-                  placeholder="Précisions supplémentaires, contexte, urgence particulière..."
+                  placeholder="Contexte, urgence particulière, précisions..."
                   value={commentaire}
                   onChange={(e) => setCommentaire(e.target.value)}
                   maxLength={500}
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {commentaire.length}/500 caractères
+                  {commentaire.length}/500 caractères • S'applique à tous les articles
                 </p>
               </div>
 
@@ -243,24 +321,28 @@ export default function ExpressionCreate() {
               <div className="rounded-md bg-muted/50 p-3">
                 <p className="text-xs text-muted-foreground">
                   ⚠️ <strong>Pas de quantité ni de prix</strong> — Votre chef hiérarchique 
-                  définira la quantité lors de la validation. Cette expression sera ensuite 
-                  transformée en besoin interne formel.
+                  définira les quantités lors de la validation. Chaque article créera une expression séparée.
                 </p>
               </div>
 
-              {/* Submit */}
-              <div className="flex justify-end gap-3">
-                <Link to="/expressions-besoin">
-                  <Button type="button" variant="outline" disabled={isSubmitting}>
-                    Annuler
-                  </Button>
-                </Link>
-                <Button type="submit" disabled={isSubmitting || !nomArticle.trim()}>
-                  {isSubmitting ? 'Envoi en cours...' : 'Soumettre l\'expression'}
-                </Button>
-              </div>
+              {/* Desktop Submit */}
+              {!isMobile && (
+                <div className="flex justify-end gap-3">
+                  {formActions}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Mobile sticky footer */}
+          {isMobile && (
+            <>
+              <MobileFormSpacer />
+              <MobileFormFooter>
+                {formActions}
+              </MobileFormFooter>
+            </>
+          )}
         </form>
       </div>
     </AppLayout>
