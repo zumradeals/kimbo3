@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,9 +63,8 @@ const statusIcons: Record<ExpressionStatus, React.ElementType> = {
 
 export default function ExpressionDetail() {
   const { id } = useParams<{ id: string }>();
-  const { profile, isAdmin } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Validation form state
@@ -79,7 +78,7 @@ export default function ExpressionDetail() {
 
   // Fetch expression
   const { data: expression, isLoading, error } = useQuery({
-    queryKey: ['expression-besoin', id],
+    queryKey: ['expression-besoin', id, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('expressions_besoin')
@@ -101,34 +100,31 @@ export default function ExpressionDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !!id,
+    enabled: !!id && !authLoading,
   });
 
-  // Check if current user is the manager of the expression creator
-  const isManager = expression?.user?.chef_hierarchique_id === profile?.id || 
-    (profile?.id && expression?.user?.id && 
-      // Additional check via direct query would be done, but for simplicity using the relationship
-      false // This is handled by RLS policies
-    );
-
-  // Query to check manager status
+  // Permission check (server-side) to avoid relying on direct profiles reads
   const { data: canValidate } = useQuery({
-    queryKey: ['can-validate-expression', id, profile?.id],
+    queryKey: ['can-validate-expression', id, user?.id],
     queryFn: async () => {
-      if (!profile?.id || !expression?.user_id) return false;
-      // Check if current user is the chef_hierarchique of the expression creator
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('chef_hierarchique_id')
-        .eq('id', expression.user_id)
-        .single();
-      if (error || !data) return false;
-      return data.chef_hierarchique_id === profile.id || isAdmin;
+      if (!id || !user?.id) return false;
+      const { data, error } = await supabase.rpc('can_validate_expression' as any, { _expression_id: id } as any);
+      if (error) return false;
+      return !!data;
     },
-    enabled: !!profile?.id && !!expression?.user_id,
+    enabled: !!id && !!user?.id && !authLoading,
   });
 
   const handleValidate = async () => {
+    if (!profile?.id) {
+      toast({
+        title: 'Erreur',
+        description: 'Profil utilisateur introuvable. Veuillez vous reconnecter.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!quantite || parseInt(quantite) <= 0) {
       toast({
         title: 'Erreur',
@@ -216,6 +212,15 @@ export default function ExpressionDetail() {
   };
 
   const handleReject = async () => {
+    if (!profile?.id) {
+      toast({
+        title: 'Erreur',
+        description: 'Profil utilisateur introuvable. Veuillez vous reconnecter.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!rejectionReason.trim()) {
       toast({
         title: 'Erreur',
@@ -322,6 +327,14 @@ export default function ExpressionDetail() {
     return events;
   };
 
+  if (authLoading) {
+    return (
+      <AppLayout>
+        <ListSkeleton rows={6} columns={2} />
+      </AppLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -348,7 +361,6 @@ export default function ExpressionDetail() {
   }
 
   const StatusIcon = statusIcons[expression.status as ExpressionStatus];
-  const isMine = expression.user_id === profile?.id;
   const isPending = expression.status === 'en_attente';
 
   return (
