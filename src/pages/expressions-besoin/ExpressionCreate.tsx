@@ -92,15 +92,6 @@ export default function ExpressionCreate() {
       return;
     }
 
-    // Block submission if no manager and trying to submit directly
-    if (submitDirect && !hasManager) {
-      toast({
-        title: 'Soumission impossible',
-        description: 'Aucun responsable hiérarchique n\'est défini pour votre compte. Veuillez contacter l\'administration.',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     setIsSubmitting(true);
 
@@ -177,7 +168,7 @@ export default function ExpressionCreate() {
       </Link>
       <Button 
         type="submit" 
-        disabled={isSubmitting || validArticles.length === 0 || (submitDirect && !hasManager)}
+        disabled={isSubmitting || validArticles.length === 0}
         className="flex-1 sm:flex-none"
       >
         {isSubmitting ? (
@@ -229,8 +220,8 @@ export default function ExpressionCreate() {
           </CardContent>
         </Card>
 
-        {/* Manager info - or blocking alert */}
-        {hasManager && manager ? (
+        {/* Manager info (informational only) */}
+        {hasManager && manager && (
           <Card className="border-success/20 bg-success/5">
             <CardContent className="flex items-center gap-3 py-4">
               <User className="h-5 w-5 text-success" />
@@ -251,19 +242,6 @@ export default function ExpressionCreate() {
                     linkToProfile
                   />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-destructive/20 bg-destructive/5">
-            <CardContent className="flex items-start gap-3 py-4">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-destructive">Soumission impossible</p>
-                <p className="text-foreground">
-                  Aucun responsable hiérarchique n'est défini pour votre compte. 
-                  Veuillez contacter l'administration pour compléter votre profil avant de pouvoir soumettre des expressions de besoin.
-                </p>
               </div>
             </CardContent>
           </Card>
