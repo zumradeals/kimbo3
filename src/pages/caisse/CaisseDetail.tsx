@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, Minus, Calendar, User, Filter } from 'lucide-react';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, Minus, Calendar, User, Filter, PlusCircle, ArrowRightLeft, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { ApprovisionnementDialog } from '@/components/caisse/ApprovisionnementDialog';
+import { TransfertDialog } from '@/components/caisse/TransfertDialog';
 
 interface Caisse {
   id: string;
@@ -97,8 +99,11 @@ export default function CaisseDetail() {
   const [mouvements, setMouvements] = useState<CaisseMouvement[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentClassFilter, setPaymentClassFilter] = useState<string>('all');
+  const [showApprovisionnement, setShowApprovisionnement] = useState(false);
+  const [showTransfert, setShowTransfert] = useState(false);
 
   const canView = roles.some(r => ['admin', 'daf', 'dg', 'comptable'].includes(r));
+  const canManage = roles.some(r => ['admin', 'daf'].includes(r));
 
   useEffect(() => {
     if (!authLoading && canView && id) {
@@ -177,6 +182,11 @@ export default function CaisseDetail() {
     return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + devise;
   };
 
+  const handleRefresh = () => {
+    fetchCaisse();
+    fetchMouvements();
+  };
+
   if (authLoading || loading) {
     return (
       <AppLayout>
@@ -229,6 +239,28 @@ export default function CaisseDetail() {
             </div>
             <p className="text-muted-foreground font-mono">{caisse.code}</p>
           </div>
+          
+          {/* Action Buttons */}
+          {canManage && caisse.is_active && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowApprovisionnement(true)}
+                className="gap-2"
+              >
+                <PlusCircle className="h-4 w-4 text-green-600" />
+                Approvisionner
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowTransfert(true)}
+                className="gap-2"
+              >
+                <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+                Transférer
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -414,6 +446,24 @@ export default function CaisseDetail() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Dialogs */}
+        {caisse && (
+          <>
+            <ApprovisionnementDialog
+              open={showApprovisionnement}
+              onOpenChange={setShowApprovisionnement}
+              caisse={caisse}
+              onSuccess={handleRefresh}
+            />
+            <TransfertDialog
+              open={showTransfert}
+              onOpenChange={setShowTransfert}
+              sourceCaisse={caisse}
+              onSuccess={handleRefresh}
+            />
+          </>
+        )}
       </div>
     </AppLayout>
   );

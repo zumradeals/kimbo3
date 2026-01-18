@@ -578,6 +578,8 @@ export type Database = {
       caisse_mouvements: {
         Row: {
           caisse_id: string
+          correction_of_id: string | null
+          correction_reason: string | null
           created_at: string
           created_by: string
           da_id: string | null
@@ -590,10 +592,13 @@ export type Database = {
           reference: string
           solde_apres: number
           solde_avant: number
+          transfer_id: string | null
           type: string
         }
         Insert: {
           caisse_id: string
+          correction_of_id?: string | null
+          correction_reason?: string | null
           created_at?: string
           created_by: string
           da_id?: string | null
@@ -606,10 +611,13 @@ export type Database = {
           reference: string
           solde_apres: number
           solde_avant: number
+          transfer_id?: string | null
           type: string
         }
         Update: {
           caisse_id?: string
+          correction_of_id?: string | null
+          correction_reason?: string | null
           created_at?: string
           created_by?: string
           da_id?: string | null
@@ -622,6 +630,7 @@ export type Database = {
           reference?: string
           solde_apres?: number
           solde_avant?: number
+          transfer_id?: string | null
           type?: string
         }
         Relationships: [
@@ -630,6 +639,13 @@ export type Database = {
             columns: ["caisse_id"]
             isOneToOne: false
             referencedRelation: "caisses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caisse_mouvements_correction_of_id_fkey"
+            columns: ["correction_of_id"]
+            isOneToOne: false
+            referencedRelation: "caisse_mouvements"
             referencedColumns: ["id"]
           },
           {
@@ -651,6 +667,13 @@ export type Database = {
             columns: ["note_frais_id"]
             isOneToOne: false
             referencedRelation: "notes_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caisse_mouvements_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "caisse_mouvements"
             referencedColumns: ["id"]
           },
         ]
@@ -2259,11 +2282,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approvisionner_caisse: {
+        Args: {
+          p_caisse_id: string
+          p_montant: number
+          p_motif: string
+          p_observations?: string
+        }
+        Returns: string
+      }
       can_create_besoin: { Args: { _user_id: string }; Returns: boolean }
       can_transform_besoin: { Args: { _besoin_id: string }; Returns: boolean }
       can_validate_expression: {
         Args: { _expression_id: string }
         Returns: boolean
+      }
+      corriger_caisse_note_frais: {
+        Args: {
+          p_note_frais_id: string
+          p_nouvelle_caisse_id: string
+          p_raison: string
+        }
+        Returns: string
+      }
+      corriger_caisse_paiement: {
+        Args: {
+          p_da_id: string
+          p_nouvelle_caisse_id: string
+          p_raison: string
+        }
+        Returns: string
       }
       create_notification: {
         Args: {
@@ -2353,6 +2401,16 @@ export type Database = {
       }
       submit_expression_to_logistics: {
         Args: { _expression_id: string }
+        Returns: string
+      }
+      transferer_entre_caisses: {
+        Args: {
+          p_caisse_dest_id: string
+          p_caisse_source_id: string
+          p_montant: number
+          p_motif: string
+          p_observations?: string
+        }
         Returns: string
       }
       user_can_insert_besoin_ligne: {
