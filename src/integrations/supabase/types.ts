@@ -1266,7 +1266,11 @@ export type Database = {
           quantite: number | null
           rejected_at: string | null
           rejection_reason: string | null
-          status: Database["public"]["Enums"]["expression_besoin_status"]
+          reviewed_at: string | null
+          sent_to_logistics_at: string | null
+          status: Database["public"]["Enums"]["expression_besoin_status_v2"]
+          status_old: Database["public"]["Enums"]["expression_besoin_status"]
+          submitted_at: string | null
           unite: string | null
           updated_at: string
           user_id: string
@@ -1284,7 +1288,11 @@ export type Database = {
           quantite?: number | null
           rejected_at?: string | null
           rejection_reason?: string | null
-          status?: Database["public"]["Enums"]["expression_besoin_status"]
+          reviewed_at?: string | null
+          sent_to_logistics_at?: string | null
+          status?: Database["public"]["Enums"]["expression_besoin_status_v2"]
+          status_old?: Database["public"]["Enums"]["expression_besoin_status"]
+          submitted_at?: string | null
           unite?: string | null
           updated_at?: string
           user_id: string
@@ -1302,7 +1310,11 @@ export type Database = {
           quantite?: number | null
           rejected_at?: string | null
           rejection_reason?: string | null
-          status?: Database["public"]["Enums"]["expression_besoin_status"]
+          reviewed_at?: string | null
+          sent_to_logistics_at?: string | null
+          status?: Database["public"]["Enums"]["expression_besoin_status_v2"]
+          status_old?: Database["public"]["Enums"]["expression_besoin_status"]
+          submitted_at?: string | null
           unite?: string | null
           updated_at?: string
           user_id?: string
@@ -2329,12 +2341,29 @@ export type Database = {
         Args: { p_caisse_id: string }
         Returns: number
       }
+      reject_expression_by_manager: {
+        Args: { _expression_id: string; _rejection_reason: string }
+        Returns: boolean
+      }
+      submit_expression_for_validation: {
+        Args: { _expression_id: string }
+        Returns: boolean
+      }
       submit_expression_to_logistics: {
         Args: { _expression_id: string }
         Returns: string
       }
       user_can_insert_besoin_ligne: {
         Args: { _besoin_id: string; _user_id: string }
+        Returns: boolean
+      }
+      validate_expression_by_manager: {
+        Args: {
+          _expression_id: string
+          _precision_technique?: string
+          _quantite: number
+          _unite?: string
+        }
         Returns: boolean
       }
     }
@@ -2403,6 +2432,13 @@ export type Database = {
         | "rejetee_comptabilite"
         | "annulee"
       expression_besoin_status: "en_attente" | "validee" | "rejetee"
+      expression_besoin_status_v2:
+        | "brouillon"
+        | "soumis"
+        | "en_examen"
+        | "valide_departement"
+        | "rejete_departement"
+        | "envoye_logistique"
       note_frais_status:
         | "brouillon"
         | "soumise"
@@ -2616,6 +2652,14 @@ export const Constants = {
         "annulee",
       ],
       expression_besoin_status: ["en_attente", "validee", "rejetee"],
+      expression_besoin_status_v2: [
+        "brouillon",
+        "soumis",
+        "en_examen",
+        "valide_departement",
+        "rejete_departement",
+        "envoye_logistique",
+      ],
       note_frais_status: [
         "brouillon",
         "soumise",

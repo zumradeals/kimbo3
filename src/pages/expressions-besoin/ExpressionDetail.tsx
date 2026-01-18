@@ -36,31 +36,30 @@ import {
   ExternalLink,
   Send,
   Loader2,
+  FileEdit,
+  Eye,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { ActionTimeline, TimelineEvent } from '@/components/ui/ActionTimeline';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
+import {
+  ExpressionBesoinStatus,
+  EXPRESSION_STATUS_LABELS,
+  EXPRESSION_STATUS_COLORS,
+  EXPRESSION_STATUS_DESCRIPTIONS,
+  ExpressionUserRole,
+  getExpressionActions,
+} from '@/types/expression-besoin';
 
-type ExpressionStatus = 'en_attente' | 'validee' | 'rejetee';
-
-const STATUS_LABELS: Record<ExpressionStatus, string> = {
-  en_attente: 'En attente de validation',
-  validee: 'Validée',
-  rejetee: 'Rejetée',
-};
-
-const statusColors: Record<ExpressionStatus, string> = {
-  en_attente: 'bg-warning/10 text-warning',
-  validee: 'bg-success/10 text-success',
-  rejetee: 'bg-destructive/10 text-destructive',
-};
-
-const statusIcons: Record<ExpressionStatus, React.ElementType> = {
-  en_attente: Clock,
-  validee: CheckCircle,
-  rejetee: XCircle,
+const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
+  brouillon: FileEdit,
+  soumis: Clock,
+  en_examen: Eye,
+  valide_departement: CheckCircle,
+  rejete_departement: XCircle,
+  envoye_logistique: Send,
 };
 
 export default function ExpressionDetail() {
@@ -78,7 +77,6 @@ export default function ExpressionDetail() {
   const [precisionTechnique, setPrecisionTechnique] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSubmittingToLogistics, setIsSubmittingToLogistics] = useState(false);
 
   // Fetch expression
   const { data: expression, isLoading, error } = useQuery({
@@ -107,7 +105,7 @@ export default function ExpressionDetail() {
     enabled: !!id && !authLoading,
   });
 
-  // Permission check (server-side) to avoid relying on direct profiles reads
+  // Permission check (server-side)
   const { data: canValidate, isLoading: isCheckingPermission } = useQuery({
     queryKey: ['can-validate-expression', id, user?.id],
     queryFn: async () => {
@@ -117,23 +115,56 @@ export default function ExpressionDetail() {
         console.error('can_validate_expression error:', error);
         return false;
       }
-      console.log('can_validate_expression result:', data, 'for user:', user.id, 'expression:', id);
       return !!data;
     },
     enabled: !!id && !!user?.id && !authLoading,
   });
 
-  const handleValidate = async () => {
-    if (!profile?.id) {
+  // Determine user role in context of this expression
+  const getUserRole = (): ExpressionUserRole => {
+    if (!expression || !user?.id) return 'viewer';
+    if (expression.user_id === user.id) return 'owner';
+    if (canValidate) return 'manager';
+    return 'viewer';
+  };
+
+  const userRole = getUserRole();
+  const status = expression?.status as ExpressionBesoinStatus;
+  const actions = status ? getExpressionActions(status, userRole) : null;
+
+  // Handle submit for validation (owner brouillon -> soumis)
+  const handleSubmitForValidation = async () => {
+    if (!id) return;
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase.rpc('submit_expression_for_validation', {
+        _expression_id: id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Expression soumise',
+        description: 'Votre expression a été soumise à votre responsable pour validation.',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
+      queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
+    } catch (error: any) {
+      console.error('Submit error:', error);
       toast({
         title: 'Erreur',
-        description: 'Profil utilisateur introuvable. Veuillez vous reconnecter.',
+        description: error.message || 'Impossible de soumettre l\'expression.',
         variant: 'destructive',
       });
-      return;
+    } finally {
+      setIsProcessing(false);
     }
+  };
 
-    if (!quantite || parseInt(quantite) <= 0) {
+  // Handle validate (manager)
+  const handleValidate = async () => {
+    if (!id || !quantite || parseInt(quantite) <= 0) {
       toast({
         title: 'Erreur',
         description: 'La quantité est obligatoire et doit être supérieure à 0.',
@@ -144,69 +175,25 @@ export default function ExpressionDetail() {
 
     setIsProcessing(true);
     try {
-      // 1. Update expression status
-      const { error: updateError } = await supabase
-        .from('expressions_besoin')
-        .update({
-          status: 'validee',
-          validated_at: new Date().toISOString(),
-          chef_validateur_id: profile?.id,
-          quantite: parseInt(quantite),
-          unite: unite,
-          precision_technique: precisionTechnique.trim() || null,
-        })
-        .eq('id', id);
+      const { error } = await supabase.rpc('validate_expression_by_manager', {
+        _expression_id: id,
+        _quantite: parseInt(quantite),
+        _unite: unite,
+        _precision_technique: precisionTechnique.trim() || null,
+      });
 
-      if (updateError) throw updateError;
-
-      // 2. Create the formal besoin
-      const { data: besoinData, error: besoinError } = await supabase
-        .from('besoins')
-        .insert({
-          title: expression.nom_article,
-          description: [
-            expression.commentaire,
-            precisionTechnique && `Précisions techniques: ${precisionTechnique}`,
-          ].filter(Boolean).join('\n\n'),
-          category: 'materiel',
-          urgency: 'normale',
-          user_id: expression.user_id,
-          department_id: expression.department_id,
-          objet_besoin: expression.nom_article,
-          estimated_quantity: parseInt(quantite),
-          unit: unite,
-        })
-        .select()
-        .single();
-
-      if (besoinError) throw besoinError;
-
-      // 3. Create besoin ligne
-      await supabase
-        .from('besoin_lignes')
-        .insert({
-          besoin_id: besoinData.id,
-          designation: expression.nom_article,
-          category: 'materiel',
-          quantity: parseInt(quantite),
-          unit: unite,
-          urgency: 'normale',
-        });
-
-      // 4. Link expression to besoin
-      await supabase
-        .from('expressions_besoin')
-        .update({ besoin_id: besoinData.id })
-        .eq('id', id);
+      if (error) throw error;
 
       toast({
         title: 'Expression validée',
-        description: 'Un besoin interne a été créé à partir de cette expression.',
+        description: 'L\'expression a été validée. Vous pouvez maintenant la transmettre à la logistique.',
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
       queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
       setShowValidateDialog(false);
+      setQuantite('');
+      setPrecisionTechnique('');
     } catch (error: any) {
       console.error('Validation error:', error);
       toast({
@@ -219,17 +206,9 @@ export default function ExpressionDetail() {
     }
   };
 
+  // Handle reject (manager)
   const handleReject = async () => {
-    if (!profile?.id) {
-      toast({
-        title: 'Erreur',
-        description: 'Profil utilisateur introuvable. Veuillez vous reconnecter.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!rejectionReason.trim()) {
+    if (!id || !rejectionReason.trim()) {
       toast({
         title: 'Erreur',
         description: 'Le motif de rejet est obligatoire.',
@@ -240,15 +219,10 @@ export default function ExpressionDetail() {
 
     setIsProcessing(true);
     try {
-      const { error } = await supabase
-        .from('expressions_besoin')
-        .update({
-          status: 'rejetee',
-          rejected_at: new Date().toISOString(),
-          chef_validateur_id: profile?.id,
-          rejection_reason: rejectionReason.trim(),
-        })
-        .eq('id', id);
+      const { error } = await supabase.rpc('reject_expression_by_manager', {
+        _expression_id: id,
+        _rejection_reason: rejectionReason.trim(),
+      });
 
       if (error) throw error;
 
@@ -260,6 +234,7 @@ export default function ExpressionDetail() {
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
       queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
       setShowRejectDialog(false);
+      setRejectionReason('');
     } catch (error: any) {
       console.error('Rejection error:', error);
       toast({
@@ -268,15 +243,15 @@ export default function ExpressionDetail() {
         variant: 'destructive',
       });
     } finally {
-    setIsProcessing(false);
-  }
-};
+      setIsProcessing(false);
+    }
+  };
 
-  // Handler to submit validated expression to logistics
+  // Handle submit to logistics (manager after validation)
   const handleSubmitToLogistics = async () => {
-    if (!id || !canValidate) return;
+    if (!id) return;
 
-    setIsSubmittingToLogistics(true);
+    setIsProcessing(true);
     try {
       const { data: besoinId, error } = await supabase.rpc('submit_expression_to_logistics', {
         _expression_id: id,
@@ -285,8 +260,8 @@ export default function ExpressionDetail() {
       if (error) throw error;
 
       toast({
-        title: 'Expression soumise',
-        description: 'Le besoin a été transmis à la logistique.',
+        title: 'Expression transmise',
+        description: 'Le besoin a été créé et transmis à la logistique.',
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
@@ -300,11 +275,11 @@ export default function ExpressionDetail() {
       console.error('Submit to logistics error:', error);
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de soumettre à la logistique.',
+        description: error.message || 'Impossible de transmettre à la logistique.',
         variant: 'destructive',
       });
     } finally {
-      setIsSubmittingToLogistics(false);
+      setIsProcessing(false);
     }
   };
 
@@ -317,7 +292,7 @@ export default function ExpressionDetail() {
     events.push({
       id: 'created',
       action: 'created',
-      actionLabel: 'Expression de besoin créée',
+      actionLabel: 'Expression créée',
       timestamp: expression.created_at,
       user: {
         id: expression.user?.id,
@@ -330,27 +305,46 @@ export default function ExpressionDetail() {
       variant: 'info',
     });
 
-    // Validation event
-    if (expression.status === 'validee' && expression.validated_at) {
+    // Submission event
+    if (expression.submitted_at && status !== 'brouillon') {
       events.push({
-        id: 'validated',
-        action: 'validated',
-        actionLabel: `Expression validée avec quantité: ${expression.quantite} ${expression.unite || 'unité(s)'}`,
-        timestamp: expression.validated_at,
+        id: 'submitted',
+        action: 'submitted',
+        actionLabel: 'Expression soumise pour validation',
+        timestamp: expression.submitted_at,
         user: {
-          id: expression.chef_validateur?.id,
-          photoUrl: expression.chef_validateur?.photo_url,
-          firstName: expression.chef_validateur?.first_name,
-          lastName: expression.chef_validateur?.last_name,
-          fonction: expression.chef_validateur?.fonction,
+          id: expression.user?.id,
+          photoUrl: expression.user?.photo_url,
+          firstName: expression.user?.first_name,
+          lastName: expression.user?.last_name,
         },
-        comment: expression.precision_technique,
-        variant: 'success',
+        variant: 'info',
       });
     }
 
+    // Validation event
+    if (status === 'valide_departement' || status === 'envoye_logistique') {
+      if (expression.validated_at || expression.reviewed_at) {
+        events.push({
+          id: 'validated',
+          action: 'validated',
+          actionLabel: `Validée - Quantité: ${expression.quantite} ${expression.unite || 'unité(s)'}`,
+          timestamp: expression.validated_at || expression.reviewed_at!,
+          user: {
+            id: expression.chef_validateur?.id,
+            photoUrl: expression.chef_validateur?.photo_url,
+            firstName: expression.chef_validateur?.first_name,
+            lastName: expression.chef_validateur?.last_name,
+            fonction: expression.chef_validateur?.fonction,
+          },
+          comment: expression.precision_technique,
+          variant: 'success',
+        });
+      }
+    }
+
     // Rejection event
-    if (expression.status === 'rejetee' && expression.rejected_at) {
+    if (status === 'rejete_departement' && expression.rejected_at) {
       events.push({
         id: 'rejected',
         action: 'rejected',
@@ -368,18 +362,28 @@ export default function ExpressionDetail() {
       });
     }
 
+    // Sent to logistics event
+    if (status === 'envoye_logistique' && expression.sent_to_logistics_at) {
+      events.push({
+        id: 'sent_logistics',
+        action: 'sent_logistics',
+        actionLabel: 'Transmise à la logistique',
+        timestamp: expression.sent_to_logistics_at,
+        user: {
+          id: expression.chef_validateur?.id,
+          photoUrl: expression.chef_validateur?.photo_url,
+          firstName: expression.chef_validateur?.first_name,
+          lastName: expression.chef_validateur?.last_name,
+          fonction: expression.chef_validateur?.fonction,
+        },
+        variant: 'success',
+      });
+    }
+
     return events;
   };
 
-  if (authLoading) {
-    return (
-      <AppLayout>
-        <ListSkeleton rows={6} columns={2} />
-      </AppLayout>
-    );
-  }
-
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <AppLayout>
         <ListSkeleton rows={6} columns={2} />
@@ -404,8 +408,7 @@ export default function ExpressionDetail() {
     );
   }
 
-  const StatusIcon = statusIcons[expression.status as ExpressionStatus];
-  const isPending = expression.status === 'en_attente';
+  const StatusIcon = STATUS_ICONS[status];
 
   return (
     <AppLayout>
@@ -422,9 +425,9 @@ export default function ExpressionDetail() {
               <h1 className="font-serif text-2xl font-bold text-foreground">
                 {expression.nom_article}
               </h1>
-              <Badge className={statusColors[expression.status as ExpressionStatus]}>
+              <Badge className={EXPRESSION_STATUS_COLORS[status]}>
                 <StatusIcon className="mr-1 h-3 w-3" />
-                {STATUS_LABELS[expression.status as ExpressionStatus]}
+                {EXPRESSION_STATUS_LABELS[status]}
               </Badge>
             </div>
             <p className="text-muted-foreground">
@@ -432,6 +435,15 @@ export default function ExpressionDetail() {
             </p>
           </div>
         </div>
+
+        {/* Status description banner */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="py-4">
+            <p className="text-sm text-foreground">
+              {EXPRESSION_STATUS_DESCRIPTIONS[status]}
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content */}
@@ -456,33 +468,33 @@ export default function ExpressionDetail() {
                   </div>
                 )}
 
-                {expression.status === 'validee' && (
-                  <>
-                    <div className="border-t pt-4 mt-4">
-                      <p className="text-sm font-medium text-success mb-3">
-                        Informations ajoutées à la validation
-                      </p>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <Label className="text-muted-foreground">Quantité</Label>
-                          <p className="text-lg font-medium">
-                            {expression.quantite} {expression.unite || 'unité(s)'}
-                          </p>
-                        </div>
+                {/* Validation info */}
+                {(status === 'valide_departement' || status === 'envoye_logistique') && (
+                  <div className="border-t pt-4 mt-4">
+                    <p className="text-sm font-medium text-success mb-3">
+                      Informations de validation
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-muted-foreground">Quantité</Label>
+                        <p className="text-lg font-medium">
+                          {expression.quantite} {expression.unite || 'unité(s)'}
+                        </p>
                       </div>
-                      {expression.precision_technique && (
-                        <div className="mt-4">
-                          <Label className="text-muted-foreground">Précisions techniques</Label>
-                          <p className="mt-1 text-foreground whitespace-pre-wrap">
-                            {expression.precision_technique}
-                          </p>
-                        </div>
-                      )}
                     </div>
-                  </>
+                    {expression.precision_technique && (
+                      <div className="mt-4">
+                        <Label className="text-muted-foreground">Précisions techniques</Label>
+                        <p className="mt-1 text-foreground whitespace-pre-wrap">
+                          {expression.precision_technique}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
 
-                {expression.status === 'rejetee' && expression.rejection_reason && (
+                {/* Rejection info */}
+                {status === 'rejete_departement' && expression.rejection_reason && (
                   <div className="border-t pt-4 mt-4">
                     <p className="text-sm font-medium text-destructive mb-2">Motif du rejet</p>
                     <p className="text-foreground bg-destructive/5 p-3 rounded-md">
@@ -518,39 +530,6 @@ export default function ExpressionDetail() {
               </Card>
             )}
 
-            {/* Submit to logistics button for validated expressions without besoin yet */}
-            {expression.status === 'validee' && !expression.besoin && canValidate && !isCheckingPermission && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="h-5 w-5 text-primary" />
-                    Soumettre à la logistique
-                  </CardTitle>
-                  <CardDescription>
-                    L'expression a été validée. Vous pouvez maintenant créer le besoin interne et le transmettre à la logistique.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={handleSubmitToLogistics} 
-                    disabled={isSubmittingToLogistics}
-                  >
-                    {isSubmittingToLogistics ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Envoi...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Soumettre à la logistique
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Demandeur */}
             <Card>
               <CardHeader>
@@ -570,42 +549,98 @@ export default function ExpressionDetail() {
                 />
               </CardContent>
             </Card>
-
-            {/* Actions for manager */}
-            {isPending && isCheckingPermission && (
-              <Card className="border-muted">
-                <CardContent className="py-4">
-                  <p className="text-muted-foreground text-sm">Vérification des permissions...</p>
-                </CardContent>
-              </Card>
-            )}
-            {canValidate && isPending && !isCheckingPermission && (
-              <Card className="border-warning/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-warning" />
-                    Action requise
-                  </CardTitle>
-                  <CardDescription>
-                    En tant que responsable hiérarchique, vous pouvez valider ou rejeter cette expression.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex gap-3">
-                  <Button onClick={() => setShowValidateDialog(true)}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Valider et préciser
-                  </Button>
-                  <Button variant="destructive" onClick={() => setShowRejectDialog(true)}>
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Rejeter
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Sidebar - Timeline */}
+          {/* Sidebar */}
           <div className="space-y-6">
+            {/* Actions card */}
+            {actions && !isCheckingPermission && (
+              <Card className="border-primary/30">
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                  <CardDescription>
+                    {userRole === 'owner' && 'Actions disponibles pour votre expression'}
+                    {userRole === 'manager' && 'Actions de validation disponibles'}
+                    {userRole === 'viewer' && 'Consultation uniquement'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Owner actions */}
+                  {actions.canSubmit && (
+                    <Button 
+                      className="w-full" 
+                      onClick={handleSubmitForValidation}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="mr-2 h-4 w-4" />
+                      )}
+                      Soumettre pour validation
+                    </Button>
+                  )}
+
+                  {/* Manager validation actions */}
+                  {actions.canValidate && (
+                    <>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => setShowValidateDialog(true)}
+                        disabled={isProcessing}
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Valider et préciser
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        className="w-full"
+                        onClick={() => setShowRejectDialog(true)}
+                        disabled={isProcessing}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Rejeter
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Send to logistics */}
+                  {actions.canSendToLogistics && (
+                    <Button 
+                      className="w-full" 
+                      onClick={handleSubmitToLogistics}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="mr-2 h-4 w-4" />
+                      )}
+                      Transmettre à la logistique
+                    </Button>
+                  )}
+
+                  {/* No actions available message */}
+                  {!actions.canSubmit && !actions.canValidate && !actions.canReject && !actions.canSendToLogistics && (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      Aucune action disponible pour cette expression.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {isCheckingPermission && (
+              <Card className="border-muted">
+                <CardContent className="py-4">
+                  <p className="text-muted-foreground text-sm text-center">
+                    Vérification des permissions...
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Timeline */}
             <Card>
               <CardHeader>
                 <CardTitle>Historique</CardTitle>
@@ -625,7 +660,6 @@ export default function ExpressionDetail() {
             <DialogTitle>Valider l'expression</DialogTitle>
             <DialogDescription>
               Précisez la quantité et les informations techniques avant validation.
-              Un besoin interne sera créé automatiquement.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
