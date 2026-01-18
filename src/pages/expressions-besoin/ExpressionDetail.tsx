@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +34,8 @@ import {
   AlertTriangle,
   FileText,
   ExternalLink,
+  Send,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -66,6 +68,7 @@ export default function ExpressionDetail() {
   const { user, profile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Validation form state
   const [showValidateDialog, setShowValidateDialog] = useState(false);
@@ -75,6 +78,7 @@ export default function ExpressionDetail() {
   const [precisionTechnique, setPrecisionTechnique] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSubmittingToLogistics, setIsSubmittingToLogistics] = useState(false);
 
   // Fetch expression
   const { data: expression, isLoading, error } = useQuery({
@@ -264,7 +268,43 @@ export default function ExpressionDetail() {
         variant: 'destructive',
       });
     } finally {
-      setIsProcessing(false);
+    setIsProcessing(false);
+  }
+};
+
+  // Handler to submit validated expression to logistics
+  const handleSubmitToLogistics = async () => {
+    if (!id || !canValidate) return;
+
+    setIsSubmittingToLogistics(true);
+    try {
+      const { data: besoinId, error } = await supabase.rpc('submit_expression_to_logistics', {
+        _expression_id: id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Expression soumise',
+        description: 'Le besoin a été transmis à la logistique.',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
+      queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
+
+      // Navigate to the created besoin
+      if (besoinId) {
+        navigate(`/besoins/${besoinId}`);
+      }
+    } catch (error: any) {
+      console.error('Submit to logistics error:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de soumettre à la logistique.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmittingToLogistics(false);
     }
   };
 
@@ -474,6 +514,39 @@ export default function ExpressionDetail() {
                       Voir le besoin
                     </Button>
                   </Link>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Submit to logistics button for validated expressions without besoin yet */}
+            {expression.status === 'validee' && !expression.besoin && canValidate && !isCheckingPermission && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="h-5 w-5 text-primary" />
+                    Soumettre à la logistique
+                  </CardTitle>
+                  <CardDescription>
+                    L'expression a été validée. Vous pouvez maintenant créer le besoin interne et le transmettre à la logistique.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={handleSubmitToLogistics} 
+                    disabled={isSubmittingToLogistics}
+                  >
+                    {isSubmittingToLogistics ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Envoi...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Soumettre à la logistique
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             )}

@@ -2329,6 +2329,10 @@ export type Database = {
         Args: { p_caisse_id: string }
         Returns: number
       }
+      submit_expression_to_logistics: {
+        Args: { _expression_id: string }
+        Returns: string
+      }
       user_can_insert_besoin_ligne: {
         Args: { _besoin_id: string; _user_id: string }
         Returns: boolean
