@@ -30,15 +30,42 @@ export const EXPRESSION_STATUS_LABELS: Record<ExpressionBesoinStatus, string> = 
 };
 
 /**
- * Descriptions détaillées des statuts
+ * Descriptions détaillées des statuts - VERSION PAR RÔLE
  */
-export const EXPRESSION_STATUS_DESCRIPTIONS: Record<ExpressionBesoinStatus, string> = {
-  brouillon: 'Vous pouvez encore modifier votre expression avant de la soumettre.',
-  soumis: 'Votre expression est en attente de validation par votre responsable hiérarchique.',
-  en_examen: 'Votre responsable hiérarchique examine actuellement votre expression.',
-  valide_departement: 'Votre expression a été validée et peut maintenant être transmise à la logistique.',
-  rejete_departement: 'Votre expression a été rejetée par votre responsable.',
-  envoye_logistique: 'Votre expression a été transmise à la logistique et un besoin interne a été créé.',
+export const EXPRESSION_STATUS_DESCRIPTIONS_BY_ROLE: Record<
+  ExpressionBesoinStatus, 
+  { owner: string; manager: string; viewer: string }
+> = {
+  brouillon: {
+    owner: 'Vous pouvez encore modifier votre expression avant de la soumettre.',
+    manager: 'Cette expression est en cours de rédaction par le demandeur.',
+    viewer: 'Expression en cours de rédaction.',
+  },
+  soumis: {
+    owner: 'Votre expression est en attente de validation par votre responsable hiérarchique.',
+    manager: 'Cette expression attend votre décision. Vous pouvez la valider ou la rejeter.',
+    viewer: 'Expression soumise, en attente de validation hiérarchique.',
+  },
+  en_examen: {
+    owner: 'Votre responsable hiérarchique examine actuellement votre expression.',
+    manager: 'Vous examinez cette expression. Précisez les quantités et validez, ou rejetez.',
+    viewer: 'Expression en cours d\'examen par le responsable.',
+  },
+  valide_departement: {
+    owner: 'Votre expression a été validée. Elle sera bientôt transmise à la logistique.',
+    manager: 'Expression validée. Vous pouvez maintenant la transmettre à la logistique.',
+    viewer: 'Expression validée par le département, en attente de transmission.',
+  },
+  rejete_departement: {
+    owner: 'Votre expression a été rejetée par votre responsable. Consultez le motif ci-dessous.',
+    manager: 'Vous avez rejeté cette expression.',
+    viewer: 'Expression rejetée par le responsable hiérarchique.',
+  },
+  envoye_logistique: {
+    owner: 'Votre expression a été transmise à la logistique. Un besoin interne a été créé.',
+    manager: 'Expression transmise à la logistique. Le processus suit son cours.',
+    viewer: 'Expression transmise, besoin interne créé.',
+  },
 };
 
 /**
@@ -145,6 +172,19 @@ export function isActiveStatus(status: ExpressionBesoinStatus): boolean {
 }
 
 /**
+ * Profil public enrichi (retour de get_public_profiles RPC)
+ */
+export interface PublicProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  department_name: string | null;
+  fonction: string | null;
+  photo_url: string | null;
+  email: string | null;
+}
+
+/**
  * Interface Expression de Besoin complète
  */
 export interface ExpressionBesoin {
@@ -197,4 +237,12 @@ export interface ExpressionBesoin {
     title: string;
     status: string;
   };
+}
+
+/**
+ * Helper pour formater le nom complet
+ */
+export function formatFullName(firstName?: string | null, lastName?: string | null): string {
+  const name = [firstName, lastName].filter(Boolean).join(' ');
+  return name || '—';
 }
