@@ -38,6 +38,8 @@ import {
   Loader2,
   FileEdit,
   Eye,
+  User,
+  Info,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -48,9 +50,11 @@ import {
   ExpressionBesoinStatus,
   EXPRESSION_STATUS_LABELS,
   EXPRESSION_STATUS_COLORS,
-  EXPRESSION_STATUS_DESCRIPTIONS,
+  EXPRESSION_STATUS_DESCRIPTIONS_BY_ROLE,
   ExpressionUserRole,
   getExpressionActions,
+  PublicProfile,
+  formatFullName,
 } from '@/types/expression-besoin';
 
 const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
@@ -64,7 +68,7 @@ const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
 
 export default function ExpressionDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, profile, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -78,32 +82,48 @@ export default function ExpressionDetail() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch expression
-  const { data: expression, isLoading, error } = useQuery({
+  // Fetch expression + enriched profiles via RPC
+  const { data, isLoading, error } = useQuery({
     queryKey: ['expression-besoin', id, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1. Fetch expression with department join only
+      const { data: expression, error: expError } = await supabase
         .from('expressions_besoin')
         .select(`
           *,
-          user:profiles!expressions_besoin_user_id_fkey(
-            id, first_name, last_name, email, photo_url, fonction, chef_hierarchique_id,
-            department:departments(name)
-          ),
           department:departments(id, name),
-          chef_validateur:profiles!expressions_besoin_chef_validateur_id_fkey(
-            id, first_name, last_name, photo_url, fonction
-          ),
           besoin:besoins(id, title, status)
         `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (expError || !expression) throw expError || new Error('Expression non trouvée');
+
+      // 2. Collect user IDs to fetch via RPC (bypasses RLS)
+      const userIds = [
+        expression.user_id,
+        expression.chef_validateur_id,
+      ].filter(Boolean) as string[];
+
+      // 3. Fetch public profiles via RPC
+      const { data: publicProfiles } = await supabase.rpc('get_public_profiles', {
+        _user_ids: userIds,
+      });
+
+      const profilesMap = new Map<string, PublicProfile>(
+        (publicProfiles || []).map((p: PublicProfile) => [p.id, p])
+      );
+
+      return {
+        expression,
+        profiles: profilesMap,
+      };
     },
     enabled: !!id && !authLoading,
   });
+
+  const expression = data?.expression;
+  const profiles = data?.profiles;
 
   // Permission check (server-side)
   const { data: canValidate, isLoading: isCheckingPermission } = useQuery({
@@ -120,6 +140,15 @@ export default function ExpressionDetail() {
     enabled: !!id && !!user?.id && !authLoading,
   });
 
+  // Get enriched profile data
+  const getProfile = (userId: string | null | undefined): PublicProfile | null => {
+    if (!userId || !profiles) return null;
+    return profiles.get(userId) || null;
+  };
+
+  const demandeur = getProfile(expression?.user_id);
+  const validateur = getProfile(expression?.chef_validateur_id);
+
   // Determine user role in context of this expression
   const getUserRole = (): ExpressionUserRole => {
     if (!expression || !user?.id) return 'viewer';
@@ -131,6 +160,13 @@ export default function ExpressionDetail() {
   const userRole = getUserRole();
   const status = expression?.status as ExpressionBesoinStatus;
   const actions = status ? getExpressionActions(status, userRole) : null;
+
+  // Get status description based on role
+  const getStatusDescription = (): string => {
+    if (!status) return '';
+    const descriptions = EXPRESSION_STATUS_DESCRIPTIONS_BY_ROLE[status];
+    return descriptions[userRole];
+  };
 
   // Handle submit for validation (owner brouillon -> soumis)
   const handleSubmitForValidation = async () => {
@@ -145,7 +181,7 @@ export default function ExpressionDetail() {
 
       toast({
         title: 'Expression soumise',
-        description: 'Votre expression a été soumise à votre responsable pour validation.',
+        description: 'Votre expression a été soumise à votre responsable hiérarchique pour validation.',
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
@@ -186,7 +222,7 @@ export default function ExpressionDetail() {
 
       toast({
         title: 'Expression validée',
-        description: 'L\'expression a été validée. Vous pouvez maintenant la transmettre à la logistique.',
+        description: `L'expression de ${formatFullName(demandeur?.first_name, demandeur?.last_name)} a été validée.`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
@@ -228,7 +264,7 @@ export default function ExpressionDetail() {
 
       toast({
         title: 'Expression rejetée',
-        description: 'Le demandeur a été notifié du rejet.',
+        description: `${formatFullName(demandeur?.first_name, demandeur?.last_name)} a été notifié(e) du rejet.`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
@@ -247,7 +283,7 @@ export default function ExpressionDetail() {
     }
   };
 
-  // Handle submit to logistics (manager after validation)
+  // Handle submit to logistics (manager after validation) - NO REDIRECT
   const handleSubmitToLogistics = async () => {
     if (!id) return;
 
@@ -260,17 +296,15 @@ export default function ExpressionDetail() {
       if (error) throw error;
 
       toast({
-        title: 'Expression transmise',
-        description: 'Le besoin a été créé et transmis à la logistique.',
+        title: 'Transmission réussie',
+        description: besoinId 
+          ? `Le besoin interne a été créé et transmis à la logistique.`
+          : 'Expression transmise à la logistique.',
       });
 
+      // Refresh current page data - NO navigation
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
       queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
-
-      // Navigate to the created besoin
-      if (besoinId) {
-        navigate(`/besoins/${besoinId}`);
-      }
     } catch (error: any) {
       console.error('Submit to logistics error:', error);
       toast({
@@ -294,14 +328,14 @@ export default function ExpressionDetail() {
       action: 'created',
       actionLabel: 'Expression créée',
       timestamp: expression.created_at,
-      user: {
-        id: expression.user?.id,
-        photoUrl: expression.user?.photo_url,
-        firstName: expression.user?.first_name,
-        lastName: expression.user?.last_name,
-        fonction: expression.user?.fonction,
-        departmentName: expression.user?.department?.name,
-      },
+      user: demandeur ? {
+        id: demandeur.id,
+        photoUrl: demandeur.photo_url,
+        firstName: demandeur.first_name,
+        lastName: demandeur.last_name,
+        fonction: demandeur.fonction,
+        departmentName: demandeur.department_name,
+      } : undefined,
       variant: 'info',
     });
 
@@ -310,14 +344,14 @@ export default function ExpressionDetail() {
       events.push({
         id: 'submitted',
         action: 'submitted',
-        actionLabel: 'Expression soumise pour validation',
+        actionLabel: 'Soumise pour validation',
         timestamp: expression.submitted_at,
-        user: {
-          id: expression.user?.id,
-          photoUrl: expression.user?.photo_url,
-          firstName: expression.user?.first_name,
-          lastName: expression.user?.last_name,
-        },
+        user: demandeur ? {
+          id: demandeur.id,
+          photoUrl: demandeur.photo_url,
+          firstName: demandeur.first_name,
+          lastName: demandeur.last_name,
+        } : undefined,
         variant: 'info',
       });
     }
@@ -330,13 +364,13 @@ export default function ExpressionDetail() {
           action: 'validated',
           actionLabel: `Validée - Quantité: ${expression.quantite} ${expression.unite || 'unité(s)'}`,
           timestamp: expression.validated_at || expression.reviewed_at!,
-          user: {
-            id: expression.chef_validateur?.id,
-            photoUrl: expression.chef_validateur?.photo_url,
-            firstName: expression.chef_validateur?.first_name,
-            lastName: expression.chef_validateur?.last_name,
-            fonction: expression.chef_validateur?.fonction,
-          },
+          user: validateur ? {
+            id: validateur.id,
+            photoUrl: validateur.photo_url,
+            firstName: validateur.first_name,
+            lastName: validateur.last_name,
+            fonction: validateur.fonction,
+          } : undefined,
           comment: expression.precision_technique,
           variant: 'success',
         });
@@ -348,15 +382,15 @@ export default function ExpressionDetail() {
       events.push({
         id: 'rejected',
         action: 'rejected',
-        actionLabel: 'Expression rejetée',
+        actionLabel: 'Rejetée',
         timestamp: expression.rejected_at,
-        user: {
-          id: expression.chef_validateur?.id,
-          photoUrl: expression.chef_validateur?.photo_url,
-          firstName: expression.chef_validateur?.first_name,
-          lastName: expression.chef_validateur?.last_name,
-          fonction: expression.chef_validateur?.fonction,
-        },
+        user: validateur ? {
+          id: validateur.id,
+          photoUrl: validateur.photo_url,
+          firstName: validateur.first_name,
+          lastName: validateur.last_name,
+          fonction: validateur.fonction,
+        } : undefined,
         comment: expression.rejection_reason,
         variant: 'destructive',
       });
@@ -369,13 +403,13 @@ export default function ExpressionDetail() {
         action: 'sent_logistics',
         actionLabel: 'Transmise à la logistique',
         timestamp: expression.sent_to_logistics_at,
-        user: {
-          id: expression.chef_validateur?.id,
-          photoUrl: expression.chef_validateur?.photo_url,
-          firstName: expression.chef_validateur?.first_name,
-          lastName: expression.chef_validateur?.last_name,
-          fonction: expression.chef_validateur?.fonction,
-        },
+        user: validateur ? {
+          id: validateur.id,
+          photoUrl: validateur.photo_url,
+          firstName: validateur.first_name,
+          lastName: validateur.last_name,
+          fonction: validateur.fonction,
+        } : undefined,
         variant: 'success',
       });
     }
@@ -436,11 +470,12 @@ export default function ExpressionDetail() {
           </div>
         </div>
 
-        {/* Status description banner */}
+        {/* Status description banner - role-aware */}
         <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="py-4">
+          <CardContent className="flex items-start gap-3 py-4">
+            <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
             <p className="text-sm text-foreground">
-              {EXPRESSION_STATUS_DESCRIPTIONS[status]}
+              {getStatusDescription()}
             </p>
           </CardContent>
         </Card>
@@ -530,25 +565,53 @@ export default function ExpressionDetail() {
               </Card>
             )}
 
-            {/* Demandeur */}
+            {/* Demandeur - with full identity */}
             <Card>
               <CardHeader>
-                <CardTitle>Demandeur</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Demandeur
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <UserBadge
-                  userId={expression.user?.id}
-                  photoUrl={expression.user?.photo_url}
-                  firstName={expression.user?.first_name}
-                  lastName={expression.user?.last_name}
-                  fonction={expression.user?.fonction}
-                  departmentName={expression.department?.name}
+                  userId={demandeur?.id}
+                  photoUrl={demandeur?.photo_url}
+                  firstName={demandeur?.first_name}
+                  lastName={demandeur?.last_name}
+                  fonction={demandeur?.fonction}
+                  departmentName={demandeur?.department_name || expression.department?.name}
                   showFonction
                   showDepartment
                   linkToProfile
                 />
               </CardContent>
             </Card>
+
+            {/* Validateur - if exists */}
+            {validateur && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-success" />
+                    {status === 'rejete_departement' ? 'Rejeté par' : 'Validé par'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <UserBadge
+                    userId={validateur.id}
+                    photoUrl={validateur.photo_url}
+                    firstName={validateur.first_name}
+                    lastName={validateur.last_name}
+                    fonction={validateur.fonction}
+                    departmentName={validateur.department_name}
+                    showFonction
+                    showDepartment
+                    linkToProfile
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -560,7 +623,7 @@ export default function ExpressionDetail() {
                   <CardTitle>Actions</CardTitle>
                   <CardDescription>
                     {userRole === 'owner' && 'Actions disponibles pour votre expression'}
-                    {userRole === 'manager' && 'Actions de validation disponibles'}
+                    {userRole === 'manager' && `Actions sur l'expression de ${formatFullName(demandeur?.first_name, demandeur?.last_name)}`}
                     {userRole === 'viewer' && 'Consultation uniquement'}
                   </CardDescription>
                 </CardHeader>
@@ -659,7 +722,8 @@ export default function ExpressionDetail() {
           <DialogHeader>
             <DialogTitle>Valider l'expression</DialogTitle>
             <DialogDescription>
-              Précisez la quantité et les informations techniques avant validation.
+              Validez l'expression de <strong>{formatFullName(demandeur?.first_name, demandeur?.last_name)}</strong>.
+              Précisez la quantité et les informations techniques.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -723,7 +787,8 @@ export default function ExpressionDetail() {
           <DialogHeader>
             <DialogTitle>Rejeter l'expression</DialogTitle>
             <DialogDescription>
-              Indiquez le motif du rejet. Le demandeur sera notifié.
+              Rejetez l'expression de <strong>{formatFullName(demandeur?.first_name, demandeur?.last_name)}</strong>.
+              Indiquez le motif du rejet.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

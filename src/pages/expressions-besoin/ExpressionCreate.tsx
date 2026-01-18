@@ -10,11 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User, Plus, Trash2, Send } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2, Send, AlertCircle } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
 import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { formatFullName } from '@/types/expression-besoin';
 
 interface ArticleLine {
   id: string;
@@ -36,7 +37,7 @@ export default function ExpressionCreate() {
   const [commentaire, setCommentaire] = useState('');
 
   // Fetch manager info
-  const { data: manager } = useQuery({
+  const { data: manager, isLoading: isLoadingManager } = useQuery({
     queryKey: ['manager', profile?.chef_hierarchique_id],
     queryFn: async () => {
       if (!profile?.chef_hierarchique_id) return null;
@@ -52,6 +53,7 @@ export default function ExpressionCreate() {
   });
 
   const canCreate = !!profile?.department_id;
+  const hasManager = !!profile?.chef_hierarchique_id;
 
   const addArticle = () => {
     setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '' }]);
@@ -90,6 +92,16 @@ export default function ExpressionCreate() {
       return;
     }
 
+    // Block submission if no manager and trying to submit directly
+    if (submitDirect && !hasManager) {
+      toast({
+        title: 'Soumission impossible',
+        description: 'Aucun responsable hiérarchique n\'est défini pour votre compte. Veuillez contacter l\'administration.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -113,17 +125,20 @@ export default function ExpressionCreate() {
 
       const count = data?.length || validArticles.length;
       
-      if (submitDirect) {
+      if (submitDirect && manager) {
         toast({
           title: `${count} expression${count > 1 ? 's' : ''} soumise${count > 1 ? 's' : ''}`,
-          description: manager 
-            ? `Vos expressions ont été soumises à ${manager.first_name} ${manager.last_name} pour validation.`
-            : 'Vos expressions ont été soumises pour validation.',
+          description: `Soumise${count > 1 ? 's' : ''} à ${formatFullName(manager.first_name, manager.last_name)} pour validation.`,
+        });
+      } else if (submitDirect) {
+        toast({
+          title: `${count} expression${count > 1 ? 's' : ''} soumise${count > 1 ? 's' : ''}`,
+          description: 'En attente de validation.',
         });
       } else {
         toast({
           title: `${count} expression${count > 1 ? 's' : ''} créée${count > 1 ? 's' : ''}`,
-          description: 'Vos expressions ont été enregistrées en brouillon.',
+          description: 'Enregistrée(s) en brouillon.',
         });
       }
 
@@ -162,7 +177,7 @@ export default function ExpressionCreate() {
       </Link>
       <Button 
         type="submit" 
-        disabled={isSubmitting || validArticles.length === 0}
+        disabled={isSubmitting || validArticles.length === 0 || (submitDirect && !hasManager)}
         className="flex-1 sm:flex-none"
       >
         {isSubmitting ? (
@@ -214,8 +229,8 @@ export default function ExpressionCreate() {
           </CardContent>
         </Card>
 
-        {/* Manager info */}
-        {manager ? (
+        {/* Manager info - or blocking alert */}
+        {hasManager && manager ? (
           <Card className="border-success/20 bg-success/5">
             <CardContent className="flex items-center gap-3 py-4">
               <User className="h-5 w-5 text-success" />
@@ -240,13 +255,16 @@ export default function ExpressionCreate() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-warning/20 bg-warning/5">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Info className="h-5 w-5 text-warning" />
-              <p className="text-sm text-foreground">
-                <strong>Attention :</strong> Vous n'avez pas de chef hiérarchique défini. 
-                Votre expression sera visible par les administrateurs.
-              </p>
+          <Card className="border-destructive/20 bg-destructive/5">
+            <CardContent className="flex items-start gap-3 py-4">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-destructive">Soumission impossible</p>
+                <p className="text-foreground">
+                  Aucun responsable hiérarchique n'est défini pour votre compte. 
+                  Veuillez contacter l'administration pour compléter votre profil avant de pouvoir soumettre des expressions de besoin.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -265,7 +283,7 @@ export default function ExpressionCreate() {
                 <div className="space-y-2">
                   <Label>Demandeur</Label>
                   <Input
-                    value={`${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.email || 'Inconnu'}
+                    value={formatFullName(profile?.first_name, profile?.last_name)}
                     disabled
                     className="bg-muted"
                   />

@@ -23,18 +23,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Eye, Clock, CheckCircle, XCircle, Info, FileEdit, Send } from 'lucide-react';
+import { Plus, Search, Eye, Clock, CheckCircle, XCircle, Info, FileEdit, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import { useDebounce } from '@/hooks/use-debounce';
-import { UserAvatar } from '@/components/ui/UserAvatar';
+import { UserBadge } from '@/components/ui/UserBadge';
 import {
   ExpressionBesoinStatus,
   EXPRESSION_STATUS_LABELS,
   EXPRESSION_STATUS_COLORS,
-  ExpressionBesoin,
+  PublicProfile,
+  formatFullName,
 } from '@/types/expression-besoin';
 
 const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
@@ -49,7 +50,7 @@ const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export default function ExpressionsList() {
-  const { profile, isAdmin } = useAuth();
+  const { profile, isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,11 +79,11 @@ export default function ExpressionsList() {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    // 1. Fetch expressions with department join only
     let query = supabase
       .from('expressions_besoin')
       .select(`
         *,
-        user:profiles!expressions_besoin_user_id_fkey(id, first_name, last_name, photo_url, fonction),
         department:departments(id, name)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -100,8 +101,23 @@ export default function ExpressionsList() {
 
     if (error) throw error;
 
+    // 2. Collect user IDs to fetch via RPC
+    const userIds = [...new Set((data || []).map(e => e.user_id).filter(Boolean))] as string[];
+
+    // 3. Fetch public profiles via RPC (bypasses RLS)
+    let profilesMap = new Map<string, PublicProfile>();
+    if (userIds.length > 0) {
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+        _user_ids: userIds,
+      });
+      profilesMap = new Map((profilesData || []).map((p: PublicProfile) => [p.id, p]));
+    }
+
     return {
-      expressions: (data || []) as unknown as ExpressionBesoin[],
+      expressions: (data || []).map(exp => ({
+        ...exp,
+        user: profilesMap.get(exp.user_id) || null,
+      })),
       totalCount: count || 0,
     };
   }, [page, pageSize, statusFilter, debouncedSearch]);
@@ -218,9 +234,9 @@ export default function ExpressionsList() {
         {isManager && (
           <Card className="border-success/20 bg-success/5">
             <CardContent className="flex items-center gap-3 py-3">
-              <CheckCircle className="h-5 w-5 text-success" />
+              <Users className="h-5 w-5 text-success" />
               <p className="text-sm text-foreground">
-                <strong>Vous êtes responsable :</strong> Vous voyez les expressions de vos subordonnés 
+                <strong>Vous êtes responsable hiérarchique.</strong> Vous voyez les expressions de vos subordonnés 
                 et pouvez les valider ou les rejeter.
               </p>
             </CardContent>
@@ -255,33 +271,23 @@ export default function ExpressionsList() {
                       {data?.expressions.map((expression) => {
                         const status = expression.status as ExpressionBesoinStatus;
                         const StatusIcon = STATUS_ICONS[status];
-                        const isMine = expression.user_id === profile?.id;
+                        const isMine = expression.user_id === user?.id;
+                        const userProfile = expression.user as PublicProfile | null;
                         return (
                           <TableRow key={expression.id}>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <UserAvatar
-                                  photoUrl={expression.user?.photo_url}
-                                  firstName={expression.user?.first_name}
-                                  lastName={expression.user?.last_name}
-                                  size="sm"
-                                />
-                                <div>
-                                  <p className="text-sm font-medium">
-                                    {[expression.user?.first_name, expression.user?.last_name]
-                                      .filter(Boolean)
-                                      .join(' ') || 'Inconnu'}
-                                    {isMine && (
-                                      <span className="ml-2 text-xs text-muted-foreground">(vous)</span>
-                                    )}
-                                  </p>
-                                  {expression.user?.fonction && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {expression.user.fonction}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
+                              <UserBadge
+                                userId={userProfile?.id}
+                                photoUrl={userProfile?.photo_url}
+                                firstName={userProfile?.first_name}
+                                lastName={userProfile?.last_name}
+                                fonction={userProfile?.fonction}
+                                size="sm"
+                                showFonction
+                              />
+                              {isMine && (
+                                <span className="ml-2 text-xs text-muted-foreground">(vous)</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <p className="font-medium">{expression.nom_article}</p>
@@ -292,7 +298,7 @@ export default function ExpressionsList() {
                               )}
                             </TableCell>
                             <TableCell>
-                              {expression.department?.name || 'N/A'}
+                              {expression.department?.name || '—'}
                             </TableCell>
                             <TableCell>
                               {expression.quantite ? (
@@ -300,7 +306,7 @@ export default function ExpressionsList() {
                                   {expression.quantite} {expression.unite || 'unité(s)'}
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground">-</span>
+                                <span className="text-muted-foreground">—</span>
                               )}
                             </TableCell>
                             <TableCell>

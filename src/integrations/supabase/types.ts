@@ -2286,8 +2286,10 @@ export type Database = {
           department_name: string
           email: string
           first_name: string
+          fonction: string
           id: string
           last_name: string
+          photo_url: string
         }[]
       }
       get_user_department: { Args: { _user_id: string }; Returns: string }
