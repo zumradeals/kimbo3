@@ -65,6 +65,7 @@ import { fr } from 'date-fns/locale';
 import { exportDechargeComptableToPDF } from '@/utils/pdfExport';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
 import { CompteComptableAutocomplete } from '@/components/ui/CompteComptableAutocomplete';
+import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
 
 const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -109,6 +110,7 @@ export default function NoteFraisDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showPayDialog, setShowPayDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
   // SYSCOHADA form state
@@ -946,6 +948,22 @@ export default function NoteFraisDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog correction caisse */}
+      {note && note.caisse_id && (isDAF || isAdmin) && (
+        <CorrectionCaisseDialog
+          open={showCorrectionDialog}
+          onOpenChange={setShowCorrectionDialog}
+          type="note_frais"
+          entityId={note.id}
+          entityReference={note.reference}
+          currentCaisseId={note.caisse_id}
+          currentCaisseName={caisses.find(c => c.id === note.caisse_id)?.name || 'Caisse inconnue'}
+          amount={note.total_amount || 0}
+          devise={note.currency || 'XOF'}
+          onSuccess={() => fetchNote()}
+        />
+      )}
     </AppLayout>
   );
 }

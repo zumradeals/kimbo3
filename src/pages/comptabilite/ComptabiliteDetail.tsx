@@ -57,6 +57,7 @@ import { exportEcritureToPDF, exportDechargeComptableToPDF } from '@/utils/pdfEx
 import { DATimeline } from '@/components/ui/DATimeline';
 import { SyscohadaFormDynamic } from '@/components/comptabilite/SyscohadaFormDynamic';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
+import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
 
 export default function ComptabiliteDetail() {
   const { id } = useParams<{ id: string }>();
@@ -98,11 +99,15 @@ export default function ComptabiliteDetail() {
   // Liste des caisses
   const [caisses, setCaisses] = useState<Array<{id: string; code: string; name: string; type: string; solde_actuel: number; devise: string}>>([]);
 
+  // Dialog de correction de caisse
+  const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
+
   const isComptable = roles.includes('comptable');
   const isDG = roles.includes('dg');
   const isDAF = roles.includes('daf');
   const canAccess = isComptable || isAdmin || isDG || isDAF;
   const canProcess = isComptable && da?.status === 'validee_finance';
+  const canCorrectCaisse = (isDAF || isAdmin) && da?.status === 'payee' && da?.caisse_id;
 
   useEffect(() => {
     if (id && canAccess) {
@@ -467,16 +472,40 @@ export default function ComptabiliteDetail() {
         {/* Bannière statut final */}
         {da.status === 'payee' && (
           <Card className="border-success bg-success/10">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Banknote className="h-6 w-6 text-success" />
-              <div>
-                <p className="font-bold text-success">Paiement effectué</p>
-                <p className="text-sm text-foreground">
-                  Cette DA a été payée le {da.comptabilise_at && format(new Date(da.comptabilise_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}.
-                  {da.mode_paiement && ` Mode: ${da.mode_paiement}.`}
-                  {da.reference_paiement && ` Réf: ${da.reference_paiement}.`}
-                </p>
+            <CardContent className="flex items-center justify-between gap-3 py-4">
+              <div className="flex items-center gap-3">
+                <Banknote className="h-6 w-6 text-success" />
+                <div>
+                  <p className="font-bold text-success">Paiement effectué</p>
+                  <p className="text-sm text-foreground">
+                    Cette DA a été payée le {da.comptabilise_at && format(new Date(da.comptabilise_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}.
+                    {da.mode_paiement && ` Mode: ${da.mode_paiement}.`}
+                    {da.reference_paiement && ` Réf: ${da.reference_paiement}.`}
+                  </p>
+                  {da.caisse_id && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <Wallet className="h-3 w-3 inline mr-1" />
+                      Caisse: {(() => {
+                        const caisse = caisses.find(c => c.id === da.caisse_id);
+                        return caisse ? `${caisse.name} (${caisse.code})` : 'N/A';
+                      })()}
+                    </p>
+                  )}
+                </div>
               </div>
+              
+              {/* Bouton de correction - uniquement DAF/Admin */}
+              {canCorrectCaisse && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCorrectionDialog(true)}
+                  className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  Corriger caisse
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -831,6 +860,25 @@ export default function ComptabiliteDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog correction caisse */}
+      {da && da.caisse_id && (
+        <CorrectionCaisseDialog
+          open={showCorrectionDialog}
+          onOpenChange={setShowCorrectionDialog}
+          type="da"
+          entityId={da.id}
+          entityReference={da.reference}
+          currentCaisseId={da.caisse_id}
+          currentCaisseName={(() => {
+            const caisse = caisses.find(c => c.id === da.caisse_id);
+            return caisse ? caisse.name : 'Caisse inconnue';
+          })()}
+          amount={da.total_amount || 0}
+          devise={da.currency || 'XOF'}
+          onSuccess={() => fetchDA()}
+        />
+      )}
     </AppLayout>
   );
 }

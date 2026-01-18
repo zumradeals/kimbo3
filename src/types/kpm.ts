@@ -458,6 +458,8 @@ export interface DemandeAchat {
   mode_paiement: string | null;
   reference_paiement: string | null;
   comptabilite_rejection_reason: string | null;
+  // Caisse utilisée pour le paiement
+  caisse_id: string | null;
   // Projet rattaché
   projet_id: string | null;
   created_at: string;
@@ -721,6 +723,7 @@ export interface NoteFrais {
   paid_at: string | null;
   mode_paiement: string | null;
   reference_paiement: string | null;
+  caisse_id: string | null;
   rejection_reason: string | null;
   rejected_by: string | null;
   rejected_at: string | null;
