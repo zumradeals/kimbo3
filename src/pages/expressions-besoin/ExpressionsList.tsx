@@ -23,59 +23,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Eye, Clock, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Plus, Search, Eye, Clock, CheckCircle, XCircle, Info, FileEdit, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import { useDebounce } from '@/hooks/use-debounce';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import {
+  ExpressionBesoinStatus,
+  EXPRESSION_STATUS_LABELS,
+  EXPRESSION_STATUS_COLORS,
+  ExpressionBesoin,
+} from '@/types/expression-besoin';
 
-type ExpressionStatus = 'en_attente' | 'validee' | 'rejetee';
-
-const STATUS_LABELS: Record<ExpressionStatus, string> = {
-  en_attente: 'En attente',
-  validee: 'Validée',
-  rejetee: 'Rejetée',
-};
-
-const statusIcons: Record<ExpressionStatus, React.ElementType> = {
-  en_attente: Clock,
-  validee: CheckCircle,
-  rejetee: XCircle,
-};
-
-const statusColors: Record<ExpressionStatus, string> = {
-  en_attente: 'bg-warning/10 text-warning',
-  validee: 'bg-success/10 text-success',
-  rejetee: 'bg-destructive/10 text-destructive',
+const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
+  brouillon: FileEdit,
+  soumis: Clock,
+  en_examen: Eye,
+  valide_departement: CheckCircle,
+  rejete_departement: XCircle,
+  envoye_logistique: Send,
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
-
-interface Expression {
-  id: string;
-  nom_article: string;
-  commentaire: string | null;
-  quantite: number | null;
-  unite: string | null;
-  status: ExpressionStatus;
-  created_at: string;
-  validated_at: string | null;
-  rejected_at: string | null;
-  user_id: string;
-  user?: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    photo_url: string | null;
-    fonction: string | null;
-  };
-  department?: {
-    id: string;
-    name: string;
-  };
-}
 
 export default function ExpressionsList() {
   const { profile, isAdmin } = useAuth();
@@ -118,7 +89,7 @@ export default function ExpressionsList() {
       .range(from, to);
 
     if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter as ExpressionStatus);
+      query = query.eq('status', statusFilter as ExpressionBesoinStatus);
     }
 
     if (debouncedSearch) {
@@ -130,7 +101,7 @@ export default function ExpressionsList() {
     if (error) throw error;
 
     return {
-      expressions: (data as Expression[]) || [],
+      expressions: (data || []) as unknown as ExpressionBesoin[],
       totalCount: count || 0,
     };
   }, [page, pageSize, statusFilter, debouncedSearch]);
@@ -209,7 +180,7 @@ export default function ExpressionsList() {
             <Info className="h-5 w-5 text-primary" />
             <p className="text-sm text-foreground">
               <strong>Expression de besoin :</strong> Une demande simple (nom + commentaire) 
-              soumise à votre chef hiérarchique pour validation avant toute transformation en besoin formel.
+              soumise à votre chef hiérarchique pour validation avant transmission à la logistique.
             </p>
           </CardContent>
         </Card>
@@ -227,14 +198,17 @@ export default function ExpressionsList() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Filtrer par statut" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="en_attente">En attente</SelectItem>
-                <SelectItem value="validee">Validée</SelectItem>
-                <SelectItem value="rejetee">Rejetée</SelectItem>
+                <SelectItem value="brouillon">Brouillon</SelectItem>
+                <SelectItem value="soumis">En attente de validation</SelectItem>
+                <SelectItem value="en_examen">En cours d'examen</SelectItem>
+                <SelectItem value="valide_departement">Validée</SelectItem>
+                <SelectItem value="rejete_departement">Rejetée</SelectItem>
+                <SelectItem value="envoye_logistique">Transmise</SelectItem>
               </SelectContent>
             </Select>
           </CardContent>
@@ -279,7 +253,8 @@ export default function ExpressionsList() {
                     </TableHeader>
                     <TableBody>
                       {data?.expressions.map((expression) => {
-                        const StatusIcon = statusIcons[expression.status];
+                        const status = expression.status as ExpressionBesoinStatus;
+                        const StatusIcon = STATUS_ICONS[status];
                         const isMine = expression.user_id === profile?.id;
                         return (
                           <TableRow key={expression.id}>
@@ -329,9 +304,9 @@ export default function ExpressionsList() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge className={statusColors[expression.status]}>
+                              <Badge className={EXPRESSION_STATUS_COLORS[status]}>
                                 <StatusIcon className="mr-1 h-3 w-3" />
-                                {STATUS_LABELS[expression.status]}
+                                {EXPRESSION_STATUS_LABELS[status]}
                               </Badge>
                             </TableCell>
                             <TableCell>

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2, Send } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
 import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
@@ -27,6 +27,7 @@ export default function ExpressionCreate() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitDirect, setSubmitDirect] = useState(true); // Par défaut, soumettre directement
 
   // Multi-line articles
   const [articles, setArticles] = useState<ArticleLine[]>([
@@ -93,11 +94,14 @@ export default function ExpressionCreate() {
 
     try {
       // Insert all articles as separate expressions
+      // Si submitDirect est true, on utilise le statut 'soumis', sinon 'brouillon'
       const expressionsToCreate = validArticles.map(article => ({
         user_id: user?.id,
         department_id: profile.department_id,
         nom_article: article.nomArticle.trim(),
         commentaire: commentaire.trim() || null,
+        status: (submitDirect ? 'soumis' : 'brouillon') as 'soumis' | 'brouillon',
+        submitted_at: submitDirect ? new Date().toISOString() : null,
       }));
 
       const { data, error } = await supabase
@@ -108,12 +112,20 @@ export default function ExpressionCreate() {
       if (error) throw error;
 
       const count = data?.length || validArticles.length;
-      toast({
-        title: `${count} expression${count > 1 ? 's' : ''} créée${count > 1 ? 's' : ''}`,
-        description: manager 
-          ? `Vos expressions ont été soumises à ${manager.first_name} ${manager.last_name} pour validation.`
-          : 'Vos expressions ont été enregistrées.',
-      });
+      
+      if (submitDirect) {
+        toast({
+          title: `${count} expression${count > 1 ? 's' : ''} soumise${count > 1 ? 's' : ''}`,
+          description: manager 
+            ? `Vos expressions ont été soumises à ${manager.first_name} ${manager.last_name} pour validation.`
+            : 'Vos expressions ont été soumises pour validation.',
+        });
+      } else {
+        toast({
+          title: `${count} expression${count > 1 ? 's' : ''} créée${count > 1 ? 's' : ''}`,
+          description: 'Vos expressions ont été enregistrées en brouillon.',
+        });
+      }
 
       // Navigate to list or first expression
       if (data && data.length === 1) {
@@ -153,12 +165,17 @@ export default function ExpressionCreate() {
         disabled={isSubmitting || validArticles.length === 0}
         className="flex-1 sm:flex-none"
       >
-        {isSubmitting 
-          ? 'Envoi...' 
-          : validArticles.length > 1 
-            ? `Soumettre ${validArticles.length} articles` 
-            : 'Soumettre'
-        }
+        {isSubmitting ? (
+          'Envoi...'
+        ) : (
+          <>
+            <Send className="mr-2 h-4 w-4" />
+            {validArticles.length > 1 
+              ? `Soumettre ${validArticles.length} articles` 
+              : 'Soumettre'
+            }
+          </>
+        )}
       </Button>
     </>
   );
@@ -191,7 +208,7 @@ export default function ExpressionCreate() {
               <p className="font-medium text-foreground">Expression simple, sans engagement</p>
               <p className="text-muted-foreground">
                 Indiquez les noms des articles souhaités. 
-                Votre chef hiérarchique validera et précisera les quantités.
+                Votre chef hiérarchique validera et précisera les quantités avant transmission à la logistique.
               </p>
             </div>
           </CardContent>
