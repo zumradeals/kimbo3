@@ -49,6 +49,9 @@ import {
   User,
   Info,
   Package,
+  FolderOpen,
+  MapPin,
+  Calendar,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -82,6 +85,7 @@ interface ExpressionLigne {
   quantite: number | null;
   unite: string | null;
   precision_technique: string | null;
+  justification: string | null;
   status: string;
   rejection_reason: string | null;
 }
@@ -114,14 +118,15 @@ export default function ExpressionDetail() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['expression-besoin', id, user?.id],
     queryFn: async () => {
-      // 1. Fetch expression with department and lignes
+      // 1. Fetch expression with department, projet and lignes
       const { data: expression, error: expError } = await supabase
         .from('expressions_besoin')
         .select(`
           *,
           department:departments(id, name),
+          projet:projets(id, code, name, location),
           besoin:besoins(id, title, status),
-          lignes:expressions_besoin_lignes(id, nom_article, quantite, unite, precision_technique, status, rejection_reason)
+          lignes:expressions_besoin_lignes(id, nom_article, quantite, unite, precision_technique, justification, status, rejection_reason)
         `)
         .eq('id', id)
         .single();
@@ -544,6 +549,45 @@ export default function ExpressionDetail() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Projet, Lieu et Date souhaitée */}
+            {(expression.projet || expression.lieu_projet || expression.date_souhaitee) && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {expression.projet && (
+                      <div className="flex items-start gap-2">
+                        <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Projet</p>
+                          <p className="font-medium">{expression.projet.code} - {expression.projet.name}</p>
+                        </div>
+                      </div>
+                    )}
+                    {expression.lieu_projet && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Lieu</p>
+                          <p className="font-medium">{expression.lieu_projet}</p>
+                        </div>
+                      </div>
+                    )}
+                    {expression.date_souhaitee && (
+                      <div className="flex items-start gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Date souhaitée</p>
+                          <p className="font-medium">
+                            {format(new Date(expression.date_souhaitee), 'd MMMM yyyy', { locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Articles list */}
             <Card>
               <CardHeader>
@@ -559,13 +603,14 @@ export default function ExpressionDetail() {
                       <TableHead>Article</TableHead>
                       <TableHead>Quantité</TableHead>
                       <TableHead>Unité</TableHead>
+                      <TableHead>Justification</TableHead>
                       {(status === 'valide_departement' || status === 'envoye_logistique') && (
                         <TableHead>Précisions</TableHead>
                       )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {lignes.map((ligne, index) => (
+                    {lignes.map((ligne) => (
                       <TableRow key={ligne.id}>
                         <TableCell className="font-medium">
                           {ligne.nom_article}
@@ -579,6 +624,13 @@ export default function ExpressionDetail() {
                         </TableCell>
                         <TableCell>
                           {ligne.unite || 'unité'}
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          {ligne.justification ? (
+                            <span className="text-sm">{ligne.justification}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         {(status === 'valide_departement' || status === 'envoye_logistique') && (
                           <TableCell>

@@ -10,16 +10,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User, Plus, Trash2, Send } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2, Send, Calendar, MapPin, FolderOpen } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
 import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatFullName } from '@/types/expression-besoin';
+import { ProjetSelector } from '@/components/ui/ProjetSelector';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ArticleLine {
   id: string;
   nomArticle: string;
+  quantite: string;
+  unite: string;
+  justification: string;
 }
 
 export default function ExpressionCreate() {
@@ -32,9 +43,30 @@ export default function ExpressionCreate() {
 
   // Multi-line articles
   const [articles, setArticles] = useState<ArticleLine[]>([
-    { id: crypto.randomUUID(), nomArticle: '' }
+    { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }
   ]);
   const [commentaire, setCommentaire] = useState('');
+
+  // Nouveaux champs: projet, lieu, date
+  const [projetId, setProjetId] = useState<string | null>(null);
+  const [lieuProjet, setLieuProjet] = useState('');
+  const [dateSouhaitee, setDateSouhaitee] = useState('');
+
+  // Fetch projet info for location autofill
+  const { data: selectedProjet } = useQuery({
+    queryKey: ['projet', projetId],
+    queryFn: async () => {
+      if (!projetId) return null;
+      const { data, error } = await supabase
+        .from('projets')
+        .select('id, name, location')
+        .eq('id', projetId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!projetId,
+  });
 
   // Fetch manager info
   const { data: manager } = useQuery({
@@ -56,7 +88,7 @@ export default function ExpressionCreate() {
   const hasManager = !!profile?.chef_hierarchique_id;
 
   const addArticle = () => {
-    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '' }]);
+    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }]);
   };
 
   const removeArticle = (id: string) => {
@@ -65,11 +97,22 @@ export default function ExpressionCreate() {
     }
   };
 
-  const updateArticle = (id: string, value: string) => {
-    setArticles(articles.map(a => a.id === id ? { ...a, nomArticle: value } : a));
+  const updateArticle = (id: string, field: keyof ArticleLine, value: string) => {
+    setArticles(articles.map(a => a.id === id ? { ...a, [field]: value } : a));
   };
 
   const validArticles = articles.filter(a => a.nomArticle.trim());
+
+  // Autofill lieu from projet
+  const handleProjetChange = (value: string | null) => {
+    setProjetId(value);
+    // Will autofill location when selectedProjet loads
+  };
+
+  // Autofill location when projet changes
+  if (selectedProjet?.location && !lieuProjet) {
+    setLieuProjet(selectedProjet.location);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +151,9 @@ export default function ExpressionCreate() {
           titre,
           nom_article: titre, // Legacy field - pour compatibilité
           commentaire: commentaire.trim() || null,
+          projet_id: projetId || null,
+          lieu_projet: lieuProjet.trim() || null,
+          date_souhaitee: dateSouhaitee || null,
           status: submitDirect ? 'soumis' : 'brouillon',
           submitted_at: submitDirect ? new Date().toISOString() : null,
         })
@@ -120,6 +166,9 @@ export default function ExpressionCreate() {
       const lignes = validArticles.map(article => ({
         expression_id: expression.id,
         nom_article: article.nomArticle.trim(),
+        quantite: article.quantite ? parseInt(article.quantite) : null,
+        unite: article.unite || 'unité',
+        justification: article.justification.trim() || null,
       }));
 
       const { error: lignesError } = await supabase
@@ -286,31 +335,120 @@ export default function ExpressionCreate() {
                 </div>
               </div>
 
+              {/* Projet, Lieu et Date souhaitée */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    Projet (optionnel)
+                  </Label>
+                  <ProjetSelector
+                    value={projetId}
+                    onChange={handleProjetChange}
+                    placeholder="Sélectionner un projet"
+                    allowEmpty
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lieu" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Lieu (optionnel)
+                  </Label>
+                  <Input
+                    id="lieu"
+                    placeholder="Ex: Siège, Chantier Nord..."
+                    value={lieuProjet}
+                    onChange={(e) => setLieuProjet(e.target.value)}
+                    maxLength={200}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Date souhaitée (optionnel)
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={dateSouhaitee}
+                    onChange={(e) => setDateSouhaitee(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+              </div>
+
               {/* Articles list */}
-              <div className="space-y-3">
-                <Label>Nom des articles *</Label>
+              <div className="space-y-4">
+                <Label>Articles demandés *</Label>
                 {articles.map((article, index) => (
-                  <div key={article.id} className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        placeholder={`Article ${index + 1} (ex: Cartouches d'encre, Clavier...)`}
-                        value={article.nomArticle}
-                        onChange={(e) => updateArticle(article.id, e.target.value)}
-                        maxLength={200}
-                      />
+                  <Card key={article.id} className="p-4 bg-muted/30">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Nom de l'article *</Label>
+                          <Input
+                            placeholder={`Article ${index + 1} (ex: Cartouches d'encre)`}
+                            value={article.nomArticle}
+                            onChange={(e) => updateArticle(article.id, 'nomArticle', e.target.value)}
+                            maxLength={200}
+                          />
+                        </div>
+                        {articles.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeArticle(article.id)}
+                            className="shrink-0 text-destructive hover:text-destructive mt-5"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Quantité</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Ex: 10"
+                            value={article.quantite}
+                            onChange={(e) => updateArticle(article.id, 'quantite', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Unité</Label>
+                          <Select 
+                            value={article.unite} 
+                            onValueChange={(v) => updateArticle(article.id, 'unite', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unité">Unité</SelectItem>
+                              <SelectItem value="pièce">Pièce</SelectItem>
+                              <SelectItem value="kg">Kilogramme</SelectItem>
+                              <SelectItem value="litre">Litre</SelectItem>
+                              <SelectItem value="mètre">Mètre</SelectItem>
+                              <SelectItem value="boîte">Boîte</SelectItem>
+                              <SelectItem value="lot">Lot</SelectItem>
+                              <SelectItem value="carton">Carton</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1 sm:col-span-1">
+                          <Label className="text-xs text-muted-foreground">Justification (optionnel)</Label>
+                          <Input
+                            placeholder="Pourquoi ce besoin?"
+                            value={article.justification}
+                            onChange={(e) => updateArticle(article.id, 'justification', e.target.value)}
+                            maxLength={300}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    {articles.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeArticle(article.id)}
-                        className="shrink-0 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  </Card>
                 ))}
                 <Button
                   type="button"
@@ -337,14 +475,6 @@ export default function ExpressionCreate() {
                 />
                 <p className="text-xs text-muted-foreground">
                   {commentaire.length}/500 caractères • S'applique à tous les articles
-                </p>
-              </div>
-
-              {/* Notice */}
-              <div className="rounded-md bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">
-                  ⚠️ <strong>Pas de quantité ni de prix</strong> — Votre chef hiérarchique 
-                  définira les quantités lors de la validation.
                 </p>
               </div>
 
