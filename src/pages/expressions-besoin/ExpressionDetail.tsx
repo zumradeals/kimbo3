@@ -25,6 +25,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, 
@@ -40,6 +48,7 @@ import {
   Eye,
   User,
   Info,
+  Package,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -66,6 +75,25 @@ const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
   envoye_logistique: Send,
 };
 
+// Interface pour les lignes
+interface ExpressionLigne {
+  id: string;
+  nom_article: string;
+  quantite: number | null;
+  unite: string | null;
+  precision_technique: string | null;
+  status: string;
+  rejection_reason: string | null;
+}
+
+// Interface pour l'état de validation des lignes
+interface LigneValidationState {
+  id: string;
+  quantite: string;
+  unite: string;
+  precision_technique: string;
+}
+
 export default function ExpressionDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isLoading: authLoading, isAdmin } = useAuth();
@@ -73,33 +101,34 @@ export default function ExpressionDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Validation form state
+  // Dialog states
   const [showValidateDialog, setShowValidateDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [quantite, setQuantite] = useState('');
-  const [unite, setUnite] = useState('unité');
-  const [precisionTechnique, setPrecisionTechnique] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Validation state for each ligne
+  const [lignesValidation, setLignesValidation] = useState<LigneValidationState[]>([]);
 
-  // Fetch expression + enriched profiles via RPC
+  // Fetch expression with lignes
   const { data, isLoading, error } = useQuery({
     queryKey: ['expression-besoin', id, user?.id],
     queryFn: async () => {
-      // 1. Fetch expression with department join only
+      // 1. Fetch expression with department and lignes
       const { data: expression, error: expError } = await supabase
         .from('expressions_besoin')
         .select(`
           *,
           department:departments(id, name),
-          besoin:besoins(id, title, status)
+          besoin:besoins(id, title, status),
+          lignes:expressions_besoin_lignes(id, nom_article, quantite, unite, precision_technique, status, rejection_reason)
         `)
         .eq('id', id)
         .single();
 
       if (expError || !expression) throw expError || new Error('Expression non trouvée');
 
-      // 2. Collect user IDs to fetch via RPC (bypasses RLS)
+      // 2. Collect user IDs to fetch via RPC
       const userIds = [
         expression.user_id,
         expression.chef_validateur_id,
@@ -117,6 +146,7 @@ export default function ExpressionDetail() {
       return {
         expression,
         profiles: profilesMap,
+        lignes: expression.lignes as ExpressionLigne[] || [],
       };
     },
     enabled: !!id && !authLoading,
@@ -124,8 +154,19 @@ export default function ExpressionDetail() {
 
   const expression = data?.expression;
   const profiles = data?.profiles;
+  const lignes = data?.lignes || [];
 
-  // Permission check (server-side)
+  // Initialize validation state when lignes are loaded
+  const initValidationState = () => {
+    setLignesValidation(lignes.map(l => ({
+      id: l.id,
+      quantite: l.quantite?.toString() || '',
+      unite: l.unite || 'unité',
+      precision_technique: l.precision_technique || '',
+    })));
+  };
+
+  // Permission check
   const { data: canValidate, isLoading: isCheckingPermission } = useQuery({
     queryKey: ['can-validate-expression', id, user?.id],
     queryFn: async () => {
@@ -149,7 +190,7 @@ export default function ExpressionDetail() {
   const demandeur = getProfile(expression?.user_id);
   const validateur = getProfile(expression?.chef_validateur_id);
 
-  // Determine user role in context of this expression
+  // Determine user role
   const getUserRole = (): ExpressionUserRole => {
     if (!expression || !user?.id) return 'viewer';
     if (expression.user_id === user.id) return 'owner';
@@ -161,11 +202,17 @@ export default function ExpressionDetail() {
   const status = expression?.status as ExpressionBesoinStatus;
   const actions = status ? getExpressionActions(status, userRole) : null;
 
-  // Get status description based on role
   const getStatusDescription = (): string => {
     if (!status) return '';
     const descriptions = EXPRESSION_STATUS_DESCRIPTIONS_BY_ROLE[status];
     return descriptions[userRole];
+  };
+
+  // Update validation state for a ligne
+  const updateLigneValidation = (ligneId: string, field: keyof LigneValidationState, value: string) => {
+    setLignesValidation(prev => prev.map(l => 
+      l.id === ligneId ? { ...l, [field]: value } : l
+    ));
   };
 
   // Handle submit for validation (owner brouillon -> soumis)
@@ -181,7 +228,7 @@ export default function ExpressionDetail() {
 
       toast({
         title: 'Expression soumise',
-        description: 'Votre expression a été soumise à votre responsable hiérarchique pour validation.',
+        description: `Votre expression avec ${lignes.length} article(s) a été soumise pour validation.`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
@@ -198,12 +245,16 @@ export default function ExpressionDetail() {
     }
   };
 
-  // Handle validate (manager)
+  // Handle validate all lignes
   const handleValidate = async () => {
-    if (!id || !quantite || parseInt(quantite) <= 0) {
+    if (!id) return;
+
+    // Validate that all lignes have a quantity
+    const invalidLignes = lignesValidation.filter(l => !l.quantite || parseInt(l.quantite) <= 0);
+    if (invalidLignes.length > 0) {
       toast({
         title: 'Erreur',
-        description: 'La quantité est obligatoire et doit être supérieure à 0.',
+        description: 'Toutes les lignes doivent avoir une quantité supérieure à 0.',
         variant: 'destructive',
       });
       return;
@@ -211,25 +262,42 @@ export default function ExpressionDetail() {
 
     setIsProcessing(true);
     try {
-      const { error } = await supabase.rpc('validate_expression_by_manager', {
-        _expression_id: id,
-        _quantite: parseInt(quantite),
-        _unite: unite,
-        _precision_technique: precisionTechnique.trim() || null,
-      });
+      // Update each ligne with validation data
+      for (const ligne of lignesValidation) {
+        const { error } = await supabase
+          .from('expressions_besoin_lignes')
+          .update({
+            quantite: parseInt(ligne.quantite),
+            unite: ligne.unite,
+            precision_technique: ligne.precision_technique.trim() || null,
+            status: 'validated',
+          })
+          .eq('id', ligne.id);
+        
+        if (error) throw error;
+      }
 
-      if (error) throw error;
+      // Update main expression status
+      const { error: expError } = await supabase
+        .from('expressions_besoin')
+        .update({
+          status: 'valide_departement',
+          chef_validateur_id: user?.id,
+          validated_at: new Date().toISOString(),
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (expError) throw expError;
 
       toast({
         title: 'Expression validée',
-        description: `L'expression de ${formatFullName(demandeur?.first_name, demandeur?.last_name)} a été validée.`,
+        description: `Les ${lignes.length} article(s) ont été validés.`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
       queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
       setShowValidateDialog(false);
-      setQuantite('');
-      setPrecisionTechnique('');
     } catch (error: any) {
       console.error('Validation error:', error);
       toast({
@@ -242,7 +310,7 @@ export default function ExpressionDetail() {
     }
   };
 
-  // Handle reject (manager)
+  // Handle reject
   const handleReject = async () => {
     if (!id || !rejectionReason.trim()) {
       toast({
@@ -283,7 +351,7 @@ export default function ExpressionDetail() {
     }
   };
 
-  // Handle submit to logistics (manager after validation) - NO REDIRECT
+  // Handle submit to logistics
   const handleSubmitToLogistics = async () => {
     if (!id) return;
 
@@ -298,11 +366,10 @@ export default function ExpressionDetail() {
       toast({
         title: 'Transmission réussie',
         description: besoinId 
-          ? `Le besoin interne a été créé et transmis à la logistique.`
+          ? `Le besoin interne avec ${lignes.length} article(s) a été créé et transmis à la logistique.`
           : 'Expression transmise à la logistique.',
       });
 
-      // Refresh current page data - NO navigation
       queryClient.invalidateQueries({ queryKey: ['expression-besoin', id] });
       queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
     } catch (error: any) {
@@ -322,11 +389,10 @@ export default function ExpressionDetail() {
     if (!expression) return [];
     const events: TimelineEvent[] = [];
 
-    // Creation event
     events.push({
       id: 'created',
       action: 'created',
-      actionLabel: 'Expression créée',
+      actionLabel: `Expression créée avec ${lignes.length} article(s)`,
       timestamp: expression.created_at,
       user: demandeur ? {
         id: demandeur.id,
@@ -339,7 +405,6 @@ export default function ExpressionDetail() {
       variant: 'info',
     });
 
-    // Submission event
     if (expression.submitted_at && status !== 'brouillon') {
       events.push({
         id: 'submitted',
@@ -356,13 +421,12 @@ export default function ExpressionDetail() {
       });
     }
 
-    // Validation event
     if (status === 'valide_departement' || status === 'envoye_logistique') {
       if (expression.validated_at || expression.reviewed_at) {
         events.push({
           id: 'validated',
           action: 'validated',
-          actionLabel: `Validée - Quantité: ${expression.quantite} ${expression.unite || 'unité(s)'}`,
+          actionLabel: `${lignes.length} article(s) validé(s)`,
           timestamp: expression.validated_at || expression.reviewed_at!,
           user: validateur ? {
             id: validateur.id,
@@ -371,13 +435,11 @@ export default function ExpressionDetail() {
             lastName: validateur.last_name,
             fonction: validateur.fonction,
           } : undefined,
-          comment: expression.precision_technique,
           variant: 'success',
         });
       }
     }
 
-    // Rejection event
     if (status === 'rejete_departement' && expression.rejected_at) {
       events.push({
         id: 'rejected',
@@ -396,7 +458,6 @@ export default function ExpressionDetail() {
       });
     }
 
-    // Sent to logistics event
     if (status === 'envoye_logistique' && expression.sent_to_logistics_at) {
       events.push({
         id: 'sent_logistics',
@@ -457,7 +518,7 @@ export default function ExpressionDetail() {
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="font-serif text-2xl font-bold text-foreground">
-                {expression.nom_article}
+                {expression.titre || `Expression #${expression.id.slice(0, 8)}`}
               </h1>
               <Badge className={EXPRESSION_STATUS_COLORS[status]}>
                 <StatusIcon className="mr-1 h-3 w-3" />
@@ -465,12 +526,12 @@ export default function ExpressionDetail() {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              Créée le {format(new Date(expression.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+              {lignes.length} article(s) • Créée le {format(new Date(expression.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
             </p>
           </div>
         </div>
 
-        {/* Status description banner - role-aware */}
+        {/* Status description banner */}
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex items-start gap-3 py-4">
             <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -483,62 +544,81 @@ export default function ExpressionDetail() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Expression details */}
+            {/* Articles list */}
             <Card>
               <CardHeader>
-                <CardTitle>Détails de l'expression</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Articles demandés ({lignes.length})
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-muted-foreground">Nom de l'article</Label>
-                  <p className="text-lg font-medium">{expression.nom_article}</p>
-                </div>
-
-                {expression.commentaire && (
-                  <div>
-                    <Label className="text-muted-foreground">Commentaire</Label>
-                    <p className="mt-1 text-foreground whitespace-pre-wrap">
-                      {expression.commentaire}
-                    </p>
-                  </div>
-                )}
-
-                {/* Validation info */}
-                {(status === 'valide_departement' || status === 'envoye_logistique') && (
-                  <div className="border-t pt-4 mt-4">
-                    <p className="text-sm font-medium text-success mb-3">
-                      Informations de validation
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <Label className="text-muted-foreground">Quantité</Label>
-                        <p className="text-lg font-medium">
-                          {expression.quantite} {expression.unite || 'unité(s)'}
-                        </p>
-                      </div>
-                    </div>
-                    {expression.precision_technique && (
-                      <div className="mt-4">
-                        <Label className="text-muted-foreground">Précisions techniques</Label>
-                        <p className="mt-1 text-foreground whitespace-pre-wrap">
-                          {expression.precision_technique}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Rejection info */}
-                {status === 'rejete_departement' && expression.rejection_reason && (
-                  <div className="border-t pt-4 mt-4">
-                    <p className="text-sm font-medium text-destructive mb-2">Motif du rejet</p>
-                    <p className="text-foreground bg-destructive/5 p-3 rounded-md">
-                      {expression.rejection_reason}
-                    </p>
-                  </div>
-                )}
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Article</TableHead>
+                      <TableHead>Quantité</TableHead>
+                      <TableHead>Unité</TableHead>
+                      {(status === 'valide_departement' || status === 'envoye_logistique') && (
+                        <TableHead>Précisions</TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lignes.map((ligne, index) => (
+                      <TableRow key={ligne.id}>
+                        <TableCell className="font-medium">
+                          {ligne.nom_article}
+                        </TableCell>
+                        <TableCell>
+                          {ligne.quantite ? (
+                            <span className="font-medium">{ligne.quantite}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {ligne.unite || 'unité'}
+                        </TableCell>
+                        {(status === 'valide_departement' || status === 'envoye_logistique') && (
+                          <TableCell>
+                            {ligne.precision_technique || '—'}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
+
+            {/* Commentaire global */}
+            {expression.commentaire && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Commentaire</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {expression.commentaire}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Rejection info */}
+            {status === 'rejete_departement' && expression.rejection_reason && (
+              <Card className="border-destructive/30">
+                <CardHeader>
+                  <CardTitle className="text-destructive">Motif du rejet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground bg-destructive/5 p-3 rounded-md">
+                    {expression.rejection_reason}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Link to created besoin */}
             {expression.besoin && (
@@ -565,7 +645,7 @@ export default function ExpressionDetail() {
               </Card>
             )}
 
-            {/* Demandeur - with full identity */}
+            {/* Demandeur */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -588,7 +668,7 @@ export default function ExpressionDetail() {
               </CardContent>
             </Card>
 
-            {/* Validateur - if exists */}
+            {/* Validateur */}
             {validateur && (
               <Card>
                 <CardHeader>
@@ -649,11 +729,14 @@ export default function ExpressionDetail() {
                     <>
                       <Button 
                         className="w-full" 
-                        onClick={() => setShowValidateDialog(true)}
+                        onClick={() => {
+                          initValidationState();
+                          setShowValidateDialog(true);
+                        }}
                         disabled={isProcessing}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
-                        Valider et préciser
+                        Valider {lignes.length > 1 ? `les ${lignes.length} articles` : 'l\'article'}
                       </Button>
                       <Button 
                         variant="destructive" 
@@ -716,66 +799,77 @@ export default function ExpressionDetail() {
         </div>
       </div>
 
-      {/* Validate Dialog */}
+      {/* Validate Dialog - with all lignes */}
       <Dialog open={showValidateDialog} onOpenChange={setShowValidateDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Valider l'expression</DialogTitle>
             <DialogDescription>
-              Validez l'expression de <strong>{formatFullName(demandeur?.first_name, demandeur?.last_name)}</strong>.
-              Précisez la quantité et les informations techniques.
+              Précisez la quantité pour chaque article demandé par {formatFullName(demandeur?.first_name, demandeur?.last_name)}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="quantite">Quantité *</Label>
-                <Input
-                  id="quantite"
-                  type="number"
-                  min="1"
-                  value={quantite}
-                  onChange={(e) => setQuantite(e.target.value)}
-                  placeholder="Ex: 10"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unite">Unité</Label>
-                <Select value={unite} onValueChange={setUnite}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unité">Unité</SelectItem>
-                    <SelectItem value="pièce">Pièce</SelectItem>
-                    <SelectItem value="kg">Kilogramme</SelectItem>
-                    <SelectItem value="litre">Litre</SelectItem>
-                    <SelectItem value="mètre">Mètre</SelectItem>
-                    <SelectItem value="boîte">Boîte</SelectItem>
-                    <SelectItem value="lot">Lot</SelectItem>
-                    <SelectItem value="carton">Carton</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="precision">Précisions techniques (optionnel)</Label>
-              <Textarea
-                id="precision"
-                value={precisionTechnique}
-                onChange={(e) => setPrecisionTechnique(e.target.value)}
-                placeholder="Spécifications, références, marque préférée..."
-                rows={3}
-              />
-            </div>
+            {lignesValidation.map((ligne, index) => {
+              const originalLigne = lignes.find(l => l.id === ligne.id);
+              return (
+                <Card key={ligne.id} className="p-4">
+                  <div className="space-y-3">
+                    <p className="font-medium">{originalLigne?.nom_article}</p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Quantité *</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={ligne.quantite}
+                          onChange={(e) => updateLigneValidation(ligne.id, 'quantite', e.target.value)}
+                          placeholder="Ex: 10"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Unité</Label>
+                        <Select 
+                          value={ligne.unite} 
+                          onValueChange={(v) => updateLigneValidation(ligne.id, 'unite', v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unité">Unité</SelectItem>
+                            <SelectItem value="pièce">Pièce</SelectItem>
+                            <SelectItem value="kg">Kilogramme</SelectItem>
+                            <SelectItem value="litre">Litre</SelectItem>
+                            <SelectItem value="mètre">Mètre</SelectItem>
+                            <SelectItem value="boîte">Boîte</SelectItem>
+                            <SelectItem value="lot">Lot</SelectItem>
+                            <SelectItem value="carton">Carton</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1 sm:col-span-3 lg:col-span-1">
+                        <Label className="text-xs">Précisions (optionnel)</Label>
+                        <Input
+                          value={ligne.precision_technique}
+                          onChange={(e) => updateLigneValidation(ligne.id, 'precision_technique', e.target.value)}
+                          placeholder="Marque, référence..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowValidateDialog(false)} disabled={isProcessing}>
               Annuler
             </Button>
-            <Button onClick={handleValidate} disabled={isProcessing || !quantite}>
-              {isProcessing ? 'Validation...' : 'Valider'}
+            <Button 
+              onClick={handleValidate} 
+              disabled={isProcessing || lignesValidation.some(l => !l.quantite || parseInt(l.quantite) <= 0)}
+            >
+              {isProcessing ? 'Validation...' : `Valider ${lignes.length} article(s)`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -787,8 +881,7 @@ export default function ExpressionDetail() {
           <DialogHeader>
             <DialogTitle>Rejeter l'expression</DialogTitle>
             <DialogDescription>
-              Rejetez l'expression de <strong>{formatFullName(demandeur?.first_name, demandeur?.last_name)}</strong>.
-              Indiquez le motif du rejet.
+              Rejetez l'expression de <strong>{formatFullName(demandeur?.first_name, demandeur?.last_name)}</strong> ({lignes.length} article(s)).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

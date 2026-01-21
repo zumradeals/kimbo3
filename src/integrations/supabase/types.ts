@@ -1294,6 +1294,7 @@ export type Database = {
           status: Database["public"]["Enums"]["expression_besoin_status_v2"]
           status_old: Database["public"]["Enums"]["expression_besoin_status"]
           submitted_at: string | null
+          titre: string | null
           unite: string | null
           updated_at: string
           user_id: string
@@ -1316,6 +1317,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["expression_besoin_status_v2"]
           status_old?: Database["public"]["Enums"]["expression_besoin_status"]
           submitted_at?: string | null
+          titre?: string | null
           unite?: string | null
           updated_at?: string
           user_id: string
@@ -1338,6 +1340,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["expression_besoin_status_v2"]
           status_old?: Database["public"]["Enums"]["expression_besoin_status"]
           submitted_at?: string | null
+          titre?: string | null
           unite?: string | null
           updated_at?: string
           user_id?: string
@@ -1370,6 +1373,53 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expressions_besoin_lignes: {
+        Row: {
+          created_at: string
+          expression_id: string
+          id: string
+          nom_article: string
+          precision_technique: string | null
+          quantite: number | null
+          rejection_reason: string | null
+          status: string
+          unite: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expression_id: string
+          id?: string
+          nom_article: string
+          precision_technique?: string | null
+          quantite?: number | null
+          rejection_reason?: string | null
+          status?: string
+          unite?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expression_id?: string
+          id?: string
+          nom_article?: string
+          precision_technique?: string | null
+          quantite?: number | null
+          rejection_reason?: string | null
+          status?: string
+          unite?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expressions_besoin_lignes_expression_id_fkey"
+            columns: ["expression_id"]
+            isOneToOne: false
+            referencedRelation: "expressions_besoin"
             referencedColumns: ["id"]
           },
         ]
