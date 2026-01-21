@@ -1282,10 +1282,13 @@ export type Database = {
           chef_validateur_id: string | null
           commentaire: string | null
           created_at: string
+          date_souhaitee: string | null
           department_id: string
           id: string
+          lieu_projet: string | null
           nom_article: string
           precision_technique: string | null
+          projet_id: string | null
           quantite: number | null
           rejected_at: string | null
           rejection_reason: string | null
@@ -1305,10 +1308,13 @@ export type Database = {
           chef_validateur_id?: string | null
           commentaire?: string | null
           created_at?: string
+          date_souhaitee?: string | null
           department_id: string
           id?: string
+          lieu_projet?: string | null
           nom_article: string
           precision_technique?: string | null
+          projet_id?: string | null
           quantite?: number | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -1328,10 +1334,13 @@ export type Database = {
           chef_validateur_id?: string | null
           commentaire?: string | null
           created_at?: string
+          date_souhaitee?: string | null
           department_id?: string
           id?: string
+          lieu_projet?: string | null
           nom_article?: string
           precision_technique?: string | null
+          projet_id?: string | null
           quantite?: number | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -1369,6 +1378,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expressions_besoin_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expressions_besoin_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -1382,6 +1398,7 @@ export type Database = {
           created_at: string
           expression_id: string
           id: string
+          justification: string | null
           nom_article: string
           precision_technique: string | null
           quantite: number | null
@@ -1394,6 +1411,7 @@ export type Database = {
           created_at?: string
           expression_id: string
           id?: string
+          justification?: string | null
           nom_article: string
           precision_technique?: string | null
           quantite?: number | null
@@ -1406,6 +1424,7 @@ export type Database = {
           created_at?: string
           expression_id?: string
           id?: string
+          justification?: string | null
           nom_article?: string
           precision_technique?: string | null
           quantite?: number | null
