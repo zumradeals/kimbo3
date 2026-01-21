@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User, Plus, Trash2, Send, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2, Send } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
 import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
@@ -28,7 +28,7 @@ export default function ExpressionCreate() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitDirect, setSubmitDirect] = useState(true); // Par défaut, soumettre directement
+  const [submitDirect, setSubmitDirect] = useState(true);
 
   // Multi-line articles
   const [articles, setArticles] = useState<ArticleLine[]>([
@@ -37,7 +37,7 @@ export default function ExpressionCreate() {
   const [commentaire, setCommentaire] = useState('');
 
   // Fetch manager info
-  const { data: manager, isLoading: isLoadingManager } = useQuery({
+  const { data: manager } = useQuery({
     queryKey: ['manager', profile?.chef_hierarchique_id],
     queryFn: async () => {
       if (!profile?.chef_hierarchique_id) return null;
@@ -92,58 +92,68 @@ export default function ExpressionCreate() {
       return;
     }
 
-
     setIsSubmitting(true);
 
     try {
-      // Insert all articles as separate expressions
-      // Si submitDirect est true, on utilise le statut 'soumis', sinon 'brouillon'
-      const expressionsToCreate = validArticles.map(article => ({
-        user_id: user?.id,
-        department_id: profile.department_id,
+      // 1. Créer l'expression groupe (parent)
+      const titre = validArticles.length > 1 
+        ? `${validArticles.length} articles demandés`
+        : validArticles[0].nomArticle.trim();
+
+      const { data: expression, error: expressionError } = await supabase
+        .from('expressions_besoin')
+        .insert({
+          user_id: user?.id,
+          department_id: profile.department_id,
+          titre,
+          nom_article: titre, // Legacy field - pour compatibilité
+          commentaire: commentaire.trim() || null,
+          status: submitDirect ? 'soumis' : 'brouillon',
+          submitted_at: submitDirect ? new Date().toISOString() : null,
+        })
+        .select('id')
+        .single();
+
+      if (expressionError) throw expressionError;
+
+      // 2. Créer les lignes d'articles
+      const lignes = validArticles.map(article => ({
+        expression_id: expression.id,
         nom_article: article.nomArticle.trim(),
-        commentaire: commentaire.trim() || null,
-        status: (submitDirect ? 'soumis' : 'brouillon') as 'soumis' | 'brouillon',
-        submitted_at: submitDirect ? new Date().toISOString() : null,
       }));
 
-      const { data, error } = await supabase
-        .from('expressions_besoin')
-        .insert(expressionsToCreate)
-        .select();
+      const { error: lignesError } = await supabase
+        .from('expressions_besoin_lignes')
+        .insert(lignes);
 
-      if (error) throw error;
+      if (lignesError) throw lignesError;
 
-      const count = data?.length || validArticles.length;
+      const count = validArticles.length;
       
       if (submitDirect && manager) {
         toast({
-          title: `${count} expression${count > 1 ? 's' : ''} soumise${count > 1 ? 's' : ''}`,
-          description: `Soumise${count > 1 ? 's' : ''} à ${formatFullName(manager.first_name, manager.last_name)} pour validation.`,
+          title: 'Expression soumise',
+          description: `${count} article${count > 1 ? 's' : ''} soumis à ${formatFullName(manager.first_name, manager.last_name)} pour validation.`,
         });
       } else if (submitDirect) {
         toast({
-          title: `${count} expression${count > 1 ? 's' : ''} soumise${count > 1 ? 's' : ''}`,
-          description: 'En attente de validation.',
+          title: 'Expression soumise',
+          description: `${count} article${count > 1 ? 's' : ''} en attente de validation.`,
         });
       } else {
         toast({
-          title: `${count} expression${count > 1 ? 's' : ''} créée${count > 1 ? 's' : ''}`,
-          description: 'Enregistrée(s) en brouillon.',
+          title: 'Expression créée',
+          description: `${count} article${count > 1 ? 's' : ''} enregistré${count > 1 ? 's' : ''} en brouillon.`,
         });
       }
 
-      // Navigate to list or first expression
-      if (data && data.length === 1) {
-        navigate(`/expressions-besoin/${data[0].id}`);
-      } else {
-        navigate('/expressions-besoin');
-      }
+      // Naviguer vers le détail de l'expression
+      navigate(`/expressions-besoin/${expression.id}`);
     } catch (error: any) {
-      console.error('Error creating expressions:', error);
+      console.error('Error creating expression:', error);
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de créer les expressions.',
+        description: error.message || 'Impossible de créer l\'expression.',
         variant: 'destructive',
       });
     } finally {
@@ -211,16 +221,16 @@ export default function ExpressionCreate() {
           <CardContent className="flex items-start gap-3 py-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div className="text-sm">
-              <p className="font-medium text-foreground">Expression simple, sans engagement</p>
+              <p className="font-medium text-foreground">Expression groupée</p>
               <p className="text-muted-foreground">
-                Indiquez les noms des articles souhaités. 
-                Votre chef hiérarchique validera et précisera les quantités avant transmission à la logistique.
+                Tous vos articles seront soumis ensemble dans une seule expression. 
+                Votre chef hiérarchique les validera d'un seul coup.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Manager info (informational only) */}
+        {/* Manager info */}
         {hasManager && manager && (
           <Card className="border-success/20 bg-success/5">
             <CardContent className="flex items-center gap-3 py-4">
@@ -252,7 +262,7 @@ export default function ExpressionCreate() {
             <CardHeader>
               <CardTitle>Articles demandés</CardTitle>
               <CardDescription>
-                Ajoutez un ou plusieurs articles
+                Ajoutez un ou plusieurs articles — ils seront traités ensemble
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -334,7 +344,7 @@ export default function ExpressionCreate() {
               <div className="rounded-md bg-muted/50 p-3">
                 <p className="text-xs text-muted-foreground">
                   ⚠️ <strong>Pas de quantité ni de prix</strong> — Votre chef hiérarchique 
-                  définira les quantités lors de la validation. Chaque article créera une expression séparée.
+                  définira les quantités lors de la validation.
                 </p>
               </div>
 

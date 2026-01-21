@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Eye, Clock, CheckCircle, XCircle, Info, FileEdit, Send, Users } from 'lucide-react';
+import { Plus, Search, Eye, Clock, CheckCircle, XCircle, Info, FileEdit, Send, Users, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
@@ -49,6 +49,15 @@ const STATUS_ICONS: Record<ExpressionBesoinStatus, React.ElementType> = {
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
+// Interface pour les lignes d'expression
+interface ExpressionLigne {
+  id: string;
+  nom_article: string;
+  quantite: number | null;
+  unite: string | null;
+  status: string;
+}
+
 export default function ExpressionsList() {
   const { profile, isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
@@ -60,7 +69,7 @@ export default function ExpressionsList() {
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Check if user is a manager (has subordinates)
+  // Check if user is a manager
   const { data: isManager } = useQuery({
     queryKey: ['is-manager', profile?.id],
     queryFn: async () => {
@@ -79,12 +88,13 @@ export default function ExpressionsList() {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // 1. Fetch expressions with department join only
+    // 1. Fetch expressions with department and lignes
     let query = supabase
       .from('expressions_besoin')
       .select(`
         *,
-        department:departments(id, name)
+        department:departments(id, name),
+        lignes:expressions_besoin_lignes(id, nom_article, quantite, unite, status)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -94,7 +104,8 @@ export default function ExpressionsList() {
     }
 
     if (debouncedSearch) {
-      query = query.ilike('nom_article', `%${debouncedSearch}%`);
+      // Rechercher dans le titre ou le commentaire
+      query = query.or(`titre.ilike.%${debouncedSearch}%,nom_article.ilike.%${debouncedSearch}%`);
     }
 
     const { data, error, count } = await query;
@@ -117,6 +128,7 @@ export default function ExpressionsList() {
       expressions: (data || []).map(exp => ({
         ...exp,
         user: profilesMap.get(exp.user_id) || null,
+        lignes: exp.lignes as ExpressionLigne[] || [],
       })),
       totalCount: count || 0,
     };
@@ -150,8 +162,6 @@ export default function ExpressionsList() {
   };
 
   const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 0;
-
-  // Check if user can create (has a department)
   const canCreate = !!profile?.department_id;
 
   if (isLoading) {
@@ -195,8 +205,8 @@ export default function ExpressionsList() {
           <CardContent className="flex items-center gap-3 py-3">
             <Info className="h-5 w-5 text-primary" />
             <p className="text-sm text-foreground">
-              <strong>Expression de besoin :</strong> Une demande simple (nom + commentaire) 
-              soumise à votre chef hiérarchique pour validation avant transmission à la logistique.
+              <strong>Expression groupée :</strong> Chaque expression peut contenir plusieurs articles, 
+              validés ensemble par votre responsable.
             </p>
           </CardContent>
         </Card>
@@ -207,7 +217,7 @@ export default function ExpressionsList() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Rechercher par nom d'article..."
+                placeholder="Rechercher..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -259,9 +269,8 @@ export default function ExpressionsList() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Demandeur</TableHead>
-                        <TableHead>Nom de l'article</TableHead>
+                        <TableHead>Articles</TableHead>
                         <TableHead>Département</TableHead>
-                        <TableHead>Quantité</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead className="w-[80px]">Actions</TableHead>
@@ -273,6 +282,9 @@ export default function ExpressionsList() {
                         const StatusIcon = STATUS_ICONS[status];
                         const isMine = expression.user_id === user?.id;
                         const userProfile = expression.user as PublicProfile | null;
+                        const lignes = expression.lignes as ExpressionLigne[];
+                        const articleCount = lignes.length;
+                        
                         return (
                           <TableRow key={expression.id}>
                             <TableCell>
@@ -290,24 +302,32 @@ export default function ExpressionsList() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <p className="font-medium">{expression.nom_article}</p>
-                              {expression.commentaire && (
-                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                  {expression.commentaire}
-                                </p>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  {articleCount > 1 ? (
+                                    <>
+                                      <p className="font-medium">{articleCount} articles</p>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">
+                                        {lignes.slice(0, 2).map(l => l.nom_article).join(', ')}
+                                        {articleCount > 2 && '...'}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="font-medium">
+                                      {lignes[0]?.nom_article || expression.nom_article || '—'}
+                                    </p>
+                                  )}
+                                  {expression.commentaire && (
+                                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                      💬 {expression.commentaire}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell>
                               {expression.department?.name || '—'}
-                            </TableCell>
-                            <TableCell>
-                              {expression.quantite ? (
-                                <span>
-                                  {expression.quantite} {expression.unite || 'unité(s)'}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
                             </TableCell>
                             <TableCell>
                               <Badge className={EXPRESSION_STATUS_COLORS[status]}>
