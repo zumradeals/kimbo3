@@ -843,6 +843,7 @@ export type Database = {
       }
       da_articles: {
         Row: {
+          article_stock_id: string | null
           created_at: string
           da_id: string
           designation: string
@@ -852,6 +853,7 @@ export type Database = {
           unit: string
         }
         Insert: {
+          article_stock_id?: string | null
           created_at?: string
           da_id: string
           designation: string
@@ -861,6 +863,7 @@ export type Database = {
           unit?: string
         }
         Update: {
+          article_stock_id?: string | null
           created_at?: string
           da_id?: string
           designation?: string
@@ -870,6 +873,13 @@ export type Database = {
           unit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "da_articles_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "da_articles_da_id_fkey"
             columns: ["da_id"]
