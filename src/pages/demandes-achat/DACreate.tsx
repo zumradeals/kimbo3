@@ -26,6 +26,7 @@ interface ArticleForm {
   quantity: string;
   unit: string;
   observations: string;
+  article_stock_id?: string | null;
 }
 
 export default function DACreate() {
@@ -107,12 +108,13 @@ export default function DACreate() {
           quantity: String(ligne.quantity),
           unit: ligne.unit,
           observations: ligne.justification || '',
+          article_stock_id: ligne.article_stock_id || null,
         }));
         setArticles(articlesFromLignes);
         setLignesLoaded(true);
       } else if (!lignesLoaded) {
         // Fallback: create one empty article if no lignes
-        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '' }]);
+        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null }]);
         setLignesLoaded(true);
       }
     } catch (error: any) {
@@ -128,7 +130,7 @@ export default function DACreate() {
   };
 
   const addArticle = () => {
-    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '' }]);
+    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null }]);
   };
 
   const removeArticle = (index: number) => {
@@ -193,6 +195,7 @@ export default function DACreate() {
         quantity: parseFloat(a.quantity),
         unit: a.unit,
         observations: a.observations.trim() || null,
+        article_stock_id: a.article_stock_id || null,
       }));
 
       const { error: artError } = await supabase.from('da_articles').insert(articlesToInsert);

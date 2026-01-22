@@ -365,6 +365,7 @@ export default function StockList() {
                       <TableHead className="text-right">Qté disponible</TableHead>
                       <TableHead className="text-right">Qté réservée</TableHead>
                       <TableHead>Unité</TableHead>
+                      <TableHead className="text-right">Prix réf.</TableHead>
                       <TableHead>Emplacement</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead className="text-right">Action</TableHead>
@@ -400,6 +401,16 @@ export default function StockList() {
                           </TableCell>
                           <TableCell className="text-right font-mono">{art.quantity_reserved}</TableCell>
                           <TableCell>{art.unit}</TableCell>
+                          <TableCell className="text-right">
+                            {(art as any).prix_reference ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <span className="font-mono text-sm">{((art as any).prix_reference as number).toLocaleString('fr-FR')}</span>
+                                <Badge variant="outline" className="text-[10px] px-1">₣</Badge>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
                           <TableCell>{art.location || '-'}</TableCell>
                           <TableCell>
                             <Badge className={statusColors[art.status]}>

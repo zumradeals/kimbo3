@@ -291,12 +291,37 @@ export default function DADetail() {
   };
 
   const fetchArticles = async () => {
+    // Fetch articles
     const { data } = await supabase
       .from('da_articles')
       .select('*')
       .eq('da_id', id)
       .order('created_at');
-    const arts = (data as DAArticle[]) || [];
+    let arts = (data || []) as DAArticle[];
+    
+    // Fetch stock article info for reference prices
+    const stockArticleIds = arts
+      .filter(a => (a as any).article_stock_id)
+      .map(a => (a as any).article_stock_id as string);
+    
+    if (stockArticleIds.length > 0) {
+      const { data: stockData } = await supabase
+        .from('articles_stock')
+        .select('id, designation, prix_reference, prix_reference_note')
+        .in('id', stockArticleIds);
+      
+      // Enrich articles with stock info
+      const stockById = (stockData || []).reduce((acc, s) => {
+        acc[s.id] = s;
+        return acc;
+      }, {} as Record<string, any>);
+      
+      arts = arts.map(a => ({
+        ...a,
+        article_stock: (a as any).article_stock_id ? stockById[(a as any).article_stock_id] : null,
+      }));
+    }
+    
     setArticles(arts);
 
     // Fetch all prices in parallel for all articles
@@ -1518,7 +1543,17 @@ export default function DADetail() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => { setSelectedArticleId(art.id); setShowPriceDialog(true); }}
+                          onClick={() => { 
+                            setSelectedArticleId(art.id);
+                            // Pre-fill reference price if article is linked to stock
+                            const stockArticle = (art as any).article_stock;
+                            if (stockArticle?.prix_reference) {
+                              setPriceForm(prev => ({ ...prev, unit_price: String(stockArticle.prix_reference) }));
+                            } else {
+                              setPriceForm(prev => ({ ...prev, unit_price: '' }));
+                            }
+                            setShowPriceDialog(true); 
+                          }}
                         >
                           <Plus className="mr-1 h-3 w-3" />
                           Prix
@@ -1586,6 +1621,25 @@ export default function DADetail() {
             <DialogDescription>Renseignez le prix proposé par un fournisseur.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Reference price hint */}
+            {selectedArticleId && (() => {
+              const selectedArt = articles.find(a => a.id === selectedArticleId);
+              const stockArticle = (selectedArt as any)?.article_stock;
+              if (stockArticle?.prix_reference) {
+                return (
+                  <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <Badge variant="outline" className="shrink-0">Indicatif</Badge>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Prix de référence: {stockArticle.prix_reference.toLocaleString('fr-FR')} FCFA</p>
+                      {stockArticle.prix_reference_note && (
+                        <p className="text-xs text-muted-foreground">{stockArticle.prix_reference_note}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div className="space-y-2">
               <Label>Fournisseur *</Label>
               <Select value={priceForm.fournisseur_id} onValueChange={(v) => setPriceForm({ ...priceForm, fournisseur_id: v })}>
@@ -1608,6 +1662,7 @@ export default function DADetail() {
                   step="0.01"
                   value={priceForm.unit_price}
                   onChange={(e) => setPriceForm({ ...priceForm, unit_price: e.target.value })}
+                  placeholder={selectedArticleId && (articles.find(a => a.id === selectedArticleId) as any)?.article_stock?.prix_reference ? 'Prix indicatif pré-rempli' : ''}
                 />
               </div>
               <div className="space-y-2">
