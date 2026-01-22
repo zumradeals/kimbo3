@@ -75,8 +75,10 @@ export function CorrectionCaisseDialog({
     }
   };
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMoney = (amt: number, dev: string = 'XOF') => {
-    return new Intl.NumberFormat('fr-FR').format(amt) + ' ' + dev;
+    const rounded = Math.ceil(amt);
+    return new Intl.NumberFormat('fr-FR').format(rounded) + ' ' + dev;
   };
 
   const selectedCaisse = caisses.find(c => c.id === nouvelleCaisseId);

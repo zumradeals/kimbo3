@@ -275,9 +275,11 @@ export default function DossierComplet() {
     }
   };
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMontant = (value: number | null | undefined, currency = 'XOF') => {
     if (!value) return '-';
-    return new Intl.NumberFormat('fr-FR').format(value) + ' ' + currency;
+    const rounded = Math.ceil(value);
+    return new Intl.NumberFormat('fr-FR').format(rounded) + ' ' + currency;
   };
 
   if (isLoading) {

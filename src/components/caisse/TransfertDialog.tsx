@@ -61,8 +61,10 @@ export function TransfertDialog({ open, onOpenChange, sourceCaisse, onSuccess }:
     }
   };
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMoney = (amount: number, devise: string = 'XOF') => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + devise;
+    const rounded = Math.ceil(amount);
+    return new Intl.NumberFormat('fr-FR').format(rounded) + ' ' + devise;
   };
 
   const selectedDestination = caisses.find(c => c.id === destinationId);

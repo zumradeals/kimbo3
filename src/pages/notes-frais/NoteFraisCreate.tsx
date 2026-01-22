@@ -227,7 +227,7 @@ export default function NoteFraisCreate() {
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Total</p>
                   <p className="text-2xl font-bold text-primary">
-                    {new Intl.NumberFormat('fr-FR').format(totalAmount)} XOF
+                    {new Intl.NumberFormat('fr-FR').format(Math.ceil(totalAmount))} XOF
                   </p>
                 </div>
               </div>

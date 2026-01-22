@@ -600,7 +600,7 @@ export default function ComptabiliteDetail() {
                         <span className="flex items-center gap-2">
                           {caisse.code} - {caisse.name}
                           <span className="text-xs text-muted-foreground">
-                            ({new Intl.NumberFormat('fr-FR').format(caisse.solde_actuel)} {caisse.devise})
+                            ({new Intl.NumberFormat('fr-FR').format(Math.ceil(caisse.solde_actuel))} {caisse.devise})
                           </span>
                         </span>
                       </SelectItem>
@@ -609,7 +609,7 @@ export default function ComptabiliteDetail() {
                 </Select>
                 {selectedCaisseId && selectedCaisseId !== '_none' && da?.total_amount && (
                   <p className="mt-2 text-sm text-warning">
-                    ⚠️ Un mouvement de sortie de {da.total_amount.toLocaleString()} {da.currency} sera créé automatiquement.
+                    ⚠️ Un mouvement de sortie de {Math.ceil(da.total_amount).toLocaleString()} {da.currency} sera créé automatiquement.
                   </p>
                 )}
               </div>
