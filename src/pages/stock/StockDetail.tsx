@@ -153,7 +153,7 @@ export default function StockDetail() {
     observations: '',
   });
 
-  // Edit form - now includes quantity_available and category_id
+  // Edit form - now includes quantity_available, category_id, and reference price
   const [editForm, setEditForm] = useState({
     designation: '',
     description: '',
@@ -162,6 +162,8 @@ export default function StockDetail() {
     quantity_min: 0,
     location: '',
     category_id: null as string | null,
+    prix_reference: null as number | null,
+    prix_reference_note: '',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -198,6 +200,8 @@ export default function StockDetail() {
         quantity_min: data.quantity_min || 0,
         location: data.location || '',
         category_id: data.category_id || null,
+        prix_reference: (data as any).prix_reference || null,
+        prix_reference_note: (data as any).prix_reference_note || '',
       });
       // Check if unit is custom
       setCustomUnit(!STOCK_UNITS.find(u => u.value === data.unit));
@@ -362,6 +366,8 @@ export default function StockDetail() {
           quantity_min: editForm.quantity_min || null,
           location: editForm.location || null,
           category_id: editForm.category_id || null,
+          prix_reference: editForm.prix_reference || null,
+          prix_reference_note: editForm.prix_reference_note || null,
         })
         .eq('id', article.id);
 
@@ -580,6 +586,34 @@ export default function StockDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Prix de référence */}
+        {(article as any).prix_reference && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <span className="text-lg font-bold text-primary">₣</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold">{((article as any).prix_reference as number).toLocaleString('fr-FR')} FCFA</p>
+                    <Badge variant="outline" className="text-xs">Indicatif</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Prix de référence par {article.unit}
+                    {(article as any).prix_reference_note && ` — ${(article as any).prix_reference_note}`}
+                  </p>
+                </div>
+              </div>
+              {(article as any).prix_reference_updated_at && (
+                <p className="text-xs text-muted-foreground">
+                  Màj: {format(new Date((article as any).prix_reference_updated_at), 'dd/MM/yyyy', { locale: fr })}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Description */}
         {article.description && (
@@ -934,6 +968,36 @@ export default function StockDetail() {
                 onChange={(v) => setEditForm({ ...editForm, category_id: v })}
                 placeholder="Sélectionner une catégorie"
               />
+            </div>
+
+            {/* Prix de référence */}
+            <div className="space-y-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Prix de référence (optionnel)</Label>
+                <Badge variant="outline" className="text-xs">Indicatif</Badge>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={editForm.prix_reference ?? ''}
+                    onChange={(e) => setEditForm({ ...editForm, prix_reference: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="Prix unitaire indicatif"
+                    className="h-11"
+                  />
+                  <p className="text-xs text-muted-foreground">En FCFA, sera proposé lors du chiffrage</p>
+                </div>
+                <div className="space-y-1">
+                  <Input
+                    value={editForm.prix_reference_note}
+                    onChange={(e) => setEditForm({ ...editForm, prix_reference_note: e.target.value })}
+                    placeholder="Note (ex: tarif fournisseur X)"
+                    className="h-11"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
