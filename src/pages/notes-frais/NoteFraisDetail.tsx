@@ -463,8 +463,10 @@ export default function NoteFraisDetail() {
 
   const StatusIcon = statusIcons[note.status];
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatAmount = (amount: number, currency: string = 'XOF') => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + currency;
+    const rounded = Math.ceil(amount);
+    return new Intl.NumberFormat('fr-FR').format(rounded) + ' ' + currency;
   };
 
   return (

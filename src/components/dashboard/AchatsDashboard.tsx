@@ -118,13 +118,15 @@ export function AchatsDashboard() {
     }
   };
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMontant = (value: number | null, currency: string | null) => {
     if (!value) return 'Non chiffré';
+    const rounded = Math.ceil(value);
     return new Intl.NumberFormat('fr-FR', {
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value) + ' ' + (currency || 'XOF');
+    }).format(rounded) + ' ' + (currency || 'XOF');
   };
 
   if (isLoading) {

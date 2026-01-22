@@ -404,7 +404,7 @@ export default function StockList() {
                           <TableCell className="text-right">
                             {(art as any).prix_reference ? (
                               <div className="flex items-center justify-end gap-1">
-                                <span className="font-mono text-sm">{((art as any).prix_reference as number).toLocaleString('fr-FR')}</span>
+                                <span className="font-mono text-sm">{Math.ceil((art as any).prix_reference as number).toLocaleString('fr-FR')}</span>
                                 <Badge variant="outline" className="text-[10px] px-1">₣</Badge>
                               </div>
                             ) : (

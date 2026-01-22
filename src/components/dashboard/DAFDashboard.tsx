@@ -203,12 +203,14 @@ export function DAFDashboard() {
     fetchDAFStats();
   }, []);
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMontant = (value: number) => {
+    const rounded = Math.ceil(value);
     return new Intl.NumberFormat('fr-FR', {
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value) + ' XOF';
+    }).format(rounded) + ' XOF';
   };
 
   const formatMontantShort = (value: number) => {

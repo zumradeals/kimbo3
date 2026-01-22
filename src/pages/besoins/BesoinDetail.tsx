@@ -790,9 +790,9 @@ export default function BesoinDetail() {
                 </Badge>
               )}
               {besoin.besoin_avance_caisse && (
-                <Badge variant="outline" className="bg-muted">
+              <Badge variant="outline" className="bg-muted">
                   <Wallet className="mr-1 h-3 w-3" />
-                  Avance de caisse: {besoin.avance_caisse_montant?.toLocaleString('fr-FR')} XOF
+                  Avance de caisse: {besoin.avance_caisse_montant ? Math.ceil(besoin.avance_caisse_montant).toLocaleString('fr-FR') : '0'} XOF
                 </Badge>
               )}
             </div>

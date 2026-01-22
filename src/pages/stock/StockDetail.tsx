@@ -597,7 +597,7 @@ export default function StockDetail() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold">{((article as any).prix_reference as number).toLocaleString('fr-FR')} FCFA</p>
+                    <p className="text-2xl font-bold">{Math.ceil((article as any).prix_reference as number).toLocaleString('fr-FR')} FCFA</p>
                     <Badge variant="outline" className="text-xs">Indicatif</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">

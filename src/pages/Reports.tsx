@@ -317,7 +317,7 @@ export default function Reports() {
                       <Wallet className="h-6 w-6 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{(stats.da.totalAmount / 1000000).toFixed(1)}M</p>
+                      <p className="text-2xl font-bold">{(Math.ceil(stats.da.totalAmount) / 1000000).toFixed(1)}M</p>
                       <p className="text-sm text-muted-foreground">XOF engagés</p>
                     </div>
                   </CardContent>

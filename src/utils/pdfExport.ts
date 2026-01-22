@@ -71,8 +71,10 @@ const COLORS = {
 
 const formatMontant = (value: number | null, _currency?: string) => {
   if (!value && value !== 0) return '0 FCFA';
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur (ceil) pour tous les montants
+  const rounded = Math.ceil(value);
   // Utiliser un espace comme séparateur de milliers pour éviter les problèmes d'affichage PDF
-  const formatted = Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   // KPM utilise exclusivement le XOF (Franc CFA) - paramètre currency ignoré
   return formatted + ' FCFA';
 };
@@ -1102,7 +1104,8 @@ const montantEnLettres = (n: number): string => {
     return num.toString();
   };
   
-  return convert(Math.round(n));
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur avant conversion en lettres
+  return convert(Math.ceil(n));
 };
 
 export const exportDechargeComptableToPDF = async (data: DechargeComptableData) => {

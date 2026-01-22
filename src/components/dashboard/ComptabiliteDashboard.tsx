@@ -111,12 +111,14 @@ export function ComptabiliteDashboard() {
     fetchData();
   }, []);
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMontant = (value: number, currency?: string) => {
+    const rounded = Math.ceil(value);
     return new Intl.NumberFormat('fr-FR', {
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value) + ' ' + (currency || 'XOF');
+    }).format(rounded) + ' ' + (currency || 'XOF');
   };
 
   const getDaysSinceValidation = (date: string | null) => {

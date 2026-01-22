@@ -27,8 +27,10 @@ export function ApprovisionnementDialog({ open, onOpenChange, caisse, onSuccess 
   const [observations, setObservations] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const formatMoney = (amount: number, devise: string = 'XOF') => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + devise;
+    const rounded = Math.ceil(amount);
+    return new Intl.NumberFormat('fr-FR').format(rounded) + ' ' + devise;
   };
 
   const handleSubmit = async () => {

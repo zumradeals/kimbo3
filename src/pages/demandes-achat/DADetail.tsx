@@ -478,13 +478,15 @@ export default function DADetail() {
     }
   };
 
+  // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const calculateTotal = (): number => {
     let total = 0;
     for (const art of articles) {
       const prices = articlePrices[art.id] || [];
       const selectedPrice = prices.find((p) => p.is_selected);
       if (selectedPrice) {
-        total += selectedPrice.unit_price * art.quantity;
+        // Arrondi au supérieur pour chaque ligne
+        total += Math.ceil(selectedPrice.unit_price * art.quantity);
       }
     }
     return total;
@@ -1630,7 +1632,7 @@ export default function DADetail() {
                   <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                     <Badge variant="outline" className="shrink-0">Indicatif</Badge>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Prix de référence: {stockArticle.prix_reference.toLocaleString('fr-FR')} FCFA</p>
+                      <p className="text-sm font-medium">Prix de référence: {Math.ceil(stockArticle.prix_reference).toLocaleString('fr-FR')} FCFA</p>
                       {stockArticle.prix_reference_note && (
                         <p className="text-xs text-muted-foreground">{stockArticle.prix_reference_note}</p>
                       )}

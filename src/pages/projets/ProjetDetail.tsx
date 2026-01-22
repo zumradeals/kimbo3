@@ -365,7 +365,7 @@ export default function ProjetDetail() {
                   <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm text-muted-foreground">Budget</p>
-                    <p className="font-medium">{projet.budget.toLocaleString()} XOF</p>
+                    <p className="font-medium">{Math.ceil(projet.budget).toLocaleString()} XOF</p>
                   </div>
                 </div>
               )}
