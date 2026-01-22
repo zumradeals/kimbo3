@@ -21,8 +21,12 @@ export type Database = {
           created_by: string
           description: string | null
           designation: string
+          devise: string | null
           id: string
           location: string | null
+          prix_reference: number | null
+          prix_reference_note: string | null
+          prix_reference_updated_at: string | null
           quantity_available: number
           quantity_min: number | null
           quantity_reserved: number
@@ -36,8 +40,12 @@ export type Database = {
           created_by: string
           description?: string | null
           designation: string
+          devise?: string | null
           id?: string
           location?: string | null
+          prix_reference?: number | null
+          prix_reference_note?: string | null
+          prix_reference_updated_at?: string | null
           quantity_available?: number
           quantity_min?: number | null
           quantity_reserved?: number
@@ -51,8 +59,12 @@ export type Database = {
           created_by?: string
           description?: string | null
           designation?: string
+          devise?: string | null
           id?: string
           location?: string | null
+          prix_reference?: number | null
+          prix_reference_note?: string | null
+          prix_reference_updated_at?: string | null
           quantity_available?: number
           quantity_min?: number | null
           quantity_reserved?: number
