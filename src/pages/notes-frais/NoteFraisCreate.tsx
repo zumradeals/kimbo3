@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,31 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Receipt } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
 
 interface LigneInput {
   id: string;
   date_depense: string;
   motif: string;
-  projet_id: string;
   montant: number;
   observations: string;
 }
@@ -55,7 +38,6 @@ export default function NoteFraisCreate() {
       id: crypto.randomUUID(),
       date_depense: new Date().toISOString().split('T')[0],
       motif: '',
-      projet_id: '',
       montant: 0,
       observations: '',
     },
@@ -68,7 +50,6 @@ export default function NoteFraisCreate() {
         id: crypto.randomUUID(),
         date_depense: new Date().toISOString().split('T')[0],
         motif: '',
-        projet_id: formData.projet_id || '',
         montant: 0,
         observations: '',
       },
@@ -100,11 +81,9 @@ export default function NoteFraisCreate() {
 
     setIsSubmitting(true);
     try {
-      // Generate reference
       const { data: refData } = await supabase.rpc('generate_ndf_reference');
       const reference = refData || `NDF-${Date.now()}`;
 
-      // Create note de frais - ALWAYS create as 'brouillon' first to allow line insertion
       const { data: noteData, error: noteError } = await supabase
         .from('notes_frais')
         .insert({
@@ -115,19 +94,18 @@ export default function NoteFraisCreate() {
           title: formData.title,
           description: formData.description || null,
           total_amount: totalAmount,
-          status: 'brouillon', // Always start as brouillon
+          status: 'brouillon',
         })
         .select()
         .single();
 
       if (noteError) throw noteError;
 
-      // Create lignes (RLS allows this because note is in 'brouillon' status)
       const lignesData = validLignes.map((l) => ({
         note_frais_id: noteData.id,
         date_depense: l.date_depense,
         motif: l.motif,
-        projet_id: l.projet_id || null,
+        projet_id: formData.projet_id || null, // Use global project
         montant: l.montant,
         observations: l.observations || null,
       }));
@@ -138,7 +116,6 @@ export default function NoteFraisCreate() {
 
       if (lignesError) throw lignesError;
 
-      // If submitting (not saving as brouillon), update status to 'soumise'
       if (!asBrouillon) {
         const { error: updateError } = await supabase
           .from('notes_frais')
@@ -168,7 +145,7 @@ export default function NoteFraisCreate() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link to="/notes-frais">
@@ -186,13 +163,14 @@ export default function NoteFraisCreate() {
           </div>
         </div>
 
-        {/* Form - Landscape layout */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Informations générales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Informations générales */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations générales</CardTitle>
+            <CardDescription>Décrivez le contexte de vos dépenses</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="title">Titre de la note *</Label>
                 <Input
@@ -204,135 +182,151 @@ export default function NoteFraisCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Contexte et justification des dépenses..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="projet">Projet rattaché (optionnel)</Label>
+                <Label htmlFor="projet">Projet / Chantier rattaché</Label>
                 <ProjetSelector
                   value={formData.projet_id}
                   onChange={(id) => setFormData({ ...formData, projet_id: id })}
-                  placeholder="Sélectionner un projet..."
+                  placeholder="Sélectionner un projet (optionnel)..."
                 />
               </div>
+            </div>
 
-              <div className="pt-4 border-t">
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {new Intl.NumberFormat('fr-FR').format(Math.ceil(totalAmount))} XOF
-                  </p>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description et justification</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Décrivez le contexte général de ces dépenses, l'objectif de la mission, les justifications nécessaires..."
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Fournissez le contexte et les justifications pour faciliter la validation
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lignes de dépenses */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Lignes de dépenses</CardTitle>
+              <CardDescription>Détaillez chaque dépense à rembourser</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={addLigne}>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter une ligne
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {lignes.map((ligne, index) => (
+              <div 
+                key={ligne.id} 
+                className="relative rounded-lg border bg-muted/30 p-4 space-y-4"
+              >
+                {/* Header ligne */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Dépense #{index + 1}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeLigne(ligne.id)}
+                    disabled={lignes.length === 1}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Supprimer
+                  </Button>
+                </div>
+
+                {/* Ligne fields - responsive grid */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Date *
+                    </Label>
+                    <Input
+                      type="date"
+                      value={ligne.date_depense}
+                      onChange={(e) => updateLigne(ligne.id, 'date_depense', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-2">
+                    <Label>Motif de la dépense *</Label>
+                    <Textarea
+                      value={ligne.motif}
+                      onChange={(e) => updateLigne(ligne.id, 'motif', e.target.value)}
+                      placeholder="Décrivez l'objet de cette dépense (transport, repas, fournitures, etc.)"
+                      rows={2}
+                      className="resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Coins className="h-3.5 w-3.5" />
+                      Montant (XOF) *
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={ligne.montant || ''}
+                      onChange={(e) => updateLigne(ligne.id, 'montant', Number(e.target.value))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Observations - full width */}
+                <div className="space-y-2">
+                  <Label>Observations / Justificatifs</Label>
+                  <Textarea
+                    value={ligne.observations}
+                    onChange={(e) => updateLigne(ligne.id, 'observations', e.target.value)}
+                    placeholder="Notes complémentaires, références de factures, précisions utiles pour la validation..."
+                    rows={2}
+                    className="resize-none"
+                  />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            ))}
 
-          {/* Lignes - Takes 2/3 of space */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Lignes de dépenses</CardTitle>
-                <CardDescription>Ajoutez les dépenses à rembourser</CardDescription>
+            {/* Total */}
+            <div className="flex justify-end pt-4 border-t">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Total général</p>
+                <p className="text-3xl font-bold text-primary">
+                  {new Intl.NumberFormat('fr-FR').format(Math.ceil(totalAmount))} XOF
+                </p>
               </div>
-              <Button variant="outline" size="sm" onClick={addLigne}>
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-32">Date</TableHead>
-                      <TableHead>Motif *</TableHead>
-                      <TableHead className="w-40">Projet</TableHead>
-                      <TableHead className="w-32 text-right">Montant *</TableHead>
-                      <TableHead className="w-40">Observations</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lignes.map((ligne) => (
-                      <TableRow key={ligne.id}>
-                        <TableCell>
-                          <Input
-                            type="date"
-                            value={ligne.date_depense}
-                            onChange={(e) => updateLigne(ligne.id, 'date_depense', e.target.value)}
-                            className="w-full"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={ligne.motif}
-                            onChange={(e) => updateLigne(ligne.id, 'motif', e.target.value)}
-                            placeholder="Objet de la dépense"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <ProjetSelector
-                            value={ligne.projet_id}
-                            onChange={(id) => updateLigne(ligne.id, 'projet_id', id)}
-                            placeholder="-"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={ligne.montant || ''}
-                            onChange={(e) => updateLigne(ligne.id, 'montant', Number(e.target.value))}
-                            className="text-right"
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={ligne.observations}
-                            onChange={(e) => updateLigne(ligne.id, 'observations', e.target.value)}
-                            placeholder="Note"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeLigne(ligne.id)}
-                            disabled={lignes.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <Link to="/notes-frais">
-            <Button variant="outline">Annuler</Button>
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pb-6">
+          <Link to="/notes-frais" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full">Annuler</Button>
           </Link>
           <Button
             variant="outline"
             onClick={() => handleSubmit(true)}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             Enregistrer brouillon
           </Button>
-          <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+          <Button 
+            onClick={() => handleSubmit(false)} 
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
             <Receipt className="mr-2 h-4 w-4" />
             {isSubmitting ? 'Envoi...' : 'Soumettre pour validation'}
           </Button>
