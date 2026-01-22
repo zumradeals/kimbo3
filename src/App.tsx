@@ -44,6 +44,9 @@ import BLDetail from "./pages/bons-livraison/BLDetail";
 // Module Fournisseurs
 import Fournisseurs from "./pages/achats/Fournisseurs";
 
+// Module Tiers
+import TiersList from "./pages/tiers/TiersList";
+
 // Module Comptabilité
 import Comptabilite from "./pages/comptabilite/Comptabilite";
 import ComptabiliteDetail from "./pages/comptabilite/ComptabiliteDetail";
@@ -141,6 +144,9 @@ function AppRoutes() {
       <Route path="/bons-livraison" element={<ProtectedRoute><BLList /></ProtectedRoute>} />
       <Route path="/bons-livraison/nouveau" element={<ProtectedRoute><BLCreate /></ProtectedRoute>} />
       <Route path="/bons-livraison/:id" element={<ProtectedRoute><BLDetail /></ProtectedRoute>} />
+      
+      {/* Module Tiers */}
+      <Route path="/tiers" element={<ProtectedRoute><TiersList /></ProtectedRoute>} />
       
       {/* Module Fournisseurs */}
       <Route path="/fournisseurs" element={<ProtectedRoute><Fournisseurs /></ProtectedRoute>} />

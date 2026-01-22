@@ -918,6 +918,7 @@ export type Database = {
           syscohada_classe: number | null
           syscohada_compte: string | null
           syscohada_nature_charge: string | null
+          tiers_id: string | null
           total_amount: number | null
           updated_at: string
           validated_finance_at: string | null
@@ -973,6 +974,7 @@ export type Database = {
           syscohada_classe?: number | null
           syscohada_compte?: string | null
           syscohada_nature_charge?: string | null
+          tiers_id?: string | null
           total_amount?: number | null
           updated_at?: string
           validated_finance_at?: string | null
@@ -1028,6 +1030,7 @@ export type Database = {
           syscohada_classe?: number | null
           syscohada_compte?: string | null
           syscohada_nature_charge?: string | null
+          tiers_id?: string | null
           total_amount?: number | null
           updated_at?: string
           validated_finance_at?: string | null
@@ -1140,6 +1143,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "demandes_achat_tiers_id_fkey"
+            columns: ["tiers_id"]
+            isOneToOne: false
+            referencedRelation: "tiers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "demandes_achat_validated_finance_by_fkey"
             columns: ["validated_finance_by"]
             isOneToOne: false
@@ -1196,6 +1206,7 @@ export type Database = {
           observations: string | null
           reference: string
           reference_paiement: string | null
+          tiers_id: string | null
           validated_at: string | null
           validated_by: string | null
         }
@@ -1219,6 +1230,7 @@ export type Database = {
           observations?: string | null
           reference: string
           reference_paiement?: string | null
+          tiers_id?: string | null
           validated_at?: string | null
           validated_by?: string | null
         }
@@ -1242,6 +1254,7 @@ export type Database = {
           observations?: string | null
           reference?: string
           reference_paiement?: string | null
+          tiers_id?: string | null
           validated_at?: string | null
           validated_by?: string | null
         }
@@ -1265,6 +1278,13 @@ export type Database = {
             columns: ["note_frais_id"]
             isOneToOne: false
             referencedRelation: "notes_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecritures_comptables_tiers_id_fkey"
+            columns: ["tiers_id"]
+            isOneToOne: false
+            referencedRelation: "tiers"
             referencedColumns: ["id"]
           },
           {
@@ -1457,6 +1477,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          tiers_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1472,6 +1493,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          tiers_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1487,6 +1509,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          tiers_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1495,6 +1518,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fournisseurs_tiers_id_fkey"
+            columns: ["tiers_id"]
+            isOneToOne: false
+            referencedRelation: "tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -1627,6 +1657,7 @@ export type Database = {
           syscohada_classe: number | null
           syscohada_compte: string | null
           syscohada_nature_charge: string | null
+          tiers_id: string | null
           title: string
           total_amount: number
           updated_at: string
@@ -1662,6 +1693,7 @@ export type Database = {
           syscohada_classe?: number | null
           syscohada_compte?: string | null
           syscohada_nature_charge?: string | null
+          tiers_id?: string | null
           title: string
           total_amount?: number
           updated_at?: string
@@ -1697,6 +1729,7 @@ export type Database = {
           syscohada_classe?: number | null
           syscohada_compte?: string | null
           syscohada_nature_charge?: string | null
+          tiers_id?: string | null
           title?: string
           total_amount?: number
           updated_at?: string
@@ -1759,6 +1792,13 @@ export type Database = {
             columns: ["rejected_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_tiers_id_fkey"
+            columns: ["tiers_id"]
+            isOneToOne: false
+            referencedRelation: "tiers"
             referencedColumns: ["id"]
           },
           {
@@ -2281,6 +2321,51 @@ export type Database = {
           },
         ]
       }
+      tiers: {
+        Row: {
+          adresse: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          nom: string
+          notes: string | null
+          numero_contribuable: string | null
+          telephone: string | null
+          type: Database["public"]["Enums"]["tiers_type"]
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          nom: string
+          notes?: string | null
+          numero_contribuable?: string | null
+          telephone?: string | null
+          type?: Database["public"]["Enums"]["tiers_type"]
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          nom?: string
+          notes?: string | null
+          numero_contribuable?: string | null
+          telephone?: string | null
+          type?: Database["public"]["Enums"]["tiers_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       units: {
         Row: {
           code: string
@@ -2582,6 +2667,12 @@ export type Database = {
         | "reservation"
         | "liberation"
       stock_status: "disponible" | "reserve" | "epuise"
+      tiers_type:
+        | "fournisseur"
+        | "prestataire"
+        | "transporteur"
+        | "particulier"
+        | "autre"
       user_status: "active" | "inactive" | "suspended"
     }
     CompositeTypes: {
@@ -2805,6 +2896,13 @@ export const Constants = {
         "liberation",
       ],
       stock_status: ["disponible", "reserve", "epuise"],
+      tiers_type: [
+        "fournisseur",
+        "prestataire",
+        "transporteur",
+        "particulier",
+        "autre",
+      ],
       user_status: ["active", "inactive", "suspended"],
     },
   },

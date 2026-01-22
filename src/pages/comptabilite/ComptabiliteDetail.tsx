@@ -140,7 +140,8 @@ export default function ComptabiliteDetail() {
         .select(`
           *,
           department:departments(id, name),
-          selected_fournisseur:fournisseurs(id, name, address, phone, email),
+          selected_fournisseur:fournisseurs(id, name, address, phone, email, tiers_id, tiers:tiers_id(id, nom, type, telephone, email, adresse, numero_contribuable)),
+          tiers:tiers_id(id, nom, type, telephone, email, adresse, numero_contribuable),
           besoin:besoins(id, title, user_id),
           articles:da_articles(id, designation, quantity, unit)
         `)
@@ -267,6 +268,12 @@ export default function ComptabiliteDetail() {
         }
       }
       
+      // Récupérer le tiers_id du fournisseur si disponible
+      let tiersIdToSave: string | null = null;
+      if (da.selected_fournisseur?.tiers_id) {
+        tiersIdToSave = da.selected_fournisseur.tiers_id;
+      }
+      
       const { error } = await supabase
         .from('demandes_achat')
         .update({
@@ -280,6 +287,7 @@ export default function ComptabiliteDetail() {
           payment_details: paymentDetailsJson,
           payment_class: paymentForm.payment_class || 'REGLEMENT',
           caisse_id: selectedCaisseId && selectedCaisseId !== '_none' ? selectedCaisseId : null,
+          tiers_id: tiersIdToSave,
           comptabilise_by: user?.id,
           comptabilise_at: new Date().toISOString(),
         })

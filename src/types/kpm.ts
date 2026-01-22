@@ -409,6 +409,16 @@ export interface Fournisseur {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  tiers_id: string | null;
+  tiers?: {
+    id: string;
+    nom: string;
+    type: string;
+    telephone: string | null;
+    email: string | null;
+    adresse: string | null;
+    numero_contribuable: string | null;
+  } | null;
 }
 
 export interface DemandeAchat {
@@ -464,12 +474,15 @@ export interface DemandeAchat {
   projet_id: string | null;
   created_at: string;
   updated_at: string;
+  // Tiers lié au paiement
+  tiers_id: string | null;
   // Relations
   besoin?: Besoin | null;
   department?: { id: string; name: string } | null;
   created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   selected_fournisseur?: Fournisseur | null;
+  tiers?: { id: string; nom: string; type: string; telephone: string | null; email: string | null; adresse: string | null; numero_contribuable: string | null } | null;
   analyzed_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   priced_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   validated_finance_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;

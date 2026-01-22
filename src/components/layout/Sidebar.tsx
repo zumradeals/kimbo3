@@ -112,6 +112,12 @@ const moduleNavItems: NavItem[] = [
     module: 'bl',
   },
   {
+    label: 'Tiers',
+    href: '/tiers',
+    icon: Users,
+    module: 'fournisseurs',
+  },
+  {
     label: 'Fournisseurs',
     href: '/fournisseurs',
     icon: Building2,
