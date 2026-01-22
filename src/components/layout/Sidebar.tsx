@@ -351,16 +351,17 @@ export function Sidebar() {
 
         <Drawer open={isOpen} onOpenChange={setIsOpen} direction="left">
           <DrawerContent 
-            className="h-full w-[280px] max-w-[85vw] rounded-none border-r bg-sidebar"
+            className="h-full w-[280px] max-w-[85vw] rounded-none border-r border-sidebar-border"
             style={{ 
               position: 'fixed', 
               left: 0, 
               top: 0, 
               bottom: 0,
               borderRadius: 0,
+              backgroundColor: 'hsl(24, 58%, 27%)',
             }}
           >
-            <div className="flex h-full flex-col">
+            <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
               <SidebarContent />
             </div>
           </DrawerContent>
