@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   Calculator, CreditCard, ArrowRight, 
-  CheckCircle, FileText, AlertCircle, Wallet, TrendingUp, TrendingDown
+  CheckCircle, FileText, AlertCircle, Wallet, TrendingUp, TrendingDown, Receipt
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -31,6 +31,16 @@ interface DAenAttentePaiement {
   department: { name: string } | null;
 }
 
+interface NoteFraisEnAttente {
+  id: string;
+  reference: string;
+  title: string;
+  total_amount: number;
+  currency: string;
+  validated_daf_at: string | null;
+  user: { first_name: string | null; last_name: string | null } | null;
+}
+
 interface Caisse {
   id: string;
   code: string;
@@ -46,8 +56,9 @@ export function ComptabiliteDashboard() {
   const navigate = useNavigate();
   const [ecrituresAValider, setEcrituresAValider] = useState<EcritureAValider[]>([]);
   const [daEnAttente, setDaEnAttente] = useState<DAenAttentePaiement[]>([]);
+  const [ndfEnAttente, setNdfEnAttente] = useState<NoteFraisEnAttente[]>([]);
   const [caisses, setCaisses] = useState<Caisse[]>([]);
-  const [totaux, setTotaux] = useState({ debit: 0, credit: 0, enAttente: 0, soldeTotalCaisses: 0 });
+  const [totaux, setTotaux] = useState({ debit: 0, credit: 0, enAttenteDA: 0, enAttenteNDF: 0, soldeTotalCaisses: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -84,8 +95,29 @@ export function ComptabiliteDashboard() {
 
         setDaEnAttente(daData || []);
 
-        // Calculate total en attente
-        const totalEnAttente = (daData || []).reduce((sum, d) => sum + (d.total_amount || 0), 0);
+        // Calculate total DA en attente
+        const totalEnAttenteDA = (daData || []).reduce((sum, d) => sum + (d.total_amount || 0), 0);
+
+        // Fetch Notes de Frais en attente de paiement (validee_daf)
+        const { data: ndfData } = await supabase
+          .from('notes_frais')
+          .select(`
+            id,
+            reference,
+            title,
+            total_amount,
+            currency,
+            validated_daf_at,
+            user:profiles!notes_frais_user_id_fkey(first_name, last_name)
+          `)
+          .eq('status', 'validee_daf')
+          .order('validated_daf_at', { ascending: true })
+          .limit(10);
+
+        setNdfEnAttente((ndfData as unknown as NoteFraisEnAttente[]) || []);
+
+        // Calculate total NDF en attente
+        const totalEnAttenteNDF = ((ndfData as unknown as NoteFraisEnAttente[]) || []).reduce((sum, n) => sum + (n.total_amount || 0), 0);
 
         // Fetch caisses
         const { data: caissesData } = await supabase
@@ -99,7 +131,7 @@ export function ComptabiliteDashboard() {
         // Calculate total solde caisses
         const soldeTotalCaisses = (caissesData || []).reduce((sum, c) => sum + (c.solde_actuel || 0), 0);
 
-        setTotaux({ debit: totalDebit, credit: totalCredit, enAttente: totalEnAttente, soldeTotalCaisses });
+        setTotaux({ debit: totalDebit, credit: totalCredit, enAttenteDA: totalEnAttenteDA, enAttenteNDF: totalEnAttenteNDF, soldeTotalCaisses });
 
       } catch (error) {
         console.error('Error fetching comptabilite data:', error);
@@ -154,7 +186,7 @@ export function ComptabiliteDashboard() {
       </h2>
 
       {/* Totaux */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="border-l-4 border-l-emerald-500">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -170,10 +202,21 @@ export function ComptabiliteDashboard() {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">En attente paiement</p>
-                <p className="text-xl font-bold text-warning">{formatMontant(totaux.enAttente)}</p>
+                <p className="text-xs text-muted-foreground">DA en attente</p>
+                <p className="text-xl font-bold text-warning">{formatMontant(totaux.enAttenteDA)}</p>
               </div>
               <CreditCard className="h-8 w-8 text-warning/20" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-purple-500">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Notes de frais</p>
+                <p className="text-xl font-bold text-purple-600">{formatMontant(totaux.enAttenteNDF)}</p>
+              </div>
+              <Receipt className="h-8 w-8 text-purple-500/20" />
             </div>
           </CardContent>
         </Card>
@@ -317,12 +360,12 @@ export function ComptabiliteDashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-warning" />
-              Paiements en attente ({daEnAttente.length})
+              DA à payer ({daEnAttente.length})
             </CardTitle>
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/demandes-achat')}
+              onClick={() => navigate('/comptabilite')}
               className="text-xs"
             >
               Voir tout <ArrowRight className="ml-1 h-3 w-3" />
@@ -332,7 +375,7 @@ export function ComptabiliteDashboard() {
             {daEnAttente.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
                 <CheckCircle className="mx-auto h-8 w-8 mb-2 text-success" />
-                <p className="text-sm">Aucun paiement en attente</p>
+                <p className="text-sm">Aucune DA en attente</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -342,7 +385,7 @@ export function ComptabiliteDashboard() {
                     <div 
                       key={da.id} 
                       className="flex items-center justify-between p-2 rounded-md border bg-card hover:bg-accent/5 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/demandes-achat/${da.id}`)}
+                      onClick={() => navigate(`/comptabilite/${da.id}`)}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -365,6 +408,70 @@ export function ComptabiliteDashboard() {
                         {da.validated_finance_at && (
                           <p className="text-xs text-muted-foreground">
                             Validé le {format(new Date(da.validated_finance_at), 'dd/MM', { locale: fr })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notes de Frais en attente de paiement */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-purple-500" />
+              Notes de frais à payer ({ndfEnAttente.length})
+            </CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/notes-frais')}
+              className="text-xs"
+            >
+              Voir tout <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {ndfEnAttente.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <CheckCircle className="mx-auto h-8 w-8 mb-2 text-success" />
+                <p className="text-sm">Aucune note en attente</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {ndfEnAttente.map((ndf) => {
+                  const days = getDaysSinceValidation(ndf.validated_daf_at);
+                  return (
+                    <div 
+                      key={ndf.id} 
+                      className="flex items-center justify-between p-2 rounded-md border bg-card hover:bg-accent/5 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/notes-frais/${ndf.id}`)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{ndf.reference}</p>
+                          {days > 7 && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertCircle className="mr-1 h-3 w-3" />
+                              {days}j
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {ndf.user?.first_name} {ndf.user?.last_name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-purple-600">
+                          {formatMontant(ndf.total_amount || 0, ndf.currency)}
+                        </p>
+                        {ndf.validated_daf_at && (
+                          <p className="text-xs text-muted-foreground">
+                            Validé le {format(new Date(ndf.validated_daf_at), 'dd/MM', { locale: fr })}
                           </p>
                         )}
                       </div>
