@@ -1,11 +1,14 @@
-// ==================== MODULE ENTREPOTS ====================
+// ==================== MODULE STOCKS (Multi-stocks) ====================
 
-export type EntrepotType = 'interne' | 'chantier';
+export type StockType = 'interne' | 'chantier';
 
-export interface Entrepot {
+// Keep old name for database compatibility
+export type EntrepotType = StockType;
+
+export interface Stock {
   id: string;
   nom: string;
-  type: EntrepotType;
+  type: StockType;
   localisation: string | null;
   is_active: boolean;
   is_default: boolean;
@@ -13,6 +16,9 @@ export interface Entrepot {
   created_at: string;
   updated_at: string;
 }
+
+// Alias for backward compatibility with database table name
+export type Entrepot = Stock;
 
 export interface StockLevel {
   id: string;
@@ -24,7 +30,7 @@ export interface StockLevel {
   created_at: string;
   updated_at: string;
   // Relations
-  entrepot?: Entrepot;
+  entrepot?: Stock;
   article_stock?: {
     id: string;
     designation: string;
@@ -33,7 +39,10 @@ export interface StockLevel {
   };
 }
 
-export const ENTREPOT_TYPE_LABELS: Record<EntrepotType, string> = {
+export const STOCK_TYPE_LABELS: Record<StockType, string> = {
   interne: 'Stock Interne',
-  chantier: 'Chantier',
+  chantier: 'Stock Chantier',
 };
+
+// Alias for backward compatibility
+export const ENTREPOT_TYPE_LABELS = STOCK_TYPE_LABELS;

@@ -14,8 +14,8 @@ import { Besoin, OPERATIONAL_ROLES } from '@/types/kpm';
 import { ArrowLeft, Plus, Trash2, AlertTriangle, Package, Link as LinkIcon, Unlink, Warehouse } from 'lucide-react';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { StockArticleSelector } from '@/components/bons-livraison/StockArticleSelector';
-import { EntrepotSelector } from '@/components/stock/EntrepotSelector';
-import { Entrepot } from '@/types/entrepot';
+import { StockSelector } from '@/components/stock/EntrepotSelector';
+import { Stock } from '@/types/entrepot';
 
 interface ArticleForm {
   designation: string;
@@ -46,7 +46,7 @@ export default function BLCreate() {
     entrepot_id: null as string | null,
   });
 
-  const [selectedEntrepot, setSelectedEntrepot] = useState<Entrepot | null>(null);
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [articles, setArticles] = useState<ArticleForm[]>([]);
   const [lignesLoaded, setLignesLoaded] = useState(false);
 
@@ -435,22 +435,22 @@ export default function BLCreate() {
             <CardTitle className="text-lg">Informations de livraison</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Entrepôt source */}
+            {/* Stock source */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Warehouse className="h-4 w-4" />
-                Entrepôt source <span className="text-destructive">*</span>
+                Stock source <span className="text-destructive">*</span>
               </Label>
-              <EntrepotSelector
+              <StockSelector
                 value={form.entrepot_id}
                 onChange={(val) => setForm({ ...form, entrepot_id: val })}
-                onEntrepotChange={setSelectedEntrepot}
+                onStockChange={setSelectedStock}
                 showAll={false}
-                placeholder="Sélectionner l'entrepôt source..."
+                placeholder="Sélectionner le stock source..."
               />
-              {selectedEntrepot && (
+              {selectedStock && (
                 <p className="text-xs text-muted-foreground">
-                  {selectedEntrepot.localisation && `📍 ${selectedEntrepot.localisation}`}
+                  {selectedStock.localisation && `📍 ${selectedStock.localisation}`}
                 </p>
               )}
             </div>

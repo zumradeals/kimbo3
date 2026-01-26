@@ -20,9 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Entrepot, ENTREPOT_TYPE_LABELS } from '@/types/entrepot';
+import { Stock, STOCK_TYPE_LABELS } from '@/types/entrepot';
 import { ArrowRight, Warehouse, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+
+// Use Stock type (alias for Entrepot)
+type Entrepot = Stock;
 
 interface StockTransferDialogProps {
   open: boolean;
@@ -148,13 +151,13 @@ export function StockTransferDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Transfert inter-entrepôts
+            Transfert inter-stocks
           </DialogTitle>
           <DialogDescription>
             {articleName ? (
-              <span>Transférer l'article <strong>{articleName}</strong> vers un autre entrepôt</span>
+              <span>Transférer l'article <strong>{articleName}</strong> vers un autre stock</span>
             ) : (
-              'Transférer du stock entre entrepôts'
+              'Transférer du stock entre différents stocks'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -181,7 +184,7 @@ export function StockTransferDialog({
 
           {/* Source selection */}
           <div className="space-y-2">
-            <Label>Entrepôt source</Label>
+            <Label>Stock source</Label>
             <Select
               value={form.sourceId}
               onValueChange={(val) => setForm({ ...form, sourceId: val })}
@@ -196,7 +199,7 @@ export function StockTransferDialog({
                     <div className="flex items-center gap-2">
                       {e.nom}
                       <Badge variant="outline" className="text-[10px]">
-                        {ENTREPOT_TYPE_LABELS[e.type]}
+                        {STOCK_TYPE_LABELS[e.type]}
                       </Badge>
                     </div>
                   </SelectItem>
@@ -207,7 +210,7 @@ export function StockTransferDialog({
 
           {/* Destination selection */}
           <div className="space-y-2">
-            <Label>Entrepôt destination</Label>
+            <Label>Stock destination</Label>
             <Select
               value={form.destId}
               onValueChange={(val) => setForm({ ...form, destId: val })}
@@ -221,7 +224,7 @@ export function StockTransferDialog({
                     <div className="flex items-center gap-2">
                       {e.nom}
                       <Badge variant="outline" className="text-[10px]">
-                        {ENTREPOT_TYPE_LABELS[e.type]}
+                        {STOCK_TYPE_LABELS[e.type]}
                       </Badge>
                     </div>
                   </SelectItem>
