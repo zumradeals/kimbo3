@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -22,6 +22,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -34,13 +44,12 @@ import { Switch } from '@/components/ui/switch';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Users, Phone, Mail, MapPin, Building2 } from 'lucide-react';
+import { Plus, Search, Pencil, Users, Phone, Mail, MapPin, Building2, Trash2 } from 'lucide-react';
 import { Tiers, TiersType, TIERS_TYPE_LABELS, TIERS_TYPE_COLORS } from '@/types/tiers';
 
 const TIERS_TYPES: TiersType[] = ['fournisseur', 'prestataire', 'transporteur', 'particulier', 'autre'];
 
 export default function TiersList() {
-  const navigate = useNavigate();
   const { roles, isAdmin } = useAuth();
   const [tiers, setTiers] = useState<Tiers[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +58,11 @@ export default function TiersList() {
   const [showForm, setShowForm] = useState(false);
   const [editingTiers, setEditingTiers] = useState<Tiers | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Selection & deletion state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form state
   const [formNom, setFormNom] = useState('');
@@ -161,6 +175,48 @@ export default function TiersList() {
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('tiers')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`${selectedIds.size} tiers supprimé(s) avec succès`);
+      setSelectedIds(new Set());
+      setShowDeleteDialog(false);
+      fetchTiers();
+    } catch (error: any) {
+      console.error('Error deleting tiers:', error);
+      toast.error(error.message || 'Erreur lors de la suppression');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredTiers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredTiers.map(t => t.id)));
+    }
+  };
+
   const filteredTiers = tiers.filter(t => {
     const matchesSearch = 
       t.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -188,10 +244,21 @@ export default function TiersList() {
               Gestion des fournisseurs, prestataires et autres tiers
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau Tiers
-          </Button>
+          <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer ({selectedIds.size})
+              </Button>
+            )}
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau Tiers
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -241,18 +308,24 @@ export default function TiersList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={filteredTiers.length > 0 && selectedIds.size === filteredTiers.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Nom</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Adresse</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTiers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {search || typeFilter !== 'all' 
                         ? 'Aucun tiers trouvé avec ces critères'
                         : 'Aucun tiers enregistré'}
@@ -260,8 +333,14 @@ export default function TiersList() {
                   </TableRow>
                 ) : (
                   filteredTiers.map((t) => (
-                    <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(t)}>
-                      <TableCell>
+                    <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50">
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(t.id)}
+                          onCheckedChange={() => toggleSelect(t.id)}
+                        />
+                      </TableCell>
+                      <TableCell onClick={() => openEdit(t)}>
                         <div className="font-medium">{t.nom}</div>
                         {t.numero_contribuable && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
@@ -299,22 +378,36 @@ export default function TiersList() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={() => openEdit(t)}>
                         <Badge variant={t.is_active ? 'default' : 'secondary'}>
                           {t.is_active ? 'Actif' : 'Inactif'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEdit(t);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(t);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedIds(new Set([t.id]));
+                              setShowDeleteDialog(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -427,6 +520,29 @@ export default function TiersList() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+              <AlertDialogDescription>
+                Êtes-vous sûr de vouloir supprimer {selectedIds.size} tiers ?
+                Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Suppression...' : 'Supprimer'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
