@@ -57,6 +57,9 @@ import StockMovements from "./pages/stock/StockMovements";
 import StockDetail from "./pages/stock/StockDetail";
 import StockCategories from "./pages/admin/StockCategories";
 
+// Module Entrepôts
+import EntrepotsList from "./pages/entrepots/EntrepotsList";
+
 // Module Projets
 import ProjetsList from "./pages/projets/ProjetsList";
 import ProjetDetail from "./pages/projets/ProjetDetail";
@@ -160,6 +163,9 @@ function AppRoutes() {
       <Route path="/stock/mouvements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
       <Route path="/stock/categories" element={<ProtectedRoute><StockCategories /></ProtectedRoute>} />
       <Route path="/stock/:id" element={<ProtectedRoute><StockDetail /></ProtectedRoute>} />
+      
+      {/* Module Entrepôts */}
+      <Route path="/entrepots" element={<ProtectedRoute><EntrepotsList /></ProtectedRoute>} />
       
       {/* Module Projets */}
       <Route path="/projets" element={<ProtectedRoute><ProjetsList /></ProtectedRoute>} />

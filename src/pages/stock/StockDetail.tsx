@@ -229,13 +229,14 @@ export default function StockDetail() {
       const actorIds = rawMvts.map(m => m.created_by).filter(Boolean) as string[];
       
       // Fetch profiles using the security definer function (bypasses RLS)
-      let profilesById: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      let profilesById: Record<string, { id: string; first_name: string | null; last_name: string | null }> = {};
       if (actorIds.length > 0) {
         const { data: profilesData } = await supabase.rpc('get_public_profiles', {
           _user_ids: [...new Set(actorIds)] // dedupe
         });
         (profilesData || []).forEach((p: any) => {
           profilesById[p.id] = {
+            id: p.id,
             first_name: p.first_name,
             last_name: p.last_name,
           };

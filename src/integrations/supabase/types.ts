@@ -22,6 +22,7 @@ export type Database = {
           description: string | null
           designation: string
           devise: string | null
+          entrepot_id: string | null
           id: string
           location: string | null
           prix_reference: number | null
@@ -41,6 +42,7 @@ export type Database = {
           description?: string | null
           designation: string
           devise?: string | null
+          entrepot_id?: string | null
           id?: string
           location?: string | null
           prix_reference?: number | null
@@ -60,6 +62,7 @@ export type Database = {
           description?: string | null
           designation?: string
           devise?: string | null
+          entrepot_id?: string | null
           id?: string
           location?: string | null
           prix_reference?: number | null
@@ -85,6 +88,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_stock_entrepot_id_fkey"
+            columns: ["entrepot_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
             referencedColumns: ["id"]
           },
         ]
@@ -465,6 +475,7 @@ export type Database = {
           delivered_by: string | null
           delivery_date: string | null
           department_id: string
+          entrepot_id: string | null
           id: string
           observations: string | null
           projet_id: string | null
@@ -490,6 +501,7 @@ export type Database = {
           delivered_by?: string | null
           delivery_date?: string | null
           department_id: string
+          entrepot_id?: string | null
           id?: string
           observations?: string | null
           projet_id?: string | null
@@ -515,6 +527,7 @@ export type Database = {
           delivered_by?: string | null
           delivery_date?: string | null
           department_id?: string
+          entrepot_id?: string | null
           id?: string
           observations?: string | null
           projet_id?: string | null
@@ -562,6 +575,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_entrepot_id_fkey"
+            columns: ["entrepot_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
             referencedColumns: ["id"]
           },
           {
@@ -1317,6 +1337,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      entrepots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          localisation: string | null
+          nom: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          localisation?: string | null
+          nom: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          localisation?: string | null
+          nom?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       expressions_besoin: {
         Row: {
@@ -2259,6 +2315,54 @@ export type Database = {
           },
         ]
       }
+      stock_levels: {
+        Row: {
+          article_stock_id: string
+          created_at: string
+          entrepot_id: string
+          id: string
+          quantite_disponible: number
+          quantite_min: number | null
+          quantite_reservee: number
+          updated_at: string
+        }
+        Insert: {
+          article_stock_id: string
+          created_at?: string
+          entrepot_id: string
+          id?: string
+          quantite_disponible?: number
+          quantite_min?: number | null
+          quantite_reservee?: number
+          updated_at?: string
+        }
+        Update: {
+          article_stock_id?: string
+          created_at?: string
+          entrepot_id?: string
+          id?: string
+          quantite_disponible?: number
+          quantite_min?: number | null
+          quantite_reservee?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_levels_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_levels_entrepot_id_fkey"
+            columns: ["entrepot_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           article_stock_id: string
@@ -2266,6 +2370,7 @@ export type Database = {
           created_at: string
           created_by: string
           da_id: string | null
+          entrepot_id: string | null
           id: string
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
           observations: string | null
@@ -2281,6 +2386,7 @@ export type Database = {
           created_at?: string
           created_by: string
           da_id?: string | null
+          entrepot_id?: string | null
           id?: string
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
           observations?: string | null
@@ -2296,6 +2402,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           da_id?: string | null
+          entrepot_id?: string | null
           id?: string
           movement_type?: Database["public"]["Enums"]["stock_movement_type"]
           observations?: string | null
@@ -2332,6 +2439,13 @@ export type Database = {
             columns: ["da_id"]
             isOneToOne: false
             referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_entrepot_id_fkey"
+            columns: ["entrepot_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
             referencedColumns: ["id"]
           },
           {
@@ -2516,6 +2630,14 @@ export type Database = {
           photo_url: string
         }[]
       }
+      get_stock_by_entrepot: {
+        Args: { _article_id: string; _entrepot_id: string }
+        Returns: {
+          quantite_disponible: number
+          quantite_effective: number
+          quantite_reservee: number
+        }[]
+      }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_modules: {
         Args: { _user_id: string }
@@ -2586,6 +2708,16 @@ export type Database = {
           p_montant: number
           p_motif: string
           p_observations?: string
+        }
+        Returns: string
+      }
+      transferer_stock_entrepots: {
+        Args: {
+          _article_id: string
+          _entrepot_dest_id: string
+          _entrepot_source_id: string
+          _observations?: string
+          _quantite: number
         }
         Returns: string
       }
