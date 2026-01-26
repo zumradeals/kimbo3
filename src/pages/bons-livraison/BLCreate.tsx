@@ -11,9 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Besoin, OPERATIONAL_ROLES } from '@/types/kpm';
-import { ArrowLeft, Plus, Trash2, AlertTriangle, Package, Link as LinkIcon, Unlink } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, AlertTriangle, Package, Link as LinkIcon, Unlink, Warehouse } from 'lucide-react';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { StockArticleSelector } from '@/components/bons-livraison/StockArticleSelector';
+import { EntrepotSelector } from '@/components/stock/EntrepotSelector';
+import { Entrepot } from '@/types/entrepot';
 
 interface ArticleForm {
   designation: string;
@@ -41,8 +43,10 @@ export default function BLCreate() {
     delivery_date: '',
     warehouse: '',
     observations: '',
+    entrepot_id: null as string | null,
   });
 
+  const [selectedEntrepot, setSelectedEntrepot] = useState<Entrepot | null>(null);
   const [articles, setArticles] = useState<ArticleForm[]>([]);
   const [lignesLoaded, setLignesLoaded] = useState(false);
 
@@ -272,6 +276,7 @@ export default function BLCreate() {
           warehouse: form.warehouse.trim() || null,
           observations: form.observations.trim() || null,
           bl_type: 'interne',
+          entrepot_id: form.entrepot_id,
         })
         .select()
         .single();
@@ -430,6 +435,26 @@ export default function BLCreate() {
             <CardTitle className="text-lg">Informations de livraison</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Entrepôt source */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Warehouse className="h-4 w-4" />
+                Entrepôt source <span className="text-destructive">*</span>
+              </Label>
+              <EntrepotSelector
+                value={form.entrepot_id}
+                onChange={(val) => setForm({ ...form, entrepot_id: val })}
+                onEntrepotChange={setSelectedEntrepot}
+                showAll={false}
+                placeholder="Sélectionner l'entrepôt source..."
+              />
+              {selectedEntrepot && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedEntrepot.localisation && `📍 ${selectedEntrepot.localisation}`}
+                </p>
+              )}
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Date de livraison prévue</Label>
@@ -440,9 +465,9 @@ export default function BLCreate() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Magasin / Dépôt</Label>
+                <Label>Lieu de livraison</Label>
                 <Input
-                  placeholder="Ex: Magasin central"
+                  placeholder="Ex: Chantier Riviera"
                   value={form.warehouse}
                   onChange={(e) => setForm({ ...form, warehouse: e.target.value })}
                 />

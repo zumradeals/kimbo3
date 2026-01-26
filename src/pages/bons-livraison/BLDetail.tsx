@@ -172,9 +172,10 @@ export default function BLDetail() {
         _user_ids: actorIds
       });
 
-      const profilesById: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      const profilesById: Record<string, { id: string; first_name: string | null; last_name: string | null }> = {};
       (profilesData || []).forEach((p: any) => {
         profilesById[p.id] = {
+          id: p.id,
           first_name: p.first_name,
           last_name: p.last_name,
         };

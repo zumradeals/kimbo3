@@ -27,6 +27,7 @@ import {
   StockMovementType,
   STOCK_MOVEMENT_TYPE_LABELS,
 } from '@/types/kpm';
+import { EntrepotSelector } from '@/components/stock/EntrepotSelector';
 import {
   ArrowLeft,
   Search,
@@ -35,6 +36,7 @@ import {
   RefreshCw,
   Lock,
   Unlock,
+  Warehouse,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -62,25 +64,34 @@ export default function StockMovements() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [entrepotFilter, setEntrepotFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMovements();
-  }, []);
+  }, [entrepotFilter]);
 
   const fetchMovements = async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('stock_movements')
         .select(`
           *,
           article_stock:articles_stock(id, designation),
+          entrepot:entrepots(id, nom, type),
           created_by_profile:profiles!stock_movements_created_by_fkey(id, first_name, last_name)
         `)
         .order('created_at', { ascending: false })
         .limit(500);
 
+      if (entrepotFilter) {
+        query = query.eq('entrepot_id', entrepotFilter);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-      setMovements((data as StockMovement[]) || []);
+      setMovements((data as any[]) || []);
     } catch (error: any) {
       console.error('Error fetching movements:', error);
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -134,7 +145,7 @@ export default function StockMovements() {
                 />
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full sm:w-48">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Tous les types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -146,6 +157,12 @@ export default function StockMovements() {
                   ))}
                 </SelectContent>
               </Select>
+              <EntrepotSelector
+                value={entrepotFilter}
+                onChange={setEntrepotFilter}
+                showAll={true}
+                className="w-full sm:w-52"
+              />
             </div>
           </CardContent>
         </Card>
@@ -173,6 +190,7 @@ export default function StockMovements() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Entrepôt</TableHead>
                       <TableHead>Article</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
                       <TableHead className="text-right">Avant</TableHead>
@@ -182,18 +200,28 @@ export default function StockMovements() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredMovements.map((mv) => {
-                      const TypeIcon = typeIcons[mv.movement_type];
+                    {filteredMovements.map((mv: any) => {
+                      const TypeIcon = typeIcons[mv.movement_type as StockMovementType];
                       return (
                         <TableRow key={mv.id}>
                           <TableCell className="whitespace-nowrap">
                             {format(new Date(mv.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
                           </TableCell>
                           <TableCell>
-                            <Badge className={typeColors[mv.movement_type]}>
+                            <Badge className={typeColors[mv.movement_type as StockMovementType]}>
                               <TypeIcon className="mr-1 h-3 w-3" />
-                              {STOCK_MOVEMENT_TYPE_LABELS[mv.movement_type]}
+                              {STOCK_MOVEMENT_TYPE_LABELS[mv.movement_type as StockMovementType]}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {mv.entrepot ? (
+                              <div className="flex items-center gap-1">
+                                <Warehouse className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{mv.entrepot.nom}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="font-medium">
                             {mv.article_stock?.designation || 'N/A'}

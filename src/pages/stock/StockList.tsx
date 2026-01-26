@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { CategorySelector } from '@/components/stock/CategorySelector';
+import { EntrepotSelector } from '@/components/stock/EntrepotSelector';
 import {
   ArticleStock,
   StockStatus,
@@ -41,6 +42,7 @@ import {
   LOGISTICS_ROLES,
   StockCategory,
 } from '@/types/kpm';
+import { Entrepot } from '@/types/entrepot';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import {
   Package,
@@ -103,6 +105,7 @@ export default function StockList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [entrepotFilter, setEntrepotFilter] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [customUnit, setCustomUnit] = useState(false);
@@ -217,7 +220,8 @@ export default function StockList() {
       (art.location || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || art.status === statusFilter;
     const matchesCategory = !categoryFilter || art.category_id === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
+    const matchesEntrepot = !entrepotFilter || (art as any).entrepot_id === entrepotFilter;
+    return matchesSearch && matchesStatus && matchesCategory && matchesEntrepot;
   });
 
   const stats = {
@@ -317,7 +321,7 @@ export default function StockList() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Tous les statuts" />
                 </SelectTrigger>
                 <SelectContent>
@@ -329,6 +333,12 @@ export default function StockList() {
                   ))}
                 </SelectContent>
               </Select>
+              <EntrepotSelector
+                value={entrepotFilter}
+                onChange={setEntrepotFilter}
+                showAll={true}
+                className="w-full sm:w-52"
+              />
             </div>
           </CardContent>
         </Card>
