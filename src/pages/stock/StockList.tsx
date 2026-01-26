@@ -310,7 +310,8 @@ export default function StockList() {
             <CardTitle className="text-lg">Filtres</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex flex-col gap-4">
+              {/* First row: search */}
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -320,25 +321,48 @@ export default function StockList() {
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Tous les statuts" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  {(Object.keys(STOCK_STATUS_LABELS) as StockStatus[]).map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {STOCK_STATUS_LABELS[status]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <EntrepotSelector
-                value={entrepotFilter}
-                onChange={setEntrepotFilter}
-                showAll={true}
-                className="w-full sm:w-52"
-              />
+              {/* Second row: filter dropdowns */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tous les statuts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    {(Object.keys(STOCK_STATUS_LABELS) as StockStatus[]).map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {STOCK_STATUS_LABELS[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <CategorySelector
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  showAll={true}
+                  placeholder="Toutes les catégories"
+                />
+                <EntrepotSelector
+                  value={entrepotFilter}
+                  onChange={setEntrepotFilter}
+                  showAll={true}
+                />
+                {(categoryFilter || entrepotFilter || statusFilter !== 'all' || search) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearch('');
+                      setStatusFilter('all');
+                      setCategoryFilter(null);
+                      setEntrepotFilter(null);
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Réinitialiser les filtres
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
