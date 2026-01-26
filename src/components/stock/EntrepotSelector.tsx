@@ -7,37 +7,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Warehouse, MapPin } from 'lucide-react';
-import { Entrepot, ENTREPOT_TYPE_LABELS } from '@/types/entrepot';
+import { Warehouse } from 'lucide-react';
+import { Stock, STOCK_TYPE_LABELS } from '@/types/entrepot';
 import { Badge } from '@/components/ui/badge';
 
-interface EntrepotSelectorProps {
+interface StockSelectorProps {
   value: string | null;
   onChange: (value: string | null) => void;
-  onEntrepotChange?: (entrepot: Entrepot | null) => void;
+  onStockChange?: (stock: Stock | null) => void;
   showAll?: boolean;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
 }
 
-export function EntrepotSelector({
+// Keep old name for backward compatibility
+export interface EntrepotSelectorProps extends StockSelectorProps {
+  onEntrepotChange?: (entrepot: Stock | null) => void;
+}
+
+export function StockSelector({
   value,
   onChange,
-  onEntrepotChange,
+  onStockChange,
   showAll = true,
   disabled = false,
-  placeholder = 'Sélectionner un entrepôt',
+  placeholder = 'Sélectionner un stock',
   className,
-}: EntrepotSelectorProps) {
-  const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
+}: StockSelectorProps) {
+  const [stocks, setStocks] = useState<Stock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchEntrepots();
+    fetchStocks();
   }, []);
 
-  const fetchEntrepots = async () => {
+  const fetchStocks = async () => {
     try {
       const { data, error } = await supabase
         .from('entrepots')
@@ -47,18 +52,18 @@ export function EntrepotSelector({
         .order('nom');
 
       if (error) throw error;
-      setEntrepots((data as Entrepot[]) || []);
+      setStocks((data as Stock[]) || []);
       
       // Auto-select default if no value
       if (!value && data && data.length > 0) {
-        const defaultEntrepot = data.find((e: Entrepot) => e.is_default);
-        if (defaultEntrepot) {
-          onChange(defaultEntrepot.id);
-          onEntrepotChange?.(defaultEntrepot as Entrepot);
+        const defaultStock = data.find((s: Stock) => s.is_default);
+        if (defaultStock) {
+          onChange(defaultStock.id);
+          onStockChange?.(defaultStock as Stock);
         }
       }
     } catch (error) {
-      console.error('Error fetching entrepots:', error);
+      console.error('Error fetching stocks:', error);
     } finally {
       setIsLoading(false);
     }
@@ -67,11 +72,11 @@ export function EntrepotSelector({
   const handleChange = (val: string) => {
     if (val === 'all') {
       onChange(null);
-      onEntrepotChange?.(null);
+      onStockChange?.(null);
     } else {
       onChange(val);
-      const selected = entrepots.find((e) => e.id === val);
-      onEntrepotChange?.(selected || null);
+      const selected = stocks.find((s) => s.id === val);
+      onStockChange?.(selected || null);
     }
   };
 
@@ -91,18 +96,18 @@ export function EntrepotSelector({
         {showAll && (
           <SelectItem value="all">
             <div className="flex items-center gap-2">
-              <span>Tous les entrepôts</span>
+              <span>Tous les stocks</span>
             </div>
           </SelectItem>
         )}
-        {entrepots.map((entrepot) => (
-          <SelectItem key={entrepot.id} value={entrepot.id}>
+        {stocks.map((stock) => (
+          <SelectItem key={stock.id} value={stock.id}>
             <div className="flex items-center gap-2">
-              <span>{entrepot.nom}</span>
+              <span>{stock.nom}</span>
               <Badge variant="outline" className="text-[10px] px-1">
-                {ENTREPOT_TYPE_LABELS[entrepot.type]}
+                {STOCK_TYPE_LABELS[stock.type]}
               </Badge>
-              {entrepot.is_default && (
+              {stock.is_default && (
                 <Badge className="text-[10px] px-1 bg-primary/10 text-primary">
                   Défaut
                 </Badge>
@@ -112,5 +117,29 @@ export function EntrepotSelector({
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+// Backward compatibility wrapper
+export function EntrepotSelector({
+  value,
+  onChange,
+  onEntrepotChange,
+  onStockChange,
+  showAll = true,
+  disabled = false,
+  placeholder = 'Sélectionner un stock',
+  className,
+}: EntrepotSelectorProps) {
+  return (
+    <StockSelector
+      value={value}
+      onChange={onChange}
+      onStockChange={onEntrepotChange || onStockChange}
+      showAll={showAll}
+      disabled={disabled}
+      placeholder={placeholder}
+      className={className}
+    />
   );
 }

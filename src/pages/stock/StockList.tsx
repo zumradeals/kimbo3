@@ -34,7 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { CategorySelector } from '@/components/stock/CategorySelector';
-import { EntrepotSelector } from '@/components/stock/EntrepotSelector';
+import { StockSelector } from '@/components/stock/EntrepotSelector';
 import {
   ArticleStock,
   StockStatus,
@@ -42,7 +42,7 @@ import {
   LOGISTICS_ROLES,
   StockCategory,
 } from '@/types/kpm';
-import { Entrepot } from '@/types/entrepot';
+import { Stock } from '@/types/entrepot';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import {
   Package,
@@ -342,7 +342,7 @@ export default function StockList() {
                   showAll={true}
                   placeholder="Toutes les catégories"
                 />
-                <EntrepotSelector
+                <StockSelector
                   value={entrepotFilter}
                   onChange={setEntrepotFilter}
                   showAll={true}

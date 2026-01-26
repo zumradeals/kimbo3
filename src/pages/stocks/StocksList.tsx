@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Entrepot, EntrepotType, ENTREPOT_TYPE_LABELS } from '@/types/entrepot';
+import { Stock, StockType, STOCK_TYPE_LABELS } from '@/types/entrepot';
 import { LOGISTICS_ROLES } from '@/types/kpm';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import {
@@ -48,22 +48,22 @@ import {
   Star,
 } from 'lucide-react';
 
-export default function EntrepotsList() {
+export default function StocksList() {
   const { user, roles, isAdmin } = useAuth();
   const { toast } = useToast();
 
-  const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
+  const [stocks, setStocks] = useState<Stock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingEntrepot, setEditingEntrepot] = useState<Entrepot | null>(null);
+  const [editingStock, setEditingStock] = useState<Stock | null>(null);
 
   const [form, setForm] = useState({
     nom: '',
-    type: 'interne' as EntrepotType,
+    type: 'interne' as StockType,
     localisation: '',
   });
 
@@ -71,10 +71,10 @@ export default function EntrepotsList() {
   const canManage = isLogistics || isAdmin;
 
   useEffect(() => {
-    fetchEntrepots();
+    fetchStocks();
   }, []);
 
-  const fetchEntrepots = async () => {
+  const fetchStocks = async () => {
     try {
       const { data, error } = await supabase
         .from('entrepots')
@@ -83,16 +83,16 @@ export default function EntrepotsList() {
         .order('nom');
 
       if (error) throw error;
-      setEntrepots((data as Entrepot[]) || []);
+      setStocks((data as Stock[]) || []);
     } catch (error: any) {
-      console.error('Error fetching entrepots:', error);
+      console.error('Error fetching stocks:', error);
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAddEntrepot = async () => {
+  const handleAddStock = async () => {
     if (!form.nom.trim()) {
       toast({ title: 'Erreur', description: 'Le nom est requis.', variant: 'destructive' });
       return;
@@ -109,10 +109,10 @@ export default function EntrepotsList() {
 
       if (error) throw error;
 
-      toast({ title: 'Succès', description: 'Entrepôt créé avec succès.' });
+      toast({ title: 'Succès', description: 'Stock créé avec succès.' });
       setShowAddDialog(false);
       resetForm();
-      fetchEntrepots();
+      fetchStocks();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -120,8 +120,8 @@ export default function EntrepotsList() {
     }
   };
 
-  const handleEditEntrepot = async () => {
-    if (!editingEntrepot || !form.nom.trim()) {
+  const handleEditStock = async () => {
+    if (!editingStock || !form.nom.trim()) {
       toast({ title: 'Erreur', description: 'Le nom est requis.', variant: 'destructive' });
       return;
     }
@@ -136,15 +136,15 @@ export default function EntrepotsList() {
           localisation: form.localisation.trim() || null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', editingEntrepot.id);
+        .eq('id', editingStock.id);
 
       if (error) throw error;
 
-      toast({ title: 'Succès', description: 'Entrepôt mis à jour.' });
+      toast({ title: 'Succès', description: 'Stock mis à jour.' });
       setShowEditDialog(false);
-      setEditingEntrepot(null);
+      setEditingStock(null);
       resetForm();
-      fetchEntrepots();
+      fetchStocks();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -152,33 +152,33 @@ export default function EntrepotsList() {
     }
   };
 
-  const handleToggleActive = async (entrepot: Entrepot) => {
-    if (entrepot.is_default) {
-      toast({ title: 'Erreur', description: 'Impossible de désactiver l\'entrepôt par défaut.', variant: 'destructive' });
+  const handleToggleActive = async (stock: Stock) => {
+    if (stock.is_default) {
+      toast({ title: 'Erreur', description: 'Impossible de désactiver le stock par défaut.', variant: 'destructive' });
       return;
     }
 
     try {
       const { error } = await supabase
         .from('entrepots')
-        .update({ is_active: !entrepot.is_active, updated_at: new Date().toISOString() })
-        .eq('id', entrepot.id);
+        .update({ is_active: !stock.is_active, updated_at: new Date().toISOString() })
+        .eq('id', stock.id);
 
       if (error) throw error;
 
-      toast({ title: 'Succès', description: `Entrepôt ${entrepot.is_active ? 'désactivé' : 'activé'}.` });
-      fetchEntrepots();
+      toast({ title: 'Succès', description: `Stock ${stock.is_active ? 'désactivé' : 'activé'}.` });
+      fetchStocks();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     }
   };
 
-  const openEditDialog = (entrepot: Entrepot) => {
-    setEditingEntrepot(entrepot);
+  const openEditDialog = (stock: Stock) => {
+    setEditingStock(stock);
     setForm({
-      nom: entrepot.nom,
-      type: entrepot.type,
-      localisation: entrepot.localisation || '',
+      nom: stock.nom,
+      type: stock.type,
+      localisation: stock.localisation || '',
     });
     setShowEditDialog(true);
   };
@@ -187,24 +187,24 @@ export default function EntrepotsList() {
     setForm({ nom: '', type: 'interne', localisation: '' });
   };
 
-  const filteredEntrepots = entrepots.filter((e) => {
-    const matchesSearch = e.nom.toLowerCase().includes(search.toLowerCase()) ||
-      (e.localisation || '').toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === 'all' || e.type === typeFilter;
+  const filteredStocks = stocks.filter((s) => {
+    const matchesSearch = s.nom.toLowerCase().includes(search.toLowerCase()) ||
+      (s.localisation || '').toLowerCase().includes(search.toLowerCase());
+    const matchesType = typeFilter === 'all' || s.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
   const stats = {
-    total: entrepots.length,
-    interne: entrepots.filter((e) => e.type === 'interne').length,
-    chantier: entrepots.filter((e) => e.type === 'chantier').length,
-    actifs: entrepots.filter((e) => e.is_active).length,
+    total: stocks.length,
+    interne: stocks.filter((s) => s.type === 'interne').length,
+    chantier: stocks.filter((s) => s.type === 'chantier').length,
+    actifs: stocks.filter((s) => s.is_active).length,
   };
 
   if (!canManage) {
     return (
       <AppLayout>
-        <AccessDenied message="Seule la Logistique peut gérer les entrepôts." />
+        <AccessDenied message="Seule la Logistique peut gérer les stocks." />
       </AppLayout>
     );
   }
@@ -216,15 +216,15 @@ export default function EntrepotsList() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-serif text-2xl font-bold text-foreground">
-              Gestion des Entrepôts
+              Gestion des Stocks
             </h1>
             <p className="text-muted-foreground">
-              Gérez vos dépôts internes et stocks chantiers
+              Gérez vos stocks internes et stocks chantiers
             </p>
           </div>
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Nouvel entrepôt
+            Nouveau stock
           </Button>
         </div>
 
@@ -237,7 +237,7 @@ export default function EntrepotsList() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-sm text-muted-foreground">Total entrepôts</p>
+                <p className="text-sm text-muted-foreground">Total stocks</p>
               </div>
             </CardContent>
           </Card>
@@ -299,7 +299,7 @@ export default function EntrepotsList() {
                 <SelectContent>
                   <SelectItem value="all">Tous les types</SelectItem>
                   <SelectItem value="interne">Stock Interne</SelectItem>
-                  <SelectItem value="chantier">Chantier</SelectItem>
+                  <SelectItem value="chantier">Stock Chantier</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -310,7 +310,7 @@ export default function EntrepotsList() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {filteredEntrepots.length} entrepôt{filteredEntrepots.length !== 1 ? 's' : ''}
+              {filteredStocks.length} stock{filteredStocks.length !== 1 ? 's' : ''}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -318,9 +318,9 @@ export default function EntrepotsList() {
               <div className="flex items-center justify-center py-12">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               </div>
-            ) : filteredEntrepots.length === 0 ? (
+            ) : filteredStocks.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
-                Aucun entrepôt trouvé.
+                Aucun stock trouvé.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -335,12 +335,12 @@ export default function EntrepotsList() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredEntrepots.map((entrepot) => (
-                      <TableRow key={entrepot.id}>
+                    {filteredStocks.map((stock) => (
+                      <TableRow key={stock.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{entrepot.nom}</span>
-                            {entrepot.is_default && (
+                            <span className="font-medium">{stock.nom}</span>
+                            {stock.is_default && (
                               <Badge className="bg-primary/10 text-primary text-[10px]">
                                 <Star className="mr-1 h-3 w-3" />
                                 Défaut
@@ -350,26 +350,26 @@ export default function EntrepotsList() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {entrepot.type === 'interne' ? (
+                            {stock.type === 'interne' ? (
                               <Building2 className="mr-1 h-3 w-3" />
                             ) : (
                               <HardHat className="mr-1 h-3 w-3" />
                             )}
-                            {ENTREPOT_TYPE_LABELS[entrepot.type]}
+                            {STOCK_TYPE_LABELS[stock.type]}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {entrepot.localisation ? (
+                          {stock.localisation ? (
                             <div className="flex items-center gap-1 text-muted-foreground">
                               <MapPin className="h-3 w-3" />
-                              {entrepot.localisation}
+                              {stock.localisation}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          {entrepot.is_active ? (
+                          {stock.is_active ? (
                             <Badge className="bg-success/10 text-success border-success/20">
                               <CheckCircle className="mr-1 h-3 w-3" />
                               Actif
@@ -386,17 +386,17 @@ export default function EntrepotsList() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openEditDialog(entrepot)}
+                              onClick={() => openEditDialog(stock)}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {!entrepot.is_default && (
+                            {!stock.is_default && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleToggleActive(entrepot)}
+                                onClick={() => handleToggleActive(stock)}
                               >
-                                {entrepot.is_active ? (
+                                {stock.is_active ? (
                                   <XCircle className="h-4 w-4 text-destructive" />
                                 ) : (
                                   <CheckCircle className="h-4 w-4 text-success" />
@@ -419,9 +419,9 @@ export default function EntrepotsList() {
       <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Créer un entrepôt</DialogTitle>
+            <DialogTitle>Créer un stock</DialogTitle>
             <DialogDescription>
-              Ajoutez un nouveau dépôt ou stock chantier
+              Ajoutez un nouveau stock interne ou chantier
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -430,21 +430,21 @@ export default function EntrepotsList() {
               <Input
                 value={form.nom}
                 onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                placeholder="Ex: Dépôt central, Chantier Riviera..."
+                placeholder="Ex: Stock Kimbo Interne, Stock Chantier Riviera..."
               />
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
               <Select
                 value={form.type}
-                onValueChange={(val) => setForm({ ...form, type: val as EntrepotType })}
+                onValueChange={(val) => setForm({ ...form, type: val as StockType })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="interne">Stock Interne</SelectItem>
-                  <SelectItem value="chantier">Chantier</SelectItem>
+                  <SelectItem value="chantier">Stock Chantier</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -461,7 +461,7 @@ export default function EntrepotsList() {
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleAddEntrepot} disabled={isSaving}>
+            <Button onClick={handleAddStock} disabled={isSaving}>
               {isSaving ? 'Création...' : 'Créer'}
             </Button>
           </DialogFooter>
@@ -469,12 +469,12 @@ export default function EntrepotsList() {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={(open) => { setShowEditDialog(open); if (!open) { setEditingEntrepot(null); resetForm(); } }}>
+      <Dialog open={showEditDialog} onOpenChange={(open) => { setShowEditDialog(open); if (!open) { setEditingStock(null); resetForm(); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifier l'entrepôt</DialogTitle>
+            <DialogTitle>Modifier le stock</DialogTitle>
             <DialogDescription>
-              Modifiez les informations de l'entrepôt
+              Modifiez les informations du stock
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -489,15 +489,15 @@ export default function EntrepotsList() {
               <Label>Type</Label>
               <Select
                 value={form.type}
-                onValueChange={(val) => setForm({ ...form, type: val as EntrepotType })}
-                disabled={editingEntrepot?.is_default}
+                onValueChange={(val) => setForm({ ...form, type: val as StockType })}
+                disabled={editingStock?.is_default}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="interne">Stock Interne</SelectItem>
-                  <SelectItem value="chantier">Chantier</SelectItem>
+                  <SelectItem value="chantier">Stock Chantier</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -513,7 +513,7 @@ export default function EntrepotsList() {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleEditEntrepot} disabled={isSaving}>
+            <Button onClick={handleEditStock} disabled={isSaving}>
               {isSaving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogFooter>

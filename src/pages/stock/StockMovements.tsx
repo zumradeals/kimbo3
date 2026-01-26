@@ -190,7 +190,7 @@ export default function StockMovements() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Entrepôt</TableHead>
+                      <TableHead>Stock</TableHead>
                       <TableHead>Article</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
                       <TableHead className="text-right">Avant</TableHead>
