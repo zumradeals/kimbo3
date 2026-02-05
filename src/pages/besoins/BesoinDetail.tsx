@@ -125,7 +125,9 @@ export default function BesoinDetail() {
   const canResubmit = isCreator && besoin?.status === 'retourne';
   // Mutualisation: Logistique ET Achats peuvent gérer les besoins
   const canManage = isLogistics || isAchats || isAdmin;
-  const canDelete = isAdmin;
+  // Admin peut tout supprimer; Logistique/Achats peuvent supprimer les besoins acceptés, refusés ou annulés
+  const canDeleteByStatus = ['accepte', 'refuse', 'annulee'].includes(besoin?.status || '');
+  const canDelete = isAdmin || ((isLogistics || isAchats) && canDeleteByStatus);
 
   useEffect(() => {
     if (id) {

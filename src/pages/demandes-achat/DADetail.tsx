@@ -171,7 +171,9 @@ export default function DADetail() {
   const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
   const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
-  const canDelete = isAdmin;
+  // Admin peut tout supprimer; Logistique/Achats peuvent supprimer les DA chiffrées, rejetées ou annulées
+  const canDeleteByStatus = ['chiffree', 'rejetee', 'annulee'].includes(da?.status || '');
+  const canDelete = isAdmin || ((isAchats || isOperational) && canDeleteByStatus);
   const canUploadAttachment = !isReadOnly && (isAchats || isOperational || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
 
   useEffect(() => {
