@@ -478,6 +478,34 @@ export default function DADetail() {
     }
   };
 
+  const handleRemoveArticle = async (articleId: string) => {
+    if (articles.length <= 1) {
+      toast({ title: 'Erreur', description: 'La DA doit conserver au moins un article.', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      // First delete associated prices
+      await supabase
+        .from('da_article_prices')
+        .delete()
+        .eq('da_article_id', articleId);
+      
+      // Then delete the article
+      const { error } = await supabase
+        .from('da_articles')
+        .delete()
+        .eq('id', articleId);
+      if (error) throw error;
+      toast({ title: 'Article retiré', description: 'La ligne a été retirée de la DA.' });
+      fetchArticles();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
   const calculateTotal = (): number => {
     let total = 0;
@@ -1542,24 +1570,38 @@ export default function DADetail() {
                         </div>
                       </div>
                       {canPrice && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { 
-                            setSelectedArticleId(art.id);
-                            // Pre-fill reference price if article is linked to stock
-                            const stockArticle = (art as any).article_stock;
-                            if (stockArticle?.prix_reference) {
-                              setPriceForm(prev => ({ ...prev, unit_price: String(stockArticle.prix_reference) }));
-                            } else {
-                              setPriceForm(prev => ({ ...prev, unit_price: '' }));
-                            }
-                            setShowPriceDialog(true); 
-                          }}
-                        >
-                          <Plus className="mr-1 h-3 w-3" />
-                          Prix
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { 
+                              setSelectedArticleId(art.id);
+                              // Pre-fill reference price if article is linked to stock
+                              const stockArticle = (art as any).article_stock;
+                              if (stockArticle?.prix_reference) {
+                                setPriceForm(prev => ({ ...prev, unit_price: String(stockArticle.prix_reference) }));
+                              } else {
+                                setPriceForm(prev => ({ ...prev, unit_price: '' }));
+                              }
+                              setShowPriceDialog(true); 
+                            }}
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            Prix
+                          </Button>
+                          {articles.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleRemoveArticle(art.id)}
+                              disabled={isSaving}
+                              title="Retirer cet article de la DA"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                     {prices.length > 0 && (
