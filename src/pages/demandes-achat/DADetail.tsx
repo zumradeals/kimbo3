@@ -414,7 +414,7 @@ export default function DADetail() {
     }
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('da_article_prices').insert({
+      const { error } = await supabase.from('da_article_prices').upsert({
         da_article_id: selectedArticleId,
         fournisseur_id: priceForm.fournisseur_id,
         unit_price: parseFloat(priceForm.unit_price),
@@ -422,7 +422,7 @@ export default function DADetail() {
         delivery_delay: priceForm.delivery_delay || null,
         conditions: priceForm.conditions || null,
         created_by: user?.id,
-      });
+      }, { onConflict: 'da_article_id,fournisseur_id' });
       if (error) throw error;
       toast({ title: 'Prix ajouté' });
       setShowPriceDialog(false);
