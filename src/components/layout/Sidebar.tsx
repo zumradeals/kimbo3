@@ -161,13 +161,22 @@ const moduleNavItems: NavItem[] = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileOpenChange?: (open: boolean) => void;
+}
+
+export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps = {}) {
   const { profile, signOut, isAdmin } = useAuth();
   const { canViewModule, hasPermission, isLoading: permissionsLoading } = usePermissions();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['/admin']);
+
+  // Use controlled state if provided, otherwise internal
+  const isOpen = mobileOpen !== undefined ? mobileOpen : internalOpen;
+  const setIsOpen = onMobileOpenChange || setInternalOpen;
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -340,15 +349,6 @@ export function Sidebar() {
   if (isMobile) {
     return (
       <>
-        {/* Mobile toggle button - Fixed position */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed left-4 top-4 z-50 h-10 w-10 rounded-lg bg-background/80 backdrop-blur-sm shadow-sm border lg:hidden"
-          onClick={() => setIsOpen(true)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
 
         <Drawer open={isOpen} onOpenChange={setIsOpen} direction="left">
           <DrawerContent 
