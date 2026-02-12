@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,9 +77,10 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50];
 export default function DAList() {
   const { roles, isAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   
