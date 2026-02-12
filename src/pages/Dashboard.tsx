@@ -606,7 +606,7 @@ export default function Dashboard() {
           <DAFDashboard />
         )}
 
-        {hasAnyRole(['aal']) && !isAdmin && (
+        {(hasAnyRole(['aal']) || isAdmin) && (
           <AALDashboard />
         )}
 
