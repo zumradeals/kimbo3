@@ -76,8 +76,9 @@ export default function TiersList() {
 
   // Access control
   const hasAccess = isAdmin || roles.some(r => 
-    ['responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats', 'comptable', 'daf', 'dg'].includes(r)
+    ['responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats', 'comptable', 'daf', 'dg', 'aal'].includes(r)
   );
+  const isReadOnly = !isAdmin && roles.every(r => ['aal', 'comptable'].includes(r));
 
   useEffect(() => {
     if (hasAccess) {
@@ -245,7 +246,7 @@ export default function TiersList() {
             </p>
           </div>
           <div className="flex gap-2">
-            {selectedIds.size > 0 && (
+            {!isReadOnly && selectedIds.size > 0 && (
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
@@ -254,10 +255,12 @@ export default function TiersList() {
                 Supprimer ({selectedIds.size})
               </Button>
             )}
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouveau Tiers
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau Tiers
+              </Button>
+            )}
           </div>
         </div>
 
@@ -308,18 +311,20 @@ export default function TiersList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={filteredTiers.length > 0 && selectedIds.size === filteredTiers.length}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
+                  {!isReadOnly && (
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={filteredTiers.length > 0 && selectedIds.size === filteredTiers.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Nom</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Adresse</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  {!isReadOnly && <TableHead className="w-[100px]">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -334,13 +339,15 @@ export default function TiersList() {
                 ) : (
                   filteredTiers.map((t) => (
                     <TableRow key={t.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedIds.has(t.id)}
-                          onCheckedChange={() => toggleSelect(t.id)}
-                        />
-                      </TableCell>
-                      <TableCell onClick={() => openEdit(t)}>
+                      {!isReadOnly && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(t.id)}
+                            onCheckedChange={() => toggleSelect(t.id)}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell>
                         <div className="font-medium">{t.nom}</div>
                         {t.numero_contribuable && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
@@ -378,37 +385,39 @@ export default function TiersList() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell onClick={() => openEdit(t)}>
+                      <TableCell>
                         <Badge variant={t.is_active ? 'default' : 'secondary'}>
                           {t.is_active ? 'Actif' : 'Inactif'}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEdit(t);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedIds(new Set([t.id]));
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {!isReadOnly && (
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(t);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedIds(new Set([t.id]));
+                                setShowDeleteDialog(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

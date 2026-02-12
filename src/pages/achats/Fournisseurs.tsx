@@ -65,8 +65,9 @@ export default function Fournisseurs() {
   const isAchats = roles.some((r) => ACHATS_ROLES.includes(r));
   const isDaf = roles.includes('daf');
   const isComptable = roles.includes('comptable');
-  const hasAccess = isAchats || isDaf || isAdmin || isComptable;
-  const isReadOnly = isComptable && !isAchats && !isDaf && !isAdmin;
+  const isAAL = roles.includes('aal');
+  const hasAccess = isAchats || isDaf || isAdmin || isComptable || isAAL;
+  const isReadOnly = (isComptable || isAAL) && !isAchats && !isDaf && !isAdmin;
 
   useEffect(() => {
     fetchFournisseurs();
