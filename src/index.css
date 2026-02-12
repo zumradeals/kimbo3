@@ -217,4 +217,8 @@
   .border-kpm-sand {
     border-color: hsl(40, 24%, 87%);
   }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
