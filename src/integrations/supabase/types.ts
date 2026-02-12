@@ -911,6 +911,8 @@ export type Database = {
       }
       demandes_achat: {
         Row: {
+          aal_comment: string | null
+          aal_rejection_reason: string | null
           analyzed_at: string | null
           analyzed_by: string | null
           attachment_name: string | null
@@ -963,10 +965,14 @@ export type Database = {
           tiers_id: string | null
           total_amount: number | null
           updated_at: string
+          validated_aal_at: string | null
+          validated_aal_by: string | null
           validated_finance_at: string | null
           validated_finance_by: string | null
         }
         Insert: {
+          aal_comment?: string | null
+          aal_rejection_reason?: string | null
           analyzed_at?: string | null
           analyzed_by?: string | null
           attachment_name?: string | null
@@ -1019,10 +1025,14 @@ export type Database = {
           tiers_id?: string | null
           total_amount?: number | null
           updated_at?: string
+          validated_aal_at?: string | null
+          validated_aal_by?: string | null
           validated_finance_at?: string | null
           validated_finance_by?: string | null
         }
         Update: {
+          aal_comment?: string | null
+          aal_rejection_reason?: string | null
           analyzed_at?: string | null
           analyzed_by?: string | null
           attachment_name?: string | null
@@ -1075,6 +1085,8 @@ export type Database = {
           tiers_id?: string | null
           total_amount?: number | null
           updated_at?: string
+          validated_aal_at?: string | null
+          validated_aal_by?: string | null
           validated_finance_at?: string | null
           validated_finance_by?: string | null
         }
@@ -1189,6 +1201,13 @@ export type Database = {
             columns: ["tiers_id"]
             isOneToOne: false
             referencedRelation: "tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_validated_aal_by_fkey"
+            columns: ["validated_aal_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2748,6 +2767,7 @@ export type Database = {
         | "responsable_departement"
         | "employe"
         | "lecture_seule"
+        | "aal"
       besoin_category:
         | "materiel"
         | "service"
@@ -2792,6 +2812,8 @@ export type Database = {
         | "rejetee"
         | "en_analyse"
         | "chiffree"
+        | "validee_aal"
+        | "rejetee_aal"
         | "soumise_validation"
         | "validee_finance"
         | "refusee_finance"
@@ -2967,6 +2989,7 @@ export const Constants = {
         "responsable_departement",
         "employe",
         "lecture_seule",
+        "aal",
       ],
       besoin_category: [
         "materiel",
@@ -3017,6 +3040,8 @@ export const Constants = {
         "rejetee",
         "en_analyse",
         "chiffree",
+        "validee_aal",
+        "rejetee_aal",
         "soumise_validation",
         "validee_finance",
         "refusee_finance",
