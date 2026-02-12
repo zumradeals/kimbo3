@@ -85,6 +85,9 @@ import CaisseDetail from "./pages/caisse/CaisseDetail";
 // Quick Actions (Mobile)
 import QuickActions from "./pages/QuickActions";
 
+// Rapports AAL
+import RapportsAAL from "./pages/rapports-aal/RapportsAAL";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -184,6 +187,9 @@ function AppRoutes() {
       <Route path="/caisse" element={<ProtectedRoute><CaisseList /></ProtectedRoute>} />
       <Route path="/caisse/:id" element={<ProtectedRoute><CaisseDetail /></ProtectedRoute>} />
       
+      {/* Rapports AAL */}
+      <Route path="/rapports-aal" element={<ProtectedRoute><RapportsAAL /></ProtectedRoute>} />
+
       {/* Quick Actions (Mobile) */}
       <Route path="/actions-rapides" element={<ProtectedRoute><QuickActions /></ProtectedRoute>} />
       
