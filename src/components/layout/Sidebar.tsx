@@ -42,6 +42,7 @@ interface NavItem {
   icon: React.ElementType;
   module?: string;
   permission?: string;
+  roles?: string[];
   children?: NavItem[];
 }
 
@@ -159,6 +160,12 @@ const moduleNavItems: NavItem[] = [
     icon: Wallet,
     module: 'caisse',
   },
+  {
+    label: 'Rapports AAL',
+    href: '/rapports-aal',
+    icon: BarChart3,
+    roles: ['aal'],
+  },
 ];
 
 interface SidebarProps {
@@ -167,7 +174,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps = {}) {
-  const { profile, signOut, isAdmin } = useAuth();
+  const { profile, signOut, isAdmin, roles } = useAuth();
   const { canViewModule, hasPermission, isLoading: permissionsLoading } = usePermissions();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -187,6 +194,9 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps = {}) {
 
   const hasAccess = (item: NavItem): boolean => {
     if (isAdmin) return true;
+    if (item.roles) {
+      return item.roles.some(r => roles.includes(r as any));
+    }
     if (item.permission) {
       return hasPermission(item.permission);
     }
