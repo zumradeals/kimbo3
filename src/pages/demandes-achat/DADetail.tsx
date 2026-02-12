@@ -94,6 +94,8 @@ const statusColors: Record<DAStatus, string> = {
   soumise: 'bg-primary/10 text-primary border-primary/20',
   en_analyse: 'bg-warning/10 text-warning border-warning/20',
   chiffree: 'bg-success/10 text-success border-success/20',
+  validee_aal: 'bg-accent/10 text-accent-foreground border-accent/20',
+  rejetee_aal: 'bg-destructive/10 text-destructive border-destructive/20',
   soumise_validation: 'bg-accent/10 text-accent-foreground border-accent/20',
   validee_finance: 'bg-success text-success-foreground',
   refusee_finance: 'bg-destructive text-destructive-foreground',
@@ -109,6 +111,8 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   soumise: Send,
   en_analyse: BarChart3,
   chiffree: CheckCircle,
+  validee_aal: ShieldCheck,
+  rejetee_aal: XCircle,
   soumise_validation: FileCheck,
   validee_finance: ShieldCheck,
   refusee_finance: Ban,
@@ -138,6 +142,10 @@ export default function DADetail() {
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showValidateDialog, setShowValidateDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showAALValidateDialog, setShowAALValidateDialog] = useState(false);
+  const [showAALRejectDialog, setShowAALRejectDialog] = useState(false);
+  const [aalComment, setAALComment] = useState('');
+  const [aalRejectionReason, setAALRejectionReason] = useState('');
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [justification, setJustification] = useState('');
@@ -160,19 +168,27 @@ export default function DADetail() {
   const isDG = roles.includes('dg');
   const isDAF = roles.includes('daf');
   const isComptable = roles.includes('comptable');
+  const isAAL = roles.includes('aal');
   
   // Le comptable peut voir la DA et payer si validée
-  const isReadOnly = isComptable && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin;
+  const isReadOnly = isComptable && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin && !isAAL;
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
+
+  // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
+  const canValidateAAL = isAAL && da?.status === 'chiffree';
+  const canRejectAAL = isAAL && da?.status === 'chiffree';
+  // AAL transmet au DAF après sa propre validation
+  const canTransmitToDAF = isAAL && da?.status === 'validee_aal';
 
   // Mutualisation: Les deux peuvent soumettre aux Achats
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
   const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
+  // Achats/Logistique soumet à l'AAL (plus directement au DAF)
   const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   // Admin peut tout supprimer; Logistique/Achats peuvent supprimer les DA chiffrées, rejetées ou annulées
-  const canDeleteByStatus = ['chiffree', 'rejetee', 'annulee'].includes(da?.status || '');
+  const canDeleteByStatus = ['chiffree', 'rejetee', 'rejetee_aal', 'annulee'].includes(da?.status || '');
   const canDelete = isAdmin || ((isAchats || isOperational) && canDeleteByStatus);
   const canUploadAttachment = !isReadOnly && (isAchats || isOperational || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
 
@@ -214,6 +230,7 @@ export default function DADetail() {
         data.validated_finance_by,
         data.revision_requested_by,
         data.comptabilise_by,
+        data.validated_aal_by,
       ].filter(Boolean) as string[];
 
       // Fetch profiles using the security definer function (bypasses RLS)
@@ -281,6 +298,9 @@ export default function DADetail() {
         comptabilise_by_profile: getProfile(data.comptabilise_by),
         comptabilise_by_roles: data.comptabilise_by ? rolesByUser[data.comptabilise_by] || [] : [],
         comptabilise_by_department: getDepartment(data.comptabilise_by),
+        validated_aal_by_profile: getProfile(data.validated_aal_by),
+        validated_aal_by_roles: data.validated_aal_by ? rolesByUser[data.validated_aal_by] || [] : [],
+        validated_aal_by_department: getDepartment(data.validated_aal_by),
       };
 
       setDA(enrichedDA as unknown as DemandeAchat);
@@ -582,6 +602,79 @@ export default function DADetail() {
         .eq('id', da.id);
       if (error) throw error;
       toast({ title: 'DA soumise à validation', description: 'Le DAF et DG ont été notifiés.' });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // === VALIDATION AAL ===
+  const handleValidateAAL = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'validee_aal',
+          validated_aal_by: user?.id,
+          validated_aal_at: new Date().toISOString(),
+          aal_comment: aalComment.trim() || null,
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA validée (AAL)', description: 'Vous pouvez maintenant la transmettre au DAF.' });
+      setShowAALValidateDialog(false);
+      setAALComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRejectAAL = async () => {
+    if (!da || !aalRejectionReason.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'rejetee_aal',
+          validated_aal_by: user?.id,
+          validated_aal_at: new Date().toISOString(),
+          aal_rejection_reason: aalRejectionReason.trim(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA rejetée (AAL)' });
+      setShowAALRejectDialog(false);
+      setAALRejectionReason('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTransmitToDAF = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'soumise_validation',
+          submitted_validation_by: user?.id,
+          submitted_validation_at: new Date().toISOString(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA transmise au DAF', description: 'Le DAF et DG ont été notifiés.' });
       fetchDA();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -1125,7 +1218,72 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* PANNEAU VALIDATION FINANCIÈRE (DAF/DG) */}
+        {/* PANNEAU VALIDATION AAL */}
+        {canValidateAAL && (
+          <Card className="border-2 border-accent bg-gradient-to-r from-accent/5 to-primary/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-8 w-8 text-accent-foreground" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Validation AAL Requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    En tant qu'Administrateur Achats & Logistique, validez cette DA avant transmission au DAF.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border bg-card p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Montant total</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {da?.total_amount?.toLocaleString()} {da?.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fournisseur</p>
+                    <p className="font-medium">{(da?.selected_fournisseur as Fournisseur)?.name || 'Multiple'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Priorité</p>
+                    <Badge className={da?.priority === 'urgente' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}>
+                      {da ? DA_PRIORITY_LABELS[da.priority] : ''}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => setShowAALValidateDialog(true)} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Valider (AAL)
+                </Button>
+                <Button variant="destructive" onClick={() => setShowAALRejectDialog(true)} disabled={isSaving}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Rejeter (AAL)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* PANNEAU TRANSMISSION AU DAF (après validation AAL) */}
+        {canTransmitToDAF && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardContent className="space-y-4 py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-foreground">DA validée AAL — Prête pour le DAF</p>
+                  <p className="text-sm text-muted-foreground">Transmettez cette DA au DAF pour validation financière.</p>
+                </div>
+                <Button onClick={handleTransmitToDAF} disabled={isSaving}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Transmettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {canValidateFinance && (
           <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 to-accent/5">
             <CardContent className="space-y-4 py-6">
@@ -1909,6 +2067,62 @@ export default function DADetail() {
         entityType="da"
         isLoading={isSaving}
       />
+
+      {/* AAL Validate Dialog */}
+      <Dialog open={showAALValidateDialog} onOpenChange={setShowAALValidateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Valider cette DA (AAL)</DialogTitle>
+            <DialogDescription>
+              En validant, vous confirmez que cette DA est conforme aux exigences budgétaires et opérationnelles.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Commentaire (optionnel)</Label>
+            <Textarea
+              placeholder="Ajoutez un commentaire si nécessaire..."
+              value={aalComment}
+              onChange={(e) => setAALComment(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAALValidateDialog(false)}>Annuler</Button>
+            <Button onClick={handleValidateAAL} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Confirmer la validation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AAL Reject Dialog */}
+      <Dialog open={showAALRejectDialog} onOpenChange={setShowAALRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeter cette DA (AAL)</DialogTitle>
+            <DialogDescription>
+              Indiquez le motif de rejet. Ce motif sera communiqué au service ayant soumis la DA.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Motif de rejet *</Label>
+            <Textarea
+              placeholder="Expliquez pourquoi cette DA est rejetée..."
+              value={aalRejectionReason}
+              onChange={(e) => setAALRejectionReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAALRejectDialog(false)}>Annuler</Button>
+            <Button variant="destructive" onClick={handleRejectAAL} disabled={isSaving || !aalRejectionReason.trim()}>
+              <XCircle className="mr-2 h-4 w-4" />
+              Confirmer le rejet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

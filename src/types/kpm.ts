@@ -11,7 +11,8 @@ export type AppRole =
   | 'agent_achats'
   | 'responsable_departement'
   | 'employe'
-  | 'lecture_seule';
+  | 'lecture_seule'
+  | 'aal';
 
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 
@@ -117,6 +118,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   responsable_departement: 'Responsable Département',
   employe: 'Employé',
   lecture_seule: 'Lecture seule',
+  aal: 'Administrateur Achats & Logistique',
 };
 
 export const STATUS_LABELS: Record<UserStatus, string> = {
@@ -359,6 +361,7 @@ export const GLOBAL_VISION_ROLES: AppRole[] = [
   'admin',
   'dg',
   'daf',
+  'aal',
   'responsable_logistique',
   'agent_logistique',
   'responsable_achats',
@@ -369,7 +372,7 @@ export const GLOBAL_VISION_ROLES: AppRole[] = [
 
 export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
 export type DAPriority = 'basse' | 'normale' | 'haute' | 'urgente';
-export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee';
+export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'validee_aal' | 'rejetee_aal' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee';
 
 export interface DAArticle {
   id: string;
@@ -458,6 +461,11 @@ export interface DemandeAchat {
   revision_requested_by: string | null;
   revision_requested_at: string | null;
   revision_comment: string | null;
+  // Champs AAL
+  validated_aal_by: string | null;
+  validated_aal_at: string | null;
+  aal_rejection_reason: string | null;
+  aal_comment: string | null;
   // Champs Comptabilité
   comptabilise_by: string | null;
   comptabilise_at: string | null;
@@ -514,6 +522,8 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   soumise: 'Soumise aux Achats',
   en_analyse: 'En analyse Achats',
   chiffree: 'Chiffrée',
+  validee_aal: 'Validée AAL',
+  rejetee_aal: 'Rejetée (AAL)',
   soumise_validation: 'En attente validation DAF/DG',
   validee_finance: 'Validée financièrement',
   refusee_finance: 'Refusée (DAF/DG)',

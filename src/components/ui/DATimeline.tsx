@@ -79,11 +79,17 @@ interface DATimelineProps {
     revision_requested_by_profile?: ActorProfile | null;
     revision_requested_by_roles?: AppRole[];
     revision_requested_by_department?: string | null;
+    validated_aal_at?: string | null;
+    validated_aal_by_profile?: ActorProfile | null;
+    validated_aal_by_roles?: AppRole[];
+    validated_aal_by_department?: string | null;
     status: string;
     rejection_reason?: string | null;
     revision_comment?: string | null;
     finance_decision_comment?: string | null;
     comptabilite_rejection_reason?: string | null;
+    aal_rejection_reason?: string | null;
+    aal_comment?: string | null;
   };
 }
 
@@ -167,7 +173,42 @@ export function DATimeline({ da }: DATimelineProps) {
     });
   }
 
-  // 5. Soumission à validation
+  // 4b. Validation AAL
+  if (da.validated_aal_at && ['validee_aal', 'soumise_validation', 'validee_finance', 'payee', 'rejetee_comptabilite'].includes(da.status)) {
+    events.push({
+      id: 'validated_aal',
+      action: 'Validée par l\'AAL',
+      date: da.validated_aal_at,
+      actor: {
+        profile: da.validated_aal_by_profile,
+        roles: da.validated_aal_by_roles,
+        department: da.validated_aal_by_department,
+      },
+      description: da.aal_comment || undefined,
+      status: 'completed',
+      icon: ShieldCheck,
+      color: 'text-accent',
+    });
+  }
+
+  // 4c. Rejet AAL
+  if (da.validated_aal_at && da.status === 'rejetee_aal') {
+    events.push({
+      id: 'rejected_aal',
+      action: 'Rejetée par l\'AAL',
+      date: da.validated_aal_at,
+      actor: {
+        profile: da.validated_aal_by_profile,
+        roles: da.validated_aal_by_roles,
+        department: da.validated_aal_by_department,
+      },
+      description: da.aal_rejection_reason || undefined,
+      status: 'current',
+      icon: XCircle,
+      color: 'text-destructive',
+    });
+  }
+
   if (da.submitted_validation_at) {
     events.push({
       id: 'submitted_validation',
