@@ -14,6 +14,7 @@ import { LogistiqueDashboard } from '@/components/dashboard/LogistiqueDashboard'
 import { AchatsDashboard } from '@/components/dashboard/AchatsDashboard';
 import { ComptabiliteDashboard } from '@/components/dashboard/ComptabiliteDashboard';
 import { DAFDashboard } from '@/components/dashboard/DAFDashboard';
+import { AALDashboard } from '@/components/dashboard/AALDashboard';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area
@@ -603,6 +604,10 @@ export default function Dashboard() {
 
         {hasAnyRole(['daf']) && !isAdmin && (
           <DAFDashboard />
+        )}
+
+        {hasAnyRole(['aal']) && !isAdmin && (
+          <AALDashboard />
         )}
 
         {/* Admin Stats */}
