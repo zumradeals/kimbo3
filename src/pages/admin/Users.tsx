@@ -46,7 +46,7 @@ import { Plus, Pencil, Trash2, Search, Mail, Key, Upload, X, User } from 'lucide
 import { UserAvatar } from '@/components/ui/UserAvatar';
 
 const ALL_ROLES: AppRole[] = [
-  'admin', 'dg', 'daf', 'comptable', 'responsable_logistique',
+  'admin', 'dg', 'daf', 'aal', 'comptable', 'responsable_logistique',
   'agent_logistique', 'responsable_achats', 'agent_achats',
   'responsable_departement', 'employe', 'lecture_seule'
 ];
