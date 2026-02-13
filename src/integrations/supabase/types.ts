@@ -2135,9 +2135,16 @@ export type Database = {
           is_active: boolean
           location: string | null
           name: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           start_date: string | null
           status: string
+          submitted_daf_at: string | null
+          submitted_daf_by: string | null
           updated_at: string
+          validated_daf_at: string | null
+          validated_daf_by: string | null
         }
         Insert: {
           budget?: number | null
@@ -2151,9 +2158,16 @@ export type Database = {
           is_active?: boolean
           location?: string | null
           name: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           start_date?: string | null
           status?: string
+          submitted_daf_at?: string | null
+          submitted_daf_by?: string | null
           updated_at?: string
+          validated_daf_at?: string | null
+          validated_daf_by?: string | null
         }
         Update: {
           budget?: number | null
@@ -2167,9 +2181,16 @@ export type Database = {
           is_active?: boolean
           location?: string | null
           name?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           start_date?: string | null
           status?: string
+          submitted_daf_at?: string | null
+          submitted_daf_by?: string | null
           updated_at?: string
+          validated_daf_at?: string | null
+          validated_daf_by?: string | null
         }
         Relationships: [
           {
