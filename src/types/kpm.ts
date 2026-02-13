@@ -129,7 +129,7 @@ export const STATUS_LABELS: Record<UserStatus, string> = {
 
 // ==================== MODULE PROJET/CHANTIER ====================
 
-export type ProjetStatus = 'actif' | 'en_pause' | 'termine' | 'annule';
+export type ProjetStatus = 'brouillon' | 'soumis_daf' | 'valide_daf' | 'actif' | 'termine' | 'suspendu';
 
 export interface Projet {
   id: string;
@@ -146,13 +146,25 @@ export interface Projet {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Validation DAF
+  validated_daf_by: string | null;
+  validated_daf_at: string | null;
+  submitted_daf_at: string | null;
+  submitted_daf_by: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  // Relations
+  created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
 }
 
 export const PROJET_STATUS_LABELS: Record<ProjetStatus, string> = {
+  brouillon: 'Brouillon',
+  soumis_daf: 'Soumis au DAF',
+  valide_daf: 'Validé DAF',
   actif: 'Actif',
-  en_pause: 'En pause',
   termine: 'Terminé',
-  annule: 'Annulé',
+  suspendu: 'Suspendu',
 };
 
 // ==================== MODULE BESOIN ====================

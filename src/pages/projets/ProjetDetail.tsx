@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Projet } from '@/types/kpm';
-import { AccessDenied } from '@/components/ui/AccessDenied';
+import { Projet, PROJET_STATUS_LABELS } from '@/types/kpm';
 import {
   ArrowLeft,
   Edit,
@@ -45,22 +44,21 @@ import {
   Calendar,
   DollarSign,
   Building2,
-  User,
   FileText,
   Package,
   Wallet,
   AlertTriangle,
+  Send,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const STATUS_LABELS: Record<string, string> = {
-  actif: 'Actif',
-  termine: 'Terminé',
-  suspendu: 'Suspendu',
-};
-
 const STATUS_COLORS: Record<string, string> = {
+  brouillon: 'bg-muted text-muted-foreground',
+  soumis_daf: 'bg-warning/10 text-warning border-warning/20',
+  valide_daf: 'bg-primary/10 text-primary border-primary/20',
   actif: 'bg-success/10 text-success border-success/20',
   termine: 'bg-muted text-muted-foreground',
   suspendu: 'bg-warning/10 text-warning border-warning/20',
@@ -69,7 +67,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjetDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { roles, isAdmin } = useAuth();
+  const { user, roles, isAdmin } = useAuth();
   const { toast } = useToast();
 
   const [projet, setProjet] = useState<Projet | null>(null);
@@ -82,13 +80,16 @@ export default function ProjetDetail() {
     description: '',
     client: '',
     location: '',
-    status: 'actif',
+    status: 'brouillon',
     budget: '',
     start_date: '',
     end_date: '',
   });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [linkedItems, setLinkedItems] = useState({
     besoins: 0,
@@ -97,9 +98,18 @@ export default function ProjetDetail() {
     mouvements: 0,
   });
 
-  const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
-  const canEdit = isLogistics || isAdmin;
+  const isAAL = roles.includes('aal');
+  const isDaf = roles.includes('daf');
+  const isDG = roles.includes('dg');
+
+  // AAL can edit only in brouillon
+  const canEdit = (isAAL && projet?.status === 'brouillon') || isAdmin;
   const canDelete = isAdmin;
+  const canSubmitToDaf = (isAAL || isAdmin) && projet?.status === 'brouillon';
+  const canValidateDaf = (isDaf || isAdmin) && projet?.status === 'soumis_daf';
+  const canRejectDaf = (isDaf || isAdmin) && projet?.status === 'soumis_daf';
+  // DAF can manage operational status after validation
+  const canManageStatus = (isDaf || isAdmin) && projet?.status && ['valide_daf', 'actif', 'termine', 'suspendu'].includes(projet.status);
 
   useEffect(() => {
     if (id) {
@@ -129,7 +139,7 @@ export default function ProjetDetail() {
         description: data.description || '',
         client: data.client || '',
         location: data.location || '',
-        status: data.status || 'actif',
+        status: data.status || 'brouillon',
         budget: data.budget?.toString() || '',
         start_date: data.start_date || '',
         end_date: data.end_date || '',
@@ -174,7 +184,6 @@ export default function ProjetDetail() {
           description: editForm.description || null,
           client: editForm.client || null,
           location: editForm.location || null,
-          status: editForm.status,
           budget: editForm.budget ? parseFloat(editForm.budget) : null,
           start_date: editForm.start_date || null,
           end_date: editForm.end_date || null,
@@ -193,10 +202,100 @@ export default function ProjetDetail() {
     }
   };
 
+  const handleSubmitToDaf = async () => {
+    if (!projet || !user) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('projets')
+        .update({
+          status: 'soumis_daf',
+          submitted_daf_at: new Date().toISOString(),
+          submitted_daf_by: user.id,
+        })
+        .eq('id', projet.id);
+
+      if (error) throw error;
+      toast({ title: 'Projet soumis', description: 'Le projet a été soumis au DAF pour validation.' });
+      fetchProjet();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleValidateDaf = async () => {
+    if (!projet || !user) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('projets')
+        .update({
+          status: 'valide_daf',
+          validated_daf_at: new Date().toISOString(),
+          validated_daf_by: user.id,
+        })
+        .eq('id', projet.id);
+
+      if (error) throw error;
+      toast({ title: 'Projet validé', description: 'Le projet a été validé par le DAF.' });
+      fetchProjet();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRejectDaf = async () => {
+    if (!projet || !user || !rejectionReason.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('projets')
+        .update({
+          status: 'brouillon',
+          rejected_by: user.id,
+          rejected_at: new Date().toISOString(),
+          rejection_reason: rejectionReason.trim(),
+        })
+        .eq('id', projet.id);
+
+      if (error) throw error;
+      toast({ title: 'Projet refusé', description: 'Le projet a été renvoyé à l\'AAL avec un motif de refus.' });
+      setShowRejectDialog(false);
+      setRejectionReason('');
+      fetchProjet();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChangeOperationalStatus = async (newStatus: string) => {
+    if (!projet) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('projets')
+        .update({ status: newStatus })
+        .eq('id', projet.id);
+
+      if (error) throw error;
+      toast({ title: 'Statut mis à jour', description: `Le projet est maintenant "${PROJET_STATUS_LABELS[newStatus as keyof typeof PROJET_STATUS_LABELS]}".` });
+      fetchProjet();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!projet) return;
-    
-    // Vérifier les rattachements
+
     const totalLinked = linkedItems.besoins + linkedItems.da + linkedItems.bl + linkedItems.mouvements;
     if (totalLinked > 0) {
       const details = [];
@@ -204,11 +303,11 @@ export default function ProjetDetail() {
       if (linkedItems.da > 0) details.push(`${linkedItems.da} DA`);
       if (linkedItems.bl > 0) details.push(`${linkedItems.bl} BL`);
       if (linkedItems.mouvements > 0) details.push(`${linkedItems.mouvements} mouvement(s)`);
-      
-      toast({ 
-        title: 'Suppression impossible', 
+
+      toast({
+        title: 'Suppression impossible',
         description: `Ce projet est rattaché à : ${details.join(', ')}. Veuillez d'abord détacher ces éléments.`,
-        variant: 'destructive' 
+        variant: 'destructive',
       });
       setShowDeleteDialog(false);
       return;
@@ -257,7 +356,7 @@ export default function ProjetDetail() {
                 <h1 className="font-serif text-2xl font-bold text-foreground">{projet.name}</h1>
                 <Badge variant="outline">{projet.code}</Badge>
                 <Badge className={STATUS_COLORS[projet.status] || 'bg-muted'}>
-                  {STATUS_LABELS[projet.status] || projet.status}
+                  {PROJET_STATUS_LABELS[projet.status] || projet.status}
                 </Badge>
               </div>
               <p className="text-muted-foreground">
@@ -286,6 +385,65 @@ export default function ProjetDetail() {
             )}
           </div>
         </div>
+
+        {/* Rejection reason banner */}
+        {projet.rejection_reason && projet.status === 'brouillon' && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardContent className="flex items-start gap-3 py-4">
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+              <div>
+                <p className="font-medium text-destructive">Projet refusé par le DAF</p>
+                <p className="text-sm text-muted-foreground">{projet.rejection_reason}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Action buttons for workflow */}
+        {(canSubmitToDaf || canValidateDaf || canManageStatus) && (
+          <Card>
+            <CardContent className="flex flex-wrap items-center gap-3 py-4">
+              {canSubmitToDaf && (
+                <Button onClick={handleSubmitToDaf} disabled={isSubmitting}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Soumettre au DAF
+                </Button>
+              )}
+              {canValidateDaf && (
+                <>
+                  <Button onClick={handleValidateDaf} disabled={isSubmitting} className="bg-success text-success-foreground hover:bg-success/90">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Valider
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={() => setShowRejectDialog(true)}
+                    disabled={isSubmitting}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Refuser
+                  </Button>
+                </>
+              )}
+              {canManageStatus && (
+                <Select
+                  value={projet.status}
+                  onValueChange={handleChangeOperationalStatus}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="actif">Actif</SelectItem>
+                    <SelectItem value="termine">Terminé</SelectItem>
+                    <SelectItem value="suspendu">Suspendu</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Statistics */}
         <div className="grid gap-4 sm:grid-cols-4">
@@ -360,7 +518,7 @@ export default function ProjetDetail() {
                   </div>
                 </div>
               )}
-              {projet.budget && (
+              {projet.budget != null && (
                 <div className="flex items-start gap-3">
                   <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
@@ -417,30 +575,14 @@ export default function ProjetDetail() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Statut</Label>
-                <Select
-                  value={editForm.status}
-                  onValueChange={(v) => setEditForm({ ...editForm, status: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="actif">Actif</SelectItem>
-                    <SelectItem value="termine">Terminé</SelectItem>
-                    <SelectItem value="suspendu">Suspendu</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
                 <Label>Client</Label>
                 <Input
                   value={editForm.client}
                   onChange={(e) => setEditForm({ ...editForm, client: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Localisation</Label>
                 <Input
@@ -448,14 +590,14 @@ export default function ProjetDetail() {
                   onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
                 />
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Budget (XOF)</Label>
-              <Input
-                type="number"
-                value={editForm.budget}
-                onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })}
-              />
+              <div className="grid gap-2">
+                <Label>Budget (XOF)</Label>
+                <Input
+                  type="number"
+                  value={editForm.budget}
+                  onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -495,6 +637,43 @@ export default function ProjetDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Reject Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              Refuser le projet
+            </DialogTitle>
+            <DialogDescription>
+              Le projet sera renvoyé à l'AAL pour correction.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label>Motif de refus *</Label>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Indiquez le motif de refus..."
+              rows={4}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectDaf}
+              disabled={!rejectionReason.trim() || isSubmitting}
+            >
+              Refuser le projet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -506,7 +685,7 @@ export default function ProjetDetail() {
             <AlertDialogDescription>
               {linkedItems.besoins + linkedItems.da + linkedItems.bl + linkedItems.mouvements > 0 ? (
                 <span className="text-destructive">
-                  Ce projet est rattaché à : 
+                  Ce projet est rattaché à :
                   {linkedItems.besoins > 0 && ` ${linkedItems.besoins} besoin(s),`}
                   {linkedItems.da > 0 && ` ${linkedItems.da} DA,`}
                   {linkedItems.bl > 0 && ` ${linkedItems.bl} BL,`}

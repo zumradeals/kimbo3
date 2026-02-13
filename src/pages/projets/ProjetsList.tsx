@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Projet, ProjetStatus, PROJET_STATUS_LABELS, LOGISTICS_ROLES } from '@/types/kpm';
+import { Projet, ProjetStatus, PROJET_STATUS_LABELS } from '@/types/kpm';
 import {
   FolderKanban,
   Plus,
@@ -45,22 +45,29 @@ import {
   Pause,
   XCircle,
   Clock,
+  FileEdit,
+  Send,
+  ShieldCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 const statusColors: Record<ProjetStatus, string> = {
+  brouillon: 'bg-muted text-muted-foreground',
+  soumis_daf: 'bg-warning/10 text-warning border-warning/20',
+  valide_daf: 'bg-primary/10 text-primary border-primary/20',
   actif: 'bg-success/10 text-success border-success/20',
-  en_pause: 'bg-warning/10 text-warning border-warning/20',
   termine: 'bg-muted text-muted-foreground',
-  annule: 'bg-destructive/10 text-destructive border-destructive/20',
+  suspendu: 'bg-warning/10 text-warning border-warning/20',
 };
 
 const statusIcons: Record<ProjetStatus, React.ElementType> = {
+  brouillon: FileEdit,
+  soumis_daf: Send,
+  valide_daf: ShieldCheck,
   actif: CheckCircle,
-  en_pause: Pause,
   termine: Clock,
-  annule: XCircle,
+  suspendu: Pause,
 };
 
 export default function ProjetsList() {
@@ -85,9 +92,9 @@ export default function ProjetsList() {
     budget: '',
   });
 
-  const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
+  const isAAL = roles.includes('aal');
   const isDaf = roles.includes('daf');
-  const canManage = isLogistics || isDaf || isAdmin;
+  const canCreate = isAAL || isAdmin;
 
   useEffect(() => {
     fetchProjets();
@@ -127,6 +134,7 @@ export default function ProjetsList() {
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         budget: formData.budget ? Number(formData.budget) : null,
+        status: 'brouillon',
         created_by: user?.id,
       });
 
@@ -164,7 +172,8 @@ export default function ProjetsList() {
   const stats = {
     total: projets.length,
     actif: projets.filter((p) => p.status === 'actif').length,
-    en_pause: projets.filter((p) => p.status === 'en_pause').length,
+    brouillon: projets.filter((p) => p.status === 'brouillon').length,
+    soumis_daf: projets.filter((p) => p.status === 'soumis_daf').length,
     termine: projets.filter((p) => p.status === 'termine').length,
   };
 
@@ -181,7 +190,7 @@ export default function ProjetsList() {
               Gestion des projets et centres de coût
             </p>
           </div>
-          {canManage && (
+          {canCreate && (
             <Button onClick={() => setShowAddDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nouveau projet
@@ -216,11 +225,11 @@ export default function ProjetsList() {
           <Card>
             <CardContent className="flex items-center gap-4 py-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10">
-                <Pause className="h-6 w-6 text-warning" />
+                <Send className="h-6 w-6 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.en_pause}</p>
-                <p className="text-sm text-muted-foreground">En pause</p>
+                <p className="text-2xl font-bold">{stats.soumis_daf}</p>
+                <p className="text-sm text-muted-foreground">En attente DAF</p>
               </div>
             </CardContent>
           </Card>
