@@ -551,7 +551,6 @@ export default function BesoinCreate() {
                     type="date"
                     value={dateSouhaitee}
                     onChange={(e) => setDateSouhaitee(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 <div className="space-y-2">
