@@ -512,6 +512,10 @@ export default function BesoinDetail() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <FileText className="mr-2 h-4 w-4" />
+              Imprimer
+            </Button>
             <Link to={`/besoins/${id}/dossier`}>
               <Button variant="outline" size="sm">
                 <FolderOpen className="mr-2 h-4 w-4" />

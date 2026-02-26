@@ -494,6 +494,10 @@ export default function NoteFraisDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <FileCheck className="mr-2 h-4 w-4" />
+              Imprimer
+            </Button>
             {canEdit && (
               <Link to={`/notes-frais/${note.id}/modifier`}>
                 <Button variant="outline" size="sm">

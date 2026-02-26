@@ -117,6 +117,7 @@ export const MODULE_ROUTES: Record<string, string[]> = {
   audit: ['/audit'],
   rapports: ['/reports'],
   rapports_aal: ['/rapports-aal'],
+  rapports_operationnels: ['/rapports-operationnels'],
 };
 
 // Labels for modules (French)
