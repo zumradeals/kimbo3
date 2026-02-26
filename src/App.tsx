@@ -88,6 +88,9 @@ import QuickActions from "./pages/QuickActions";
 // Rapports AAL
 import RapportsAAL from "./pages/rapports-aal/RapportsAAL";
 
+// Rapports Opérationnels
+import RapportsOperationnels from "./pages/rapports-operationnels/RapportsOperationnels";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -189,6 +192,9 @@ function AppRoutes() {
       
       {/* Rapports AAL */}
       <Route path="/rapports-aal" element={<ProtectedRoute><RapportsAAL /></ProtectedRoute>} />
+      
+      {/* Rapports Opérationnels */}
+      <Route path="/rapports-operationnels" element={<ProtectedRoute><RapportsOperationnels /></ProtectedRoute>} />
 
       {/* Quick Actions (Mobile) */}
       <Route path="/actions-rapides" element={<ProtectedRoute><QuickActions /></ProtectedRoute>} />

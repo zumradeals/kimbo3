@@ -166,6 +166,12 @@ const moduleNavItems: NavItem[] = [
     icon: BarChart3,
     roles: ['aal'],
   },
+  {
+    label: 'Rapports Opérationnels',
+    href: '/rapports-operationnels',
+    icon: FileText,
+    roles: ['responsable_logistique', 'agent_logistique', 'responsable_achats', 'agent_achats', 'aal'],
+  },
 ];
 
 interface SidebarProps {

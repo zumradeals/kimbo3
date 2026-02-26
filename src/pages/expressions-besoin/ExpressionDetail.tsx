@@ -534,6 +534,10 @@ export default function ExpressionDetail() {
               {lignes.length} article(s) • Créée le {format(new Date(expression.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
             </p>
           </div>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <FileText className="mr-2 h-4 w-4" />
+            Imprimer
+          </Button>
         </div>
 
         {/* Status description banner */}

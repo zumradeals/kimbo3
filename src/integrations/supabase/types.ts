@@ -2202,6 +2202,69 @@ export type Database = {
           },
         ]
       }
+      rapports_operationnels: {
+        Row: {
+          contenu: string | null
+          created_at: string
+          created_by: string
+          donnees_kpi: Json | null
+          id: string
+          periode_debut: string
+          periode_fin: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["rapport_status"]
+          submitted_at: string | null
+          titre: string
+          type: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_comment: string | null
+        }
+        Insert: {
+          contenu?: string | null
+          created_at?: string
+          created_by: string
+          donnees_kpi?: Json | null
+          id?: string
+          periode_debut: string
+          periode_fin: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["rapport_status"]
+          submitted_at?: string | null
+          titre: string
+          type?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_comment?: string | null
+        }
+        Update: {
+          contenu?: string | null
+          created_at?: string
+          created_by?: string
+          donnees_kpi?: Json | null
+          id?: string
+          periode_debut?: string
+          periode_fin?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["rapport_status"]
+          submitted_at?: string | null
+          titre?: string
+          type?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_comment?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -2857,6 +2920,7 @@ export type Database = {
         | "payee"
         | "rejetee"
       payment_class: "REGLEMENT" | "DEPENSE"
+      rapport_status: "brouillon" | "soumis" | "valide" | "rejete"
       stock_movement_type:
         | "entree"
         | "sortie"
@@ -3088,6 +3152,7 @@ export const Constants = {
         "rejetee",
       ],
       payment_class: ["REGLEMENT", "DEPENSE"],
+      rapport_status: ["brouillon", "soumis", "valide", "rejete"],
       stock_movement_type: [
         "entree",
         "sortie",
