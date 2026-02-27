@@ -187,9 +187,8 @@ export default function DADetail() {
   // Achats/Logistique soumet à l'AAL (plus directement au DAF)
   const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
-  // Admin peut tout supprimer; Logistique/Achats peuvent supprimer les DA chiffrées, rejetées ou annulées
-  const canDeleteByStatus = ['chiffree', 'rejetee', 'rejetee_aal', 'annulee'].includes(da?.status || '');
-  const canDelete = isAdmin || ((isAchats || isOperational) && canDeleteByStatus);
+  // Admin, Logistique et Achats peuvent supprimer les DA quel que soit le statut (sauf payée)
+  const canDelete = isAdmin || isAchats || isOperational;
   const canUploadAttachment = !isReadOnly && (isAchats || isOperational || isAdmin) && ['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats'].includes(da?.status || '');
 
   useEffect(() => {
