@@ -129,9 +129,8 @@ export default function BesoinDetail() {
   const canManage = isLogistics || isAchats || isAdmin;
   // AAL a un accès en lecture seule aux besoins
   const isAALReadOnly = isAAL && !isLogistics && !isAchats && !isAdmin;
-  // Admin peut tout supprimer; Logistique/Achats peuvent supprimer les besoins acceptés, refusés ou annulés
-  const canDeleteByStatus = ['accepte', 'refuse', 'annulee'].includes(besoin?.status || '');
-  const canDelete = isAdmin || ((isLogistics || isAchats) && canDeleteByStatus);
+  // Admin, Logistique et Achats peuvent supprimer les besoins quel que soit le statut
+  const canDelete = isAdmin || isLogistics || isAchats;
 
   useEffect(() => {
     if (id) {
