@@ -171,7 +171,7 @@ export default function DADetail() {
   const isAAL = roles.includes('aal');
   
   // Le comptable peut voir la DA et payer si validée
-  const isReadOnly = isComptable && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin && !isAAL;
+  const isReadOnly = (isComptable || isAAL) && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin;
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
 
   // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
@@ -1094,15 +1094,16 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* Bannière lecture seule pour comptable */}
-        {isReadOnly && (
+        {/* Bannière lecture seule pour comptable / AAL */}
+        {isReadOnly && !canValidateAAL && (
           <Card className="border-muted bg-muted/20">
             <CardContent className="flex items-center gap-3 py-4">
               <ReadOnlyBadge />
               <div>
                 <p className="text-sm text-muted-foreground">
                   Vous consultez cette DA en lecture seule.
-                  {da.status === 'validee_finance' && ' Le paiement peut être effectué depuis le module Comptabilité.'}
+                  {isAAL && ' La validation AAL est disponible uniquement pour les DA au statut "Chiffrée".'}
+                  {isComptable && da.status === 'validee_finance' && ' Le paiement peut être effectué depuis le module Comptabilité.'}
                 </p>
               </div>
             </CardContent>

@@ -74,7 +74,8 @@ export default function BesoinsList() {
   
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const canCreate = roles.some((r) => ROLES_CAN_CREATE_BESOIN.includes(r));
+  const isAAL = roles.includes('aal');
+  const canCreate = !isAAL && roles.some((r) => ROLES_CAN_CREATE_BESOIN.includes(r));
 
   // Fetch function with pagination
   const fetchBesoins = useCallback(async () => {

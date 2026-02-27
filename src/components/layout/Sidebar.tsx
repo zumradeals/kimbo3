@@ -99,12 +99,14 @@ const moduleNavItems: NavItem[] = [
     href: '/besoins',
     icon: ClipboardList,
     module: 'besoins',
+    roles: ['aal'],
   },
   {
     label: 'Demandes d\'achat',
     href: '/demandes-achat',
     icon: FileText,
     module: 'da',
+    roles: ['aal'],
   },
   {
     label: 'Bons de livraison',
@@ -200,8 +202,9 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps = {}) {
 
   const hasAccess = (item: NavItem): boolean => {
     if (isAdmin) return true;
-    if (item.roles) {
-      return item.roles.some(r => roles.includes(r as any));
+    // If item has roles, check role access first (allows access even without module permission)
+    if (item.roles && item.roles.some(r => roles.includes(r as any))) {
+      return true;
     }
     if (item.permission) {
       return hasPermission(item.permission);
