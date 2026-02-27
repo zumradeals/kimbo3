@@ -72,6 +72,7 @@ import { fr } from 'date-fns/locale';
 import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
 import { BesoinEditLogistique } from '@/components/besoins/BesoinEditLogistique';
 import { CancelDialog } from '@/components/ui/CancelDialog';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import { Ban } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -120,11 +121,14 @@ export default function BesoinDetail() {
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
   const isAchats = roles.some((r) => ['responsable_achats', 'agent_achats'].includes(r));
   const isDG = roles.includes('dg');
+  const isAAL = roles.includes('aal');
   const isCreator = besoin?.user_id === user?.id;
   const canEdit = isCreator && (besoin?.status === 'cree' || besoin?.status === 'retourne');
   const canResubmit = isCreator && besoin?.status === 'retourne';
   // Mutualisation: Logistique ET Achats peuvent gérer les besoins
   const canManage = isLogistics || isAchats || isAdmin;
+  // AAL a un accès en lecture seule aux besoins
+  const isAALReadOnly = isAAL && !isLogistics && !isAchats && !isAdmin;
   // Admin peut tout supprimer; Logistique/Achats peuvent supprimer les besoins acceptés, refusés ou annulés
   const canDeleteByStatus = ['accepte', 'refuse', 'annulee'].includes(besoin?.status || '');
   const canDelete = isAdmin || ((isLogistics || isAchats) && canDeleteByStatus);
@@ -604,6 +608,18 @@ export default function BesoinDetail() {
                 <p className="font-medium text-destructive">Motif du refus</p>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{besoin.rejection_reason}</p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière lecture seule pour AAL */}
+        {isAALReadOnly && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ReadOnlyBadge />
+              <p className="text-sm text-foreground">
+                En tant qu'AAL, vous avez un accès en <strong>lecture seule</strong> aux besoins internes.
+              </p>
             </CardContent>
           </Card>
         )}
