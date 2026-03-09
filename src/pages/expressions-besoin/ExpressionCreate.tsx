@@ -138,7 +138,8 @@ export default function ExpressionCreate() {
     setIsSubmitting(true);
 
     try {
-      // 1. Créer l'expression groupe (parent)
+      // 1. Créer l'expression groupe (parent) — toujours en brouillon d'abord
+      // pour respecter la RLS sur expressions_besoin_lignes qui exige status='brouillon'
       const titre = validArticles.length > 1 
         ? `${validArticles.length} articles demandés`
         : validArticles[0].nomArticle.trim();
@@ -154,15 +155,14 @@ export default function ExpressionCreate() {
           projet_id: projetId || null,
           lieu_projet: lieuProjet.trim() || null,
           date_souhaitee: dateSouhaitee || null,
-          status: submitDirect ? 'soumis' : 'brouillon',
-          submitted_at: submitDirect ? new Date().toISOString() : null,
+          status: 'brouillon',
         })
         .select('id')
         .single();
 
       if (expressionError) throw expressionError;
 
-      // 2. Créer les lignes d'articles
+      // 2. Créer les lignes d'articles (RLS exige status='brouillon')
       const lignes = validArticles.map(article => ({
         expression_id: expression.id,
         nom_article: article.nomArticle.trim(),
@@ -176,6 +176,14 @@ export default function ExpressionCreate() {
         .insert(lignes);
 
       if (lignesError) throw lignesError;
+
+      // 3. Si soumission directe, utiliser la RPC pour passer brouillon -> soumis
+      if (submitDirect) {
+        const { error: submitError } = await supabase.rpc('submit_expression_for_validation', {
+          _expression_id: expression.id,
+        });
+        if (submitError) throw submitError;
+      }
 
       const count = validArticles.length;
       
