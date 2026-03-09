@@ -869,8 +869,24 @@ export default function ExpressionDetail() {
                     </Button>
                   )}
 
+                  {/* Delete button */}
+                  {canDelete && (
+                    <>
+                      <div className="border-t pt-3 mt-3" />
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => setShowDeleteDialog(true)}
+                        disabled={isProcessing}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer l'expression
+                      </Button>
+                    </>
+                  )}
+
                   {/* No actions available message */}
-                  {!actions.canSubmit && !actions.canValidate && !actions.canReject && !actions.canSendToLogistics && (
+                  {!actions.canSubmit && !actions.canValidate && !actions.canReject && !actions.canSendToLogistics && !canDelete && (
                     <p className="text-sm text-muted-foreground text-center py-2">
                       Aucune action disponible pour cette expression.
                     </p>
