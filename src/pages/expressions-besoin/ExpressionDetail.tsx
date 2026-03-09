@@ -42,6 +42,7 @@ import {
   AlertTriangle,
   FileText,
   ExternalLink,
+  Trash2,
   Send,
   Loader2,
   FileEdit,
@@ -108,6 +109,7 @@ export default function ExpressionDetail() {
   // Dialog states
   const [showValidateDialog, setShowValidateDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -386,6 +388,51 @@ export default function ExpressionDetail() {
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Delete permission: admin can always delete; owner can delete brouillon/soumis/rejete_departement
+  const canDelete = expression && (
+    isAdmin || 
+    (expression.user_id === user?.id && ['brouillon', 'soumis', 'rejete_departement'].includes(status))
+  );
+
+  // Handle delete expression
+  const handleDelete = async () => {
+    if (!id) return;
+    setIsProcessing(true);
+    try {
+      // Delete lignes first
+      const { error: lignesError } = await supabase
+        .from('expressions_besoin_lignes')
+        .delete()
+        .eq('expression_id', id);
+      if (lignesError) throw lignesError;
+
+      // Delete expression
+      const { error } = await supabase
+        .from('expressions_besoin')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      toast({
+        title: 'Expression supprimée',
+        description: 'L\'expression de besoin a été supprimée.',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
+      navigate('/expressions-besoin');
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer l\'expression.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -822,8 +869,24 @@ export default function ExpressionDetail() {
                     </Button>
                   )}
 
+                  {/* Delete button */}
+                  {canDelete && (
+                    <>
+                      <div className="border-t pt-3 mt-3" />
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => setShowDeleteDialog(true)}
+                        disabled={isProcessing}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer l'expression
+                      </Button>
+                    </>
+                  )}
+
                   {/* No actions available message */}
-                  {!actions.canSubmit && !actions.canValidate && !actions.canReject && !actions.canSendToLogistics && (
+                  {!actions.canSubmit && !actions.canValidate && !actions.canReject && !actions.canSendToLogistics && !canDelete && (
                     <p className="text-sm text-muted-foreground text-center py-2">
                       Aucune action disponible pour cette expression.
                     </p>
@@ -959,6 +1022,26 @@ export default function ExpressionDetail() {
             </Button>
             <Button variant="destructive" onClick={handleReject} disabled={isProcessing || !rejectionReason.trim()}>
               {isProcessing ? 'Rejet...' : 'Rejeter'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l'expression de besoin</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette expression et ses {lignes.length} article(s) ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={isProcessing}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isProcessing}>
+              {isProcessing ? 'Suppression...' : 'Supprimer'}
             </Button>
           </DialogFooter>
         </DialogContent>
