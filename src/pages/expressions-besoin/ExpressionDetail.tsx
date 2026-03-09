@@ -42,6 +42,7 @@ import {
   AlertTriangle,
   FileText,
   ExternalLink,
+  Trash2,
   Send,
   Loader2,
   FileEdit,
