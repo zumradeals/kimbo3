@@ -391,6 +391,51 @@ export default function ExpressionDetail() {
     }
   };
 
+  // Delete permission: admin can always delete; owner can delete brouillon/soumis/rejete_departement
+  const canDelete = expression && (
+    isAdmin || 
+    (expression.user_id === user?.id && ['brouillon', 'soumis', 'rejete_departement'].includes(status))
+  );
+
+  // Handle delete expression
+  const handleDelete = async () => {
+    if (!id) return;
+    setIsProcessing(true);
+    try {
+      // Delete lignes first
+      const { error: lignesError } = await supabase
+        .from('expressions_besoin_lignes')
+        .delete()
+        .eq('expression_id', id);
+      if (lignesError) throw lignesError;
+
+      // Delete expression
+      const { error } = await supabase
+        .from('expressions_besoin')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      toast({
+        title: 'Expression supprimée',
+        description: 'L\'expression de besoin a été supprimée.',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['expressions-besoin'] });
+      navigate('/expressions-besoin');
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer l\'expression.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   // Build timeline
   const buildTimeline = (): TimelineEvent[] => {
     if (!expression) return [];
