@@ -1026,6 +1026,26 @@ export default function ExpressionDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l'expression de besoin</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette expression et ses {lignes.length} article(s) ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={isProcessing}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isProcessing}>
+              {isProcessing ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
