@@ -39,18 +39,22 @@ import { fr } from 'date-fns/locale';
 
 const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
+  soumis_aal: 'bg-accent/10 text-accent-foreground border-accent/20',
   soumise: 'bg-warning/10 text-warning border-warning/20',
   validee_daf: 'bg-primary/10 text-primary border-primary/20',
   payee: 'bg-success/10 text-success border-success/20',
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
+  retour_aal: 'bg-warning text-warning-foreground',
 };
 
 const statusIcons: Record<NoteFraisStatus, React.ElementType> = {
   brouillon: Clock,
+  soumis_aal: FileCheck,
   soumise: FileCheck,
   validee_daf: CheckCircle,
   payee: Wallet,
   rejetee: XCircle,
+  retour_aal: Clock,
 };
 
 export default function NotesFraisList() {
@@ -105,9 +109,11 @@ export default function NotesFraisList() {
   const stats = {
     total: notes.length,
     brouillon: notes.filter((n) => n.status === 'brouillon').length,
+    soumis_aal: notes.filter((n) => n.status === 'soumis_aal').length,
     soumise: notes.filter((n) => n.status === 'soumise').length,
     validee_daf: notes.filter((n) => n.status === 'validee_daf').length,
     payee: notes.filter((n) => n.status === 'payee').length,
+    retour_aal: notes.filter((n) => n.status === 'retour_aal').length,
   };
 
   // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
@@ -167,8 +173,19 @@ export default function NotesFraisList() {
                 <FileCheck className="h-6 w-6 text-warning" />
               </div>
               <div>
+                <p className="text-2xl font-bold">{stats.soumis_aal}</p>
+                <p className="text-sm text-muted-foreground">Chez AAL</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 py-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+                <FileCheck className="h-6 w-6 text-accent-foreground" />
+              </div>
+              <div>
                 <p className="text-2xl font-bold">{stats.soumise}</p>
-                <p className="text-sm text-muted-foreground">À valider</p>
+                <p className="text-sm text-muted-foreground">Chez DAF</p>
               </div>
             </CardContent>
           </Card>

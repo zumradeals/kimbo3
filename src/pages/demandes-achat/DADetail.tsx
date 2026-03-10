@@ -104,6 +104,7 @@ const statusColors: Record<DAStatus, string> = {
   payee: 'bg-success text-success-foreground',
   rejetee_comptabilite: 'bg-destructive text-destructive-foreground',
   annulee: 'bg-muted text-muted-foreground line-through',
+  retour_aal: 'bg-warning text-warning-foreground',
 };
 
 const statusIcons: Record<DAStatus, React.ElementType> = {
@@ -121,6 +122,7 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   payee: Banknote,
   rejetee_comptabilite: BookX,
   annulee: XCircle,
+  retour_aal: RotateCcw,
 };
 
 export default function DADetail() {
@@ -171,7 +173,7 @@ export default function DADetail() {
   const isAAL = roles.includes('aal');
   
   // Le comptable peut voir la DA et payer si validée
-  const isReadOnly = (isComptable || isAAL) && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin;
+  const isReadOnly = (isComptable) && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin && !isAAL;
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
 
   // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
@@ -179,11 +181,13 @@ export default function DADetail() {
   const canRejectAAL = isAAL && da?.status === 'chiffree';
   // AAL transmet au DAF après sa propre validation
   const canTransmitToDAF = isAAL && da?.status === 'validee_aal';
+  // AAL gère les retours DAF
+  const canHandleRetourAAL = (isAAL || isAdmin) && da?.status === 'retour_aal';
 
   // Mutualisation: Les deux peuvent soumettre aux Achats
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
+  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
   // Achats/Logistique soumet à l'AAL (plus directement au DAF)
   const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
@@ -732,6 +736,7 @@ export default function DADetail() {
     }
   };
 
+  // DAF refuse → retour_aal (not refusee_finance)
   const handleRefuseFinance = async () => {
     if (!da || !financeComment.trim()) return;
     setIsSaving(true);
@@ -739,14 +744,14 @@ export default function DADetail() {
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'refusee_finance',
+          status: 'retour_aal',
           validated_finance_by: user?.id,
           validated_finance_at: new Date().toISOString(),
           finance_decision_comment: financeComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA refusée', description: 'Les parties concernées ont été notifiées.' });
+      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
       setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
@@ -800,6 +805,7 @@ export default function DADetail() {
     toast({ title: 'PDF exporté', description: 'Fiche de validation financière téléchargée.' });
   };
 
+  // DAF request revision → also goes to retour_aal
   const handleRequestRevision = async () => {
     if (!da || !revisionComment.trim()) return;
     setIsSaving(true);
@@ -807,14 +813,14 @@ export default function DADetail() {
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'en_revision_achats',
+          status: 'retour_aal',
           revision_requested_by: user?.id,
           revision_requested_at: new Date().toISOString(),
           revision_comment: revisionComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'Révision demandée', description: 'Le Service Achats a été notifié.' });
+      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
       setShowRevisionDialog(false);
       setRevisionComment('');
       fetchDA();

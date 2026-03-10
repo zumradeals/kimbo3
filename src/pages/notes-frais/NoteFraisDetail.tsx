@@ -69,18 +69,22 @@ import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDial
 
 const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
+  soumis_aal: 'bg-accent/10 text-accent-foreground border-accent/20',
   soumise: 'bg-warning/10 text-warning border-warning/20',
   validee_daf: 'bg-primary/10 text-primary border-primary/20',
   payee: 'bg-success/10 text-success border-success/20',
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
+  retour_aal: 'bg-warning text-warning-foreground',
 };
 
 const statusIcons: Record<NoteFraisStatus, React.ElementType> = {
   brouillon: Clock,
+  soumis_aal: FileCheck,
   soumise: FileCheck,
   validee_daf: CheckCircle,
   payee: Wallet,
   rejetee: XCircle,
+  retour_aal: Clock,
 };
 
 interface NoteFraisWithRelations extends NoteFrais {
@@ -142,6 +146,7 @@ export default function NoteFraisDetail() {
   const isDAF = roles.includes('daf');
   const isComptable = roles.includes('comptable');
   const isDG = roles.includes('dg');
+  const isAAL = roles.includes('aal');
   const isCreator = note?.user_id === user?.id;
 
   useEffect(() => {
@@ -229,14 +234,87 @@ export default function NoteFraisDetail() {
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'soumise',
+          status: 'soumis_aal',
           submitted_at: new Date().toISOString(),
         })
         .eq('id', note.id);
 
       if (error) throw error;
 
-      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise pour validation.' });
+      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise au AAL.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL: Transmettre au DAF
+  const handleAALTransmitToDAF = async () => {
+    if (!note) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'soumise',
+          validated_aal_by: user?.id,
+          validated_aal_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note transmise au DAF', description: 'Le DAF a été notifié.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL: Renvoyer pour correction (depuis soumis_aal ou retour_aal)
+  const handleAALReturn = async () => {
+    if (!note || !rejectionReason.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'rejetee',
+          rejection_reason: rejectionReason.trim(),
+          rejected_by: user?.id,
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note renvoyée pour correction' });
+      setShowRejectDialog(false);
+      setRejectionReason('');
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL: Retransmettre au DAF (depuis retour_aal)
+  const handleAALRetransmit = async () => {
+    if (!note) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'soumise',
+          validated_aal_by: user?.id,
+          validated_aal_at: new Date().toISOString(),
+          aal_comment: null,
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note retransmise au DAF' });
       fetchNote();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -270,6 +348,7 @@ export default function NoteFraisDetail() {
     }
   };
 
+  // DAF rejects → goes to retour_aal (NOT directly to user)
   const handleReject = async () => {
     if (!note || !rejectionReason.trim()) return;
     setIsSaving(true);
@@ -278,7 +357,7 @@ export default function NoteFraisDetail() {
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'rejetee',
+          status: 'retour_aal',
           rejection_reason: rejectionReason.trim(),
           rejected_by: user?.id,
           rejected_at: new Date().toISOString(),
@@ -287,7 +366,7 @@ export default function NoteFraisDetail() {
 
       if (error) throw error;
 
-      toast({ title: 'Note rejetée', description: 'La note de frais a été rejetée.' });
+      toast({ title: 'Note renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
       setShowRejectDialog(false);
       fetchNote();
     } catch (error: any) {
@@ -520,44 +599,49 @@ export default function NoteFraisDetail() {
           </div>
         </div>
 
-        {/* Rejection reason */}
-        {note.status === 'rejetee' && note.rejection_reason && (
+        {/* Rejection reason - visible only to AAL */}
+        {(note.status === 'rejetee' || note.status === 'retour_aal') && note.rejection_reason && (
           <Card className="border-destructive/50 bg-destructive/5">
             <CardContent className="flex items-start gap-3 py-4">
               <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
               <div>
-                <p className="font-medium text-destructive">Motif du rejet</p>
+                <p className="font-medium text-destructive">
+                  {note.status === 'retour_aal' ? 'Motif du refus DAF' : 'Motif du rejet'}
+                </p>
                 <p className="text-sm text-foreground">{note.rejection_reason}</p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Actions */}
-        {isCreator && note.status === 'brouillon' && (
+        {/* Actions: Creator submits to AAL */}
+        {isCreator && (note.status === 'brouillon' || note.status === 'rejetee') && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div>
-                <p className="font-medium text-foreground">Brouillon</p>
+                <p className="font-medium text-foreground">
+                  {note.status === 'rejetee' ? 'Note rejetée' : 'Brouillon'}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Soumettez cette note pour validation DAF.
+                  Soumettez cette note au AAL pour contrôle.
                 </p>
               </div>
               <Button onClick={handleSubmit} disabled={isSaving}>
                 <FileCheck className="mr-2 h-4 w-4" />
-                Soumettre
+                Soumettre au AAL
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {(isDAF || isAdmin) && note.status === 'soumise' && (
-          <Card className="border-warning/50 bg-warning/5">
+        {/* Actions: AAL validates soumis_aal → transmit to DAF or return */}
+        {(isAAL || isAdmin) && note.status === 'soumis_aal' && (
+          <Card className="border-accent/50 bg-accent/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div>
-                <p className="font-medium text-foreground">Validation requise</p>
+                <p className="font-medium text-foreground">Contrôle AAL requis</p>
                 <p className="text-sm text-muted-foreground">
-                  Validez ou rejetez cette demande de remboursement.
+                  Vérifiez la cohérence, le budget et les justificatifs avant transmission au DAF.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -568,7 +652,65 @@ export default function NoteFraisDetail() {
                   disabled={isSaving}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
-                  Rejeter
+                  Renvoyer
+                </Button>
+                <Button onClick={handleAALTransmitToDAF} disabled={isSaving}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Transmettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions: AAL handles retour_aal (DAF refusal) → retransmit or return to creator */}
+        {(isAAL || isAdmin) && note.status === 'retour_aal' && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Retour DAF — Correction requise</p>
+                <p className="text-sm text-muted-foreground">
+                  Corrigez ou renvoyez au demandeur, puis retransmettez au DAF.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Renvoyer au demandeur
+                </Button>
+                <Button onClick={handleAALRetransmit} disabled={isSaving}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Retransmettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions: DAF validates soumise (transmitted by AAL) */}
+        {(isDAF || isAdmin) && note.status === 'soumise' && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Validation DAF requise</p>
+                <p className="text-sm text-muted-foreground">
+                  Validez ou refusez cette demande de remboursement.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Refuser
                 </Button>
                 <Button onClick={handleValidateDAF} disabled={isSaving}>
                   <CheckCircle className="mr-2 h-4 w-4" />

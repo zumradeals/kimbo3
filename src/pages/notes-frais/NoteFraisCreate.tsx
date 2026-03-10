@@ -120,7 +120,7 @@ export default function NoteFraisCreate() {
         const { error: updateError } = await supabase
           .from('notes_frais')
           .update({
-            status: 'soumise',
+            status: 'soumis_aal',
             submitted_at: new Date().toISOString(),
           })
           .eq('id', noteData.id);
@@ -132,7 +132,7 @@ export default function NoteFraisCreate() {
         title: asBrouillon ? 'Brouillon enregistré' : 'Note soumise',
         description: asBrouillon
           ? 'Votre note de frais a été enregistrée comme brouillon.'
-          : 'Votre note de frais a été soumise pour validation.',
+          : 'Votre note de frais a été soumise au AAL pour validation.',
       });
 
       navigate(`/notes-frais/${noteData.id}`);
@@ -328,7 +328,7 @@ export default function NoteFraisCreate() {
             className="w-full sm:w-auto"
           >
             <Receipt className="mr-2 h-4 w-4" />
-            {isSubmitting ? 'Envoi...' : 'Soumettre pour validation'}
+            {isSubmitting ? 'Envoi...' : 'Soumettre au AAL'}
           </Button>
         </div>
       </div>

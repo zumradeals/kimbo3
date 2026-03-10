@@ -44,18 +44,22 @@ const daStatusIcons: Record<string, React.ElementType> = {
 
 const ndfStatusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
+  soumis_aal: 'bg-warning/10 text-warning border-warning/20',
   soumise: 'bg-warning/10 text-warning border-warning/20',
   validee_daf: 'bg-primary/10 text-primary border-primary/20',
   payee: 'bg-success/10 text-success border-success/20',
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
+  retour_aal: 'bg-warning text-warning-foreground',
 };
 
 const ndfStatusIcons: Record<NoteFraisStatus, React.ElementType> = {
   brouillon: AlertTriangle,
+  soumis_aal: ShieldCheck,
   soumise: ShieldCheck,
   validee_daf: CheckCircle,
   payee: Wallet,
   rejetee: BookX,
+  retour_aal: AlertTriangle,
 };
 
 export default function Comptabilite() {
