@@ -173,7 +173,7 @@ export default function DADetail() {
   const isAAL = roles.includes('aal');
   
   // Le comptable peut voir la DA et payer si validée
-  const isReadOnly = (isComptable || isAAL) && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin;
+  const isReadOnly = (isComptable) && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin && !isAAL;
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
 
   // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
@@ -181,11 +181,13 @@ export default function DADetail() {
   const canRejectAAL = isAAL && da?.status === 'chiffree';
   // AAL transmet au DAF après sa propre validation
   const canTransmitToDAF = isAAL && da?.status === 'validee_aal';
+  // AAL gère les retours DAF
+  const canHandleRetourAAL = (isAAL || isAdmin) && da?.status === 'retour_aal';
 
   // Mutualisation: Les deux peuvent soumettre aux Achats
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats'].includes(da?.status || '');
+  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
   // Achats/Logistique soumet à l'AAL (plus directement au DAF)
   const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
