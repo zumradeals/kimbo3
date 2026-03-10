@@ -146,6 +146,7 @@ export default function NoteFraisDetail() {
   const isDAF = roles.includes('daf');
   const isComptable = roles.includes('comptable');
   const isDG = roles.includes('dg');
+  const isAAL = roles.includes('aal');
   const isCreator = note?.user_id === user?.id;
 
   useEffect(() => {
