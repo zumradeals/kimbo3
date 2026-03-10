@@ -734,6 +734,7 @@ export default function DADetail() {
     }
   };
 
+  // DAF refuse → retour_aal (not refusee_finance)
   const handleRefuseFinance = async () => {
     if (!da || !financeComment.trim()) return;
     setIsSaving(true);
@@ -741,14 +742,14 @@ export default function DADetail() {
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'refusee_finance',
+          status: 'retour_aal',
           validated_finance_by: user?.id,
           validated_finance_at: new Date().toISOString(),
           finance_decision_comment: financeComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA refusée', description: 'Les parties concernées ont été notifiées.' });
+      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
       setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
