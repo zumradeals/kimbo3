@@ -328,7 +328,7 @@ export default function NoteFraisCreate() {
             className="w-full sm:w-auto"
           >
             <Receipt className="mr-2 h-4 w-4" />
-            {isSubmitting ? 'Envoi...' : 'Soumettre pour validation'}
+            {isSubmitting ? 'Envoi...' : 'Soumettre au AAL'}
           </Button>
         </div>
       </div>
