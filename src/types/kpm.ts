@@ -384,7 +384,7 @@ export const GLOBAL_VISION_ROLES: AppRole[] = [
 
 export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
 export type DAPriority = 'basse' | 'normale' | 'haute' | 'urgente';
-export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'validee_aal' | 'rejetee_aal' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee';
+export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'validee_aal' | 'rejetee_aal' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee' | 'retour_aal';
 
 export interface DAArticle {
   id: string;
