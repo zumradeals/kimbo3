@@ -234,14 +234,87 @@ export default function NoteFraisDetail() {
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'soumise',
+          status: 'soumis_aal',
           submitted_at: new Date().toISOString(),
         })
         .eq('id', note.id);
 
       if (error) throw error;
 
-      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise pour validation.' });
+      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise au AAL.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL: Transmettre au DAF
+  const handleAALTransmitToDAF = async () => {
+    if (!note) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'soumise',
+          validated_aal_by: user?.id,
+          validated_aal_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note transmise au DAF', description: 'Le DAF a été notifié.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL: Renvoyer pour correction (depuis soumis_aal ou retour_aal)
+  const handleAALReturn = async () => {
+    if (!note || !rejectionReason.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'rejetee',
+          rejection_reason: rejectionReason.trim(),
+          rejected_by: user?.id,
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note renvoyée pour correction' });
+      setShowRejectDialog(false);
+      setRejectionReason('');
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL: Retransmettre au DAF (depuis retour_aal)
+  const handleAALRetransmit = async () => {
+    if (!note) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'soumise',
+          validated_aal_by: user?.id,
+          validated_aal_at: new Date().toISOString(),
+          aal_comment: null,
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note retransmise au DAF' });
       fetchNote();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
