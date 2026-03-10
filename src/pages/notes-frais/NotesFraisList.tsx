@@ -173,8 +173,19 @@ export default function NotesFraisList() {
                 <FileCheck className="h-6 w-6 text-warning" />
               </div>
               <div>
+                <p className="text-2xl font-bold">{stats.soumis_aal}</p>
+                <p className="text-sm text-muted-foreground">Chez AAL</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 py-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+                <FileCheck className="h-6 w-6 text-accent-foreground" />
+              </div>
+              <div>
                 <p className="text-2xl font-bold">{stats.soumise}</p>
-                <p className="text-sm text-muted-foreground">À valider</p>
+                <p className="text-sm text-muted-foreground">Chez DAF</p>
               </div>
             </CardContent>
           </Card>

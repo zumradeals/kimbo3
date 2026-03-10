@@ -104,6 +104,7 @@ const statusColors: Record<DAStatus, string> = {
   payee: 'bg-success text-success-foreground',
   rejetee_comptabilite: 'bg-destructive text-destructive-foreground',
   annulee: 'bg-muted text-muted-foreground line-through',
+  retour_aal: 'bg-warning text-warning-foreground',
 };
 
 const statusIcons: Record<DAStatus, React.ElementType> = {
@@ -121,6 +122,7 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   payee: Banknote,
   rejetee_comptabilite: BookX,
   annulee: XCircle,
+  retour_aal: RotateCcw,
 };
 
 export default function DADetail() {
