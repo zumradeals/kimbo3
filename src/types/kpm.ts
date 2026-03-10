@@ -792,10 +792,12 @@ export interface NoteFraisLigne {
 
 export const NOTE_FRAIS_STATUS_LABELS: Record<NoteFraisStatus, string> = {
   brouillon: 'Brouillon',
-  soumise: 'Soumise',
+  soumis_aal: 'Soumise AAL',
+  soumise: 'En attente DAF',
   validee_daf: 'Validée DAF',
   payee: 'Payée',
   rejetee: 'Rejetée',
+  retour_aal: 'Retour AAL (correction)',
 };
 
 // ==================== MODULE PAIEMENT ====================
