@@ -109,9 +109,11 @@ export default function NotesFraisList() {
   const stats = {
     total: notes.length,
     brouillon: notes.filter((n) => n.status === 'brouillon').length,
+    soumis_aal: notes.filter((n) => n.status === 'soumis_aal').length,
     soumise: notes.filter((n) => n.status === 'soumise').length,
     validee_daf: notes.filter((n) => n.status === 'validee_daf').length,
     payee: notes.filter((n) => n.status === 'payee').length,
+    retour_aal: notes.filter((n) => n.status === 'retour_aal').length,
   };
 
   // ARRONDI COMPTABLE DAF: arrondi au supérieur pour les montants
