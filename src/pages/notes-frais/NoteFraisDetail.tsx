@@ -348,6 +348,7 @@ export default function NoteFraisDetail() {
     }
   };
 
+  // DAF rejects → goes to retour_aal (NOT directly to user)
   const handleReject = async () => {
     if (!note || !rejectionReason.trim()) return;
     setIsSaving(true);
@@ -356,7 +357,7 @@ export default function NoteFraisDetail() {
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'rejetee',
+          status: 'retour_aal',
           rejection_reason: rejectionReason.trim(),
           rejected_by: user?.id,
           rejected_at: new Date().toISOString(),
@@ -365,7 +366,7 @@ export default function NoteFraisDetail() {
 
       if (error) throw error;
 
-      toast({ title: 'Note rejetée', description: 'La note de frais a été rejetée.' });
+      toast({ title: 'Note renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
       setShowRejectDialog(false);
       fetchNote();
     } catch (error: any) {
