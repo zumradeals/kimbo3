@@ -803,6 +803,7 @@ export default function DADetail() {
     toast({ title: 'PDF exporté', description: 'Fiche de validation financière téléchargée.' });
   };
 
+  // DAF request revision → also goes to retour_aal
   const handleRequestRevision = async () => {
     if (!da || !revisionComment.trim()) return;
     setIsSaving(true);
@@ -810,14 +811,14 @@ export default function DADetail() {
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'en_revision_achats',
+          status: 'retour_aal',
           revision_requested_by: user?.id,
           revision_requested_at: new Date().toISOString(),
           revision_comment: revisionComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'Révision demandée', description: 'Le Service Achats a été notifié.' });
+      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
       setShowRevisionDialog(false);
       setRevisionComment('');
       fetchDA();

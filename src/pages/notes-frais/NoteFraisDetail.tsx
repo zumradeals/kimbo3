@@ -599,44 +599,49 @@ export default function NoteFraisDetail() {
           </div>
         </div>
 
-        {/* Rejection reason */}
-        {note.status === 'rejetee' && note.rejection_reason && (
+        {/* Rejection reason - visible only to AAL */}
+        {(note.status === 'rejetee' || note.status === 'retour_aal') && note.rejection_reason && (
           <Card className="border-destructive/50 bg-destructive/5">
             <CardContent className="flex items-start gap-3 py-4">
               <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
               <div>
-                <p className="font-medium text-destructive">Motif du rejet</p>
+                <p className="font-medium text-destructive">
+                  {note.status === 'retour_aal' ? 'Motif du refus DAF' : 'Motif du rejet'}
+                </p>
                 <p className="text-sm text-foreground">{note.rejection_reason}</p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Actions */}
-        {isCreator && note.status === 'brouillon' && (
+        {/* Actions: Creator submits to AAL */}
+        {isCreator && (note.status === 'brouillon' || note.status === 'rejetee') && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div>
-                <p className="font-medium text-foreground">Brouillon</p>
+                <p className="font-medium text-foreground">
+                  {note.status === 'rejetee' ? 'Note rejetée' : 'Brouillon'}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Soumettez cette note pour validation DAF.
+                  Soumettez cette note au AAL pour contrôle.
                 </p>
               </div>
               <Button onClick={handleSubmit} disabled={isSaving}>
                 <FileCheck className="mr-2 h-4 w-4" />
-                Soumettre
+                Soumettre au AAL
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {(isDAF || isAdmin) && note.status === 'soumise' && (
-          <Card className="border-warning/50 bg-warning/5">
+        {/* Actions: AAL validates soumis_aal → transmit to DAF or return */}
+        {(isAAL || isAdmin) && note.status === 'soumis_aal' && (
+          <Card className="border-accent/50 bg-accent/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div>
-                <p className="font-medium text-foreground">Validation requise</p>
+                <p className="font-medium text-foreground">Contrôle AAL requis</p>
                 <p className="text-sm text-muted-foreground">
-                  Validez ou rejetez cette demande de remboursement.
+                  Vérifiez la cohérence, le budget et les justificatifs avant transmission au DAF.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -647,7 +652,65 @@ export default function NoteFraisDetail() {
                   disabled={isSaving}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
-                  Rejeter
+                  Renvoyer
+                </Button>
+                <Button onClick={handleAALTransmitToDAF} disabled={isSaving}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Transmettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions: AAL handles retour_aal (DAF refusal) → retransmit or return to creator */}
+        {(isAAL || isAdmin) && note.status === 'retour_aal' && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Retour DAF — Correction requise</p>
+                <p className="text-sm text-muted-foreground">
+                  Corrigez ou renvoyez au demandeur, puis retransmettez au DAF.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Renvoyer au demandeur
+                </Button>
+                <Button onClick={handleAALRetransmit} disabled={isSaving}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Retransmettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions: DAF validates soumise (transmitted by AAL) */}
+        {(isDAF || isAdmin) && note.status === 'soumise' && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div>
+                <p className="font-medium text-foreground">Validation DAF requise</p>
+                <p className="text-sm text-muted-foreground">
+                  Validez ou refusez cette demande de remboursement.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Refuser
                 </Button>
                 <Button onClick={handleValidateDAF} disabled={isSaving}>
                   <CheckCircle className="mr-2 h-4 w-4" />
