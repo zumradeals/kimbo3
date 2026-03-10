@@ -544,6 +544,7 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   payee: 'Payée',
   rejetee_comptabilite: 'Rejetée (Comptabilité)',
   annulee: 'Annulée',
+  retour_aal: 'Retour AAL (correction)',
 };
 
 // Écriture comptable SYSCOHADA
