@@ -1727,6 +1727,8 @@ export type Database = {
       }
       notes_frais: {
         Row: {
+          aal_comment: string | null
+          aal_rejection_reason: string | null
           caisse_id: string | null
           comptabilise_at: string | null
           comptabilise_by: string | null
@@ -1748,6 +1750,7 @@ export type Database = {
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
+          return_comment: string | null
           status: Database["public"]["Enums"]["note_frais_status"]
           submitted_at: string | null
           syscohada_centre_cout: string | null
@@ -1759,10 +1762,14 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string
+          validated_aal_at: string | null
+          validated_aal_by: string | null
           validated_daf_at: string | null
           validated_daf_by: string | null
         }
         Insert: {
+          aal_comment?: string | null
+          aal_rejection_reason?: string | null
           caisse_id?: string | null
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -1784,6 +1791,7 @@ export type Database = {
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          return_comment?: string | null
           status?: Database["public"]["Enums"]["note_frais_status"]
           submitted_at?: string | null
           syscohada_centre_cout?: string | null
@@ -1795,10 +1803,14 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id: string
+          validated_aal_at?: string | null
+          validated_aal_by?: string | null
           validated_daf_at?: string | null
           validated_daf_by?: string | null
         }
         Update: {
+          aal_comment?: string | null
+          aal_rejection_reason?: string | null
           caisse_id?: string | null
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -1820,6 +1832,7 @@ export type Database = {
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          return_comment?: string | null
           status?: Database["public"]["Enums"]["note_frais_status"]
           submitted_at?: string | null
           syscohada_centre_cout?: string | null
@@ -1831,6 +1844,8 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+          validated_aal_at?: string | null
+          validated_aal_by?: string | null
           validated_daf_at?: string | null
           validated_daf_by?: string | null
         }
@@ -1901,6 +1916,13 @@ export type Database = {
           {
             foreignKeyName: "notes_frais_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_validated_aal_by_fkey"
+            columns: ["validated_aal_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2905,6 +2927,7 @@ export type Database = {
         | "payee"
         | "rejetee_comptabilite"
         | "annulee"
+        | "retour_aal"
       expression_besoin_status: "en_attente" | "validee" | "rejetee"
       expression_besoin_status_v2:
         | "brouillon"
@@ -2919,6 +2942,8 @@ export type Database = {
         | "validee_daf"
         | "payee"
         | "rejetee"
+        | "soumis_aal"
+        | "retour_aal"
       payment_class: "REGLEMENT" | "DEPENSE"
       rapport_status: "brouillon" | "soumis" | "valide" | "rejete"
       stock_movement_type:
@@ -3134,6 +3159,7 @@ export const Constants = {
         "payee",
         "rejetee_comptabilite",
         "annulee",
+        "retour_aal",
       ],
       expression_besoin_status: ["en_attente", "validee", "rejetee"],
       expression_besoin_status_v2: [
@@ -3150,6 +3176,8 @@ export const Constants = {
         "validee_daf",
         "payee",
         "rejetee",
+        "soumis_aal",
+        "retour_aal",
       ],
       payment_class: ["REGLEMENT", "DEPENSE"],
       rapport_status: ["brouillon", "soumis", "valide", "rejete"],
