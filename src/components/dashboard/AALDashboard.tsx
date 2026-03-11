@@ -356,7 +356,7 @@ export function AALDashboard() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate mt-1">
-                      {ndf.objet}
+                      {ndf.title}
                     </p>
                   </div>
                   <div className="text-right ml-4 shrink-0">
