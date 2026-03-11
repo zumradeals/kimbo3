@@ -24,6 +24,8 @@ interface DAFStats {
   montantPayesMois: number;
   daRefuseesMois: number;
   tauxValidation: number;
+  ndfEnAttente: number;
+  ndfMontantEnAttente: number;
   evolutionMensuelle: Array<{
     mois: string;
     valide: number;
@@ -63,6 +65,8 @@ export function DAFDashboard() {
     montantPayesMois: 0,
     daRefuseesMois: 0,
     tauxValidation: 0,
+    ndfEnAttente: 0,
+    ndfMontantEnAttente: 0,
     evolutionMensuelle: [],
     repartitionCategorie: [],
   });

@@ -686,6 +686,53 @@ export default function DADetail() {
     }
   };
 
+  // AAL retransmits to DAF after handling retour
+  const handleRetourAALRetransmit = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'soumise_validation',
+          submitted_validation_by: user?.id,
+          submitted_validation_at: new Date().toISOString(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA retransmise au DAF', description: 'La demande a été renvoyée pour validation.' });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL sends back to Achats for correction
+  const handleRetourAALSendBack = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'en_revision_achats',
+          revision_requested_by: user?.id,
+          revision_requested_at: new Date().toISOString(),
+          return_comment: da.finance_decision_comment || da.revision_comment || 'Retour AAL pour correction',
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA renvoyée aux Achats', description: 'Le service Achats a été notifié pour correction.' });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleReject = async () => {
     if (!da || !rejectionReason.trim()) return;
     setIsSaving(true);
