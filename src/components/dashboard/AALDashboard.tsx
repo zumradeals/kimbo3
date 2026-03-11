@@ -360,8 +360,8 @@ export function AALDashboard() {
                     </p>
                   </div>
                   <div className="text-right ml-4 shrink-0">
-                    {ndf.montant_total && (
-                      <p className="font-semibold text-sm">{formatMontant(ndf.montant_total)}</p>
+                    {ndf.total_amount && (
+                      <p className="font-semibold text-sm">{formatMontant(ndf.total_amount)}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(ndf.created_at), 'dd MMM', { locale: fr })}
