@@ -24,6 +24,8 @@ interface DAFStats {
   montantPayesMois: number;
   daRefuseesMois: number;
   tauxValidation: number;
+  ndfEnAttente: number;
+  ndfMontantEnAttente: number;
   evolutionMensuelle: Array<{
     mois: string;
     valide: number;
@@ -63,6 +65,8 @@ export function DAFDashboard() {
     montantPayesMois: 0,
     daRefuseesMois: 0,
     tauxValidation: 0,
+    ndfEnAttente: 0,
+    ndfMontantEnAttente: 0,
     evolutionMensuelle: [],
     repartitionCategorie: [],
   });
@@ -158,6 +162,14 @@ export function DAFDashboard() {
           });
         }
 
+        // Fetch NDF en attente DAF
+        const { data: ndfEnAttente } = await supabase
+          .from('notes_frais')
+          .select('id, total_amount')
+          .eq('status', 'soumise');
+
+        const ndfMontantEnAttente = ndfEnAttente?.reduce((sum, n) => sum + (n.total_amount || 0), 0) || 0;
+
         // Fetch category breakdown (this year)
         const { data: daCategories } = await supabase
           .from('demandes_achat')
@@ -190,6 +202,8 @@ export function DAFDashboard() {
           montantPayesMois,
           daRefuseesMois: refuseesMois || 0,
           tauxValidation,
+          ndfEnAttente: ndfEnAttente?.length || 0,
+          ndfMontantEnAttente,
           evolutionMensuelle,
           repartitionCategorie,
         });
@@ -366,6 +380,31 @@ export function DAFDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* NDF en attente */}
+      {stats.ndfEnAttente > 0 && (
+        <Card className="border-l-4 border-l-accent bg-accent/5">
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-6 w-6 text-accent-foreground" />
+              <div>
+                <p className="font-medium text-foreground">
+                  {stats.ndfEnAttente} Note(s) de frais en attente
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Montant total: {formatMontant(stats.ndfMontantEnAttente)}
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/notes-frais">
+                Voir les NDF
+                <ArrowUpRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-2">

@@ -686,6 +686,53 @@ export default function DADetail() {
     }
   };
 
+  // AAL retransmits to DAF after handling retour
+  const handleRetourAALRetransmit = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'soumise_validation',
+          submitted_validation_by: user?.id,
+          submitted_validation_at: new Date().toISOString(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA retransmise au DAF', description: 'La demande a été renvoyée pour validation.' });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // AAL sends back to Achats for correction
+  const handleRetourAALSendBack = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'en_revision_achats',
+          revision_requested_by: user?.id,
+          revision_requested_at: new Date().toISOString(),
+          return_comment: da.finance_decision_comment || da.revision_comment || 'Retour AAL pour correction',
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA renvoyée aux Achats', description: 'Le service Achats a été notifié pour correction.' });
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleReject = async () => {
     if (!da || !rejectionReason.trim()) return;
     setIsSaving(true);
@@ -1275,6 +1322,63 @@ export default function DADetail() {
                 <Button variant="destructive" onClick={() => setShowAALRejectDialog(true)} disabled={isSaving}>
                   <XCircle className="mr-2 h-4 w-4" />
                   Rejeter (AAL)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* PANNEAU RETOUR AAL — Gestion des retours DAF */}
+        {canHandleRetourAAL && (
+          <Card className="border-2 border-warning bg-gradient-to-r from-warning/5 to-accent/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <RotateCcw className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Retour DAF — Action AAL requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Le DAF a renvoyé cette DA. Analysez le motif et prenez les mesures nécessaires.
+                  </p>
+                </div>
+              </div>
+
+              {/* Motif du retour DAF */}
+              {(da?.finance_decision_comment || da?.revision_comment) && (
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                  <p className="text-xs font-medium text-warning mb-1">Motif du retour DAF</p>
+                  <p className="text-sm text-foreground">{da?.finance_decision_comment || da?.revision_comment}</p>
+                </div>
+              )}
+
+              <div className="rounded-lg border bg-card p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Montant total</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {da?.total_amount?.toLocaleString()} {da?.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fournisseur</p>
+                    <p className="font-medium">{(da?.selected_fournisseur as Fournisseur)?.name || 'Multiple'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Priorité</p>
+                    <Badge className={da?.priority === 'urgente' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}>
+                      {da ? DA_PRIORITY_LABELS[da.priority] : ''}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleRetourAALRetransmit} disabled={isSaving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Send className="mr-2 h-4 w-4" />
+                  Retransmettre au DAF
+                </Button>
+                <Button variant="outline" onClick={handleRetourAALSendBack} disabled={isSaving}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Renvoyer aux Achats
                 </Button>
               </div>
             </CardContent>

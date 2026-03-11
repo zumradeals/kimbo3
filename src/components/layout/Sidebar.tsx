@@ -155,6 +155,7 @@ const moduleNavItems: NavItem[] = [
     href: '/notes-frais',
     icon: Receipt,
     module: 'notes_frais',
+    roles: ['aal'],
   },
   {
     label: 'Caisse',
