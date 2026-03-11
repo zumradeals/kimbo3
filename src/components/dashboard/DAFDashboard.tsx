@@ -162,6 +162,14 @@ export function DAFDashboard() {
           });
         }
 
+        // Fetch NDF en attente DAF
+        const { data: ndfEnAttente } = await supabase
+          .from('notes_frais')
+          .select('id, montant_total')
+          .eq('status', 'soumise');
+
+        const ndfMontantEnAttente = ndfEnAttente?.reduce((sum, n) => sum + (n.montant_total || 0), 0) || 0;
+
         // Fetch category breakdown (this year)
         const { data: daCategories } = await supabase
           .from('demandes_achat')
@@ -194,6 +202,8 @@ export function DAFDashboard() {
           montantPayesMois,
           daRefuseesMois: refuseesMois || 0,
           tauxValidation,
+          ndfEnAttente: ndfEnAttente?.length || 0,
+          ndfMontantEnAttente,
           evolutionMensuelle,
           repartitionCategorie,
         });
