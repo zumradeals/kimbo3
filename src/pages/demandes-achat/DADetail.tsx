@@ -1281,6 +1281,63 @@ export default function DADetail() {
           </Card>
         )}
 
+        {/* PANNEAU RETOUR AAL — Gestion des retours DAF */}
+        {canHandleRetourAAL && (
+          <Card className="border-2 border-warning bg-gradient-to-r from-warning/5 to-accent/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <RotateCcw className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Retour DAF — Action AAL requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Le DAF a renvoyé cette DA. Analysez le motif et prenez les mesures nécessaires.
+                  </p>
+                </div>
+              </div>
+
+              {/* Motif du retour DAF */}
+              {(da?.finance_decision_comment || da?.revision_comment) && (
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                  <p className="text-xs font-medium text-warning mb-1">Motif du retour DAF</p>
+                  <p className="text-sm text-foreground">{da?.finance_decision_comment || da?.revision_comment}</p>
+                </div>
+              )}
+
+              <div className="rounded-lg border bg-card p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Montant total</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {da?.total_amount?.toLocaleString()} {da?.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fournisseur</p>
+                    <p className="font-medium">{(da?.selected_fournisseur as Fournisseur)?.name || 'Multiple'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Priorité</p>
+                    <Badge className={da?.priority === 'urgente' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}>
+                      {da ? DA_PRIORITY_LABELS[da.priority] : ''}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleRetourAALRetransmit} disabled={isSaving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Send className="mr-2 h-4 w-4" />
+                  Retransmettre au DAF
+                </Button>
+                <Button variant="outline" onClick={handleRetourAALSendBack} disabled={isSaving}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Renvoyer aux Achats
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* PANNEAU TRANSMISSION AU DAF (après validation AAL) */}
         {canTransmitToDAF && (
           <Card className="border-primary/50 bg-primary/5">
