@@ -381,6 +381,31 @@ export function DAFDashboard() {
         </Card>
       </div>
 
+      {/* NDF en attente */}
+      {stats.ndfEnAttente > 0 && (
+        <Card className="border-l-4 border-l-accent bg-accent/5">
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-6 w-6 text-accent-foreground" />
+              <div>
+                <p className="font-medium text-foreground">
+                  {stats.ndfEnAttente} Note(s) de frais en attente
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Montant total: {formatMontant(stats.ndfMontantEnAttente)}
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/notes-frais">
+                Voir les NDF
+                <ArrowUpRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Evolution mensuelle */}
