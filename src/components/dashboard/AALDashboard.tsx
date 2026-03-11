@@ -33,8 +33,8 @@ interface AALStats {
   recentNDF: Array<{
     id: string;
     reference: string;
-    objet: string;
-    montant_total: number | null;
+    title: string;
+    total_amount: number | null;
     status: string;
     created_at: string;
   }>;
