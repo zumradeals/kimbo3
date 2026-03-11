@@ -73,7 +73,7 @@ export function AALDashboard() {
             .order('created_at', { ascending: false })
             .limit(10),
           supabase.from('notes_frais')
-            .select('id, reference, objet, montant_total, status, created_at')
+            .select('id, reference, title, total_amount, status, created_at')
             .in('status', ['soumis_aal', 'soumise', 'retour_aal'])
             .order('created_at', { ascending: false })
             .limit(5),
