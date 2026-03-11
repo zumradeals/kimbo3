@@ -165,10 +165,10 @@ export function DAFDashboard() {
         // Fetch NDF en attente DAF
         const { data: ndfEnAttente } = await supabase
           .from('notes_frais')
-          .select('id, montant_total')
+          .select('id, total_amount')
           .eq('status', 'soumise');
 
-        const ndfMontantEnAttente = ndfEnAttente?.reduce((sum, n) => sum + (n.montant_total || 0), 0) || 0;
+        const ndfMontantEnAttente = ndfEnAttente?.reduce((sum, n) => sum + (n.total_amount || 0), 0) || 0;
 
         // Fetch category breakdown (this year)
         const { data: daCategories } = await supabase
