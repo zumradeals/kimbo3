@@ -2928,6 +2928,7 @@ export type Database = {
         | "rejetee_comptabilite"
         | "annulee"
         | "retour_aal"
+        | "en_attente_dg"
       expression_besoin_status: "en_attente" | "validee" | "rejetee"
       expression_besoin_status_v2:
         | "brouillon"
@@ -2944,6 +2945,7 @@ export type Database = {
         | "rejetee"
         | "soumis_aal"
         | "retour_aal"
+        | "en_attente_dg"
       payment_class: "REGLEMENT" | "DEPENSE"
       rapport_status: "brouillon" | "soumis" | "valide" | "rejete"
       stock_movement_type:
@@ -3160,6 +3162,7 @@ export const Constants = {
         "rejetee_comptabilite",
         "annulee",
         "retour_aal",
+        "en_attente_dg",
       ],
       expression_besoin_status: ["en_attente", "validee", "rejetee"],
       expression_besoin_status_v2: [
@@ -3178,6 +3181,7 @@ export const Constants = {
         "rejetee",
         "soumis_aal",
         "retour_aal",
+        "en_attente_dg",
       ],
       payment_class: ["REGLEMENT", "DEPENSE"],
       rapport_status: ["brouillon", "soumis", "valide", "rejete"],
