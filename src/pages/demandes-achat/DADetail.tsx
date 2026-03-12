@@ -2336,8 +2336,8 @@ export default function DADetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAALValidateDialog(false)}>Annuler</Button>
             <Button onClick={handleValidateAAL} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Confirmer la validation
+              <Send className="mr-2 h-4 w-4" />
+              Valider et transmettre au DAF
             </Button>
           </DialogFooter>
         </DialogContent>
