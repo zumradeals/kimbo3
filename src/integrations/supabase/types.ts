@@ -932,6 +932,7 @@ export type Database = {
           department_id: string
           description: string
           desired_date: string | null
+          dg_comment: string | null
           finance_decision_comment: string | null
           fournisseur_justification: string | null
           id: string
@@ -967,6 +968,8 @@ export type Database = {
           updated_at: string
           validated_aal_at: string | null
           validated_aal_by: string | null
+          validated_dg_at: string | null
+          validated_dg_by: string | null
           validated_finance_at: string | null
           validated_finance_by: string | null
         }
@@ -992,6 +995,7 @@ export type Database = {
           department_id: string
           description: string
           desired_date?: string | null
+          dg_comment?: string | null
           finance_decision_comment?: string | null
           fournisseur_justification?: string | null
           id?: string
@@ -1027,6 +1031,8 @@ export type Database = {
           updated_at?: string
           validated_aal_at?: string | null
           validated_aal_by?: string | null
+          validated_dg_at?: string | null
+          validated_dg_by?: string | null
           validated_finance_at?: string | null
           validated_finance_by?: string | null
         }
@@ -1052,6 +1058,7 @@ export type Database = {
           department_id?: string
           description?: string
           desired_date?: string | null
+          dg_comment?: string | null
           finance_decision_comment?: string | null
           fournisseur_justification?: string | null
           id?: string
@@ -1087,6 +1094,8 @@ export type Database = {
           updated_at?: string
           validated_aal_at?: string | null
           validated_aal_by?: string | null
+          validated_dg_at?: string | null
+          validated_dg_by?: string | null
           validated_finance_at?: string | null
           validated_finance_by?: string | null
         }
@@ -1206,6 +1215,13 @@ export type Database = {
           {
             foreignKeyName: "demandes_achat_validated_aal_by_fkey"
             columns: ["validated_aal_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandes_achat_validated_dg_by_fkey"
+            columns: ["validated_dg_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1736,6 +1752,7 @@ export type Database = {
           currency: string
           department_id: string
           description: string | null
+          dg_comment: string | null
           id: string
           mode_paiement: string | null
           paid_at: string | null
@@ -1766,6 +1783,8 @@ export type Database = {
           validated_aal_by: string | null
           validated_daf_at: string | null
           validated_daf_by: string | null
+          validated_dg_at: string | null
+          validated_dg_by: string | null
         }
         Insert: {
           aal_comment?: string | null
@@ -1777,6 +1796,7 @@ export type Database = {
           currency?: string
           department_id: string
           description?: string | null
+          dg_comment?: string | null
           id?: string
           mode_paiement?: string | null
           paid_at?: string | null
@@ -1807,6 +1827,8 @@ export type Database = {
           validated_aal_by?: string | null
           validated_daf_at?: string | null
           validated_daf_by?: string | null
+          validated_dg_at?: string | null
+          validated_dg_by?: string | null
         }
         Update: {
           aal_comment?: string | null
@@ -1818,6 +1840,7 @@ export type Database = {
           currency?: string
           department_id?: string
           description?: string | null
+          dg_comment?: string | null
           id?: string
           mode_paiement?: string | null
           paid_at?: string | null
@@ -1848,6 +1871,8 @@ export type Database = {
           validated_aal_by?: string | null
           validated_daf_at?: string | null
           validated_daf_by?: string | null
+          validated_dg_at?: string | null
+          validated_dg_by?: string | null
         }
         Relationships: [
           {
@@ -1930,6 +1955,13 @@ export type Database = {
           {
             foreignKeyName: "notes_frais_validated_daf_by_fkey"
             columns: ["validated_daf_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_frais_validated_dg_by_fkey"
+            columns: ["validated_dg_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2928,6 +2960,7 @@ export type Database = {
         | "rejetee_comptabilite"
         | "annulee"
         | "retour_aal"
+        | "en_attente_dg"
       expression_besoin_status: "en_attente" | "validee" | "rejetee"
       expression_besoin_status_v2:
         | "brouillon"
@@ -2944,6 +2977,7 @@ export type Database = {
         | "rejetee"
         | "soumis_aal"
         | "retour_aal"
+        | "en_attente_dg"
       payment_class: "REGLEMENT" | "DEPENSE"
       rapport_status: "brouillon" | "soumis" | "valide" | "rejete"
       stock_movement_type:
@@ -3160,6 +3194,7 @@ export const Constants = {
         "rejetee_comptabilite",
         "annulee",
         "retour_aal",
+        "en_attente_dg",
       ],
       expression_besoin_status: ["en_attente", "validee", "rejetee"],
       expression_besoin_status_v2: [
@@ -3178,6 +3213,7 @@ export const Constants = {
         "rejetee",
         "soumis_aal",
         "retour_aal",
+        "en_attente_dg",
       ],
       payment_class: ["REGLEMENT", "DEPENSE"],
       rapport_status: ["brouillon", "soumis", "valide", "rejete"],

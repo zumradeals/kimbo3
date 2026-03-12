@@ -97,6 +97,7 @@ const statusColors: Record<DAStatus, string> = {
   validee_aal: 'bg-accent/10 text-accent-foreground border-accent/20',
   rejetee_aal: 'bg-destructive/10 text-destructive border-destructive/20',
   soumise_validation: 'bg-accent/10 text-accent-foreground border-accent/20',
+  en_attente_dg: 'bg-warning/10 text-warning border-warning/20',
   validee_finance: 'bg-success text-success-foreground',
   refusee_finance: 'bg-destructive text-destructive-foreground',
   en_revision_achats: 'bg-warning text-warning-foreground',
@@ -115,6 +116,7 @@ const statusIcons: Record<DAStatus, React.ElementType> = {
   validee_aal: ShieldCheck,
   rejetee_aal: XCircle,
   soumise_validation: FileCheck,
+  en_attente_dg: ShieldCheck,
   validee_finance: ShieldCheck,
   refusee_finance: Ban,
   en_revision_achats: RotateCcw,
@@ -175,6 +177,8 @@ export default function DADetail() {
   // Le comptable peut voir la DA et payer si validée
   const isReadOnly = (isComptable) && !isOperational && !isAchats && !isDG && !isDAF && !isAdmin && !isAAL;
   const canValidateFinance = (isDG || isDAF || isAdmin) && da?.status === 'soumise_validation';
+  // DG validates when amount > 10M (after DAF validation)
+  const canValidateDG = (isDG || isAdmin) && da?.status === 'en_attente_dg';
 
   // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
   const canValidateAAL = isAAL && da?.status === 'chiffree';
@@ -188,8 +192,9 @@ export default function DADetail() {
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
   const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
-  // Achats/Logistique soumet à l'AAL (plus directement au DAF)
-  const canSubmitToValidation = (isAchats || isOperational || isAdmin) && (da?.status === 'chiffree' || da?.status === 'en_revision_achats');
+  // Achats/Logistique ne soumet plus directement au DAF. Après chiffrage → AAL prend la main.
+  // En révision achats, on re-soumet en chiffré pour que l'AAL re-valide.
+  const canSubmitToValidation = false; // Désactivé: tout passe par l'AAL
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   // Admin, Logistique et Achats peuvent supprimer les DA quel que soit le statut (sauf payée)
   const canDelete = isAdmin || isAchats || isOperational;
@@ -758,7 +763,43 @@ export default function DADetail() {
   };
 
   // === VALIDATION FINANCIÈRE ===
+  const SEUIL_DG = 10_000_000; // 10 millions XOF
+
   const handleValidateFinance = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const amount = da.total_amount || 0;
+      const needsDG = amount > SEUIL_DG;
+      
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: needsDG ? 'en_attente_dg' : 'validee_finance',
+          validated_finance_by: user?.id,
+          validated_finance_at: new Date().toISOString(),
+          finance_decision_comment: financeComment.trim() || null,
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ 
+        title: needsDG ? 'DA validée DAF — En attente DG' : 'DA validée financièrement',
+        description: needsDG 
+          ? `Montant > ${SEUIL_DG.toLocaleString()} XOF : validation DG requise.`
+          : 'La Comptabilité a été notifiée.',
+      });
+      setShowValidateDialog(false);
+      setFinanceComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // DG validates (for amounts > 10M)
+  const handleValidateDG = async () => {
     if (!da) return;
     setIsSaving(true);
     try {
@@ -766,14 +807,39 @@ export default function DADetail() {
         .from('demandes_achat')
         .update({
           status: 'validee_finance',
-          validated_finance_by: user?.id,
-          validated_finance_at: new Date().toISOString(),
-          finance_decision_comment: financeComment.trim() || null,
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+          dg_comment: financeComment.trim() || null,
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA validée financièrement', description: 'La Comptabilité a été notifiée.' });
+      toast({ title: 'DA validée par le DG', description: 'La Comptabilité a été notifiée.' });
       setShowValidateDialog(false);
+      setFinanceComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRefuseDG = async () => {
+    if (!da || !financeComment.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'retour_aal',
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+          dg_comment: financeComment.trim(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA renvoyée à l\'AAL par le DG' });
+      setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
     } catch (error: any) {
@@ -1526,6 +1592,86 @@ export default function DADetail() {
           </Card>
         )}
 
+        {/* PANNEAU VALIDATION DG (montant > 10M après validation DAF) */}
+        {canValidateDG && (
+          <Card className="border-2 border-warning bg-gradient-to-r from-warning/5 to-primary/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Validation DG Requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Montant supérieur à 10 000 000 XOF — Votre validation est obligatoire en complément du DAF.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Montant total</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {da.total_amount?.toLocaleString()} {da.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Validation DAF</p>
+                    <Badge className="bg-success/10 text-success">✓ Validé par le DAF</Badge>
+                  </div>
+                </div>
+              </div>
+              {da.finance_decision_comment && (
+                <div className="rounded-md bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Commentaire DAF</p>
+                  <p className="text-sm">{da.finance_decision_comment}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Commentaire DG (optionnel)</Label>
+                <Textarea
+                  placeholder="Ajoutez un commentaire si nécessaire..."
+                  value={financeComment}
+                  onChange={(e) => setFinanceComment(e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  onClick={handleValidateDG}
+                  className="bg-success hover:bg-success/90"
+                  disabled={isSaving}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Valider (DG)
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={handleRefuseDG}
+                  disabled={isSaving || !financeComment.trim()}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Refuser (motif obligatoire)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière si en attente DG */}
+        {da.status === 'en_attente_dg' && !canValidateDG && (
+          <Card className="border-warning bg-warning/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ShieldCheck className="h-6 w-6 text-warning" />
+              <div>
+                <p className="font-bold text-warning">En attente de validation DG</p>
+                <p className="text-sm text-foreground">
+                  Montant &gt; 10 000 000 XOF — La validation du Directeur Général est requise.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Bannière si validée financièrement */}
         {da.status === 'validee_finance' && (
           <Card className="border-success bg-success/10">
@@ -1583,17 +1729,13 @@ export default function DADetail() {
                   <div>
                     <p className="font-medium text-foreground">Prendre en charge la révision</p>
                     <p className="text-sm text-muted-foreground">
-                      Modifiez les prix ou le fournisseur puis resoumettez à validation.
+                      Modifiez les prix ou le fournisseur puis validez le chiffrage. L'AAL re-validera ensuite.
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={handleMarkAsChiffree} disabled={isSaving || total === 0}>
                       <CheckCircle className="mr-2 h-4 w-4" />
-                      Valider les modifications
-                    </Button>
-                    <Button onClick={handleSubmitToValidation} disabled={isSaving}>
-                      <FileCheck className="mr-2 h-4 w-4" />
-                      Resoumettre à validation
+                      Valider le chiffrage révisé
                     </Button>
                   </div>
                 </div>

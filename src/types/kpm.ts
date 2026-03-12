@@ -384,7 +384,7 @@ export const GLOBAL_VISION_ROLES: AppRole[] = [
 
 export type DACategory = 'fournitures' | 'equipement' | 'service' | 'maintenance' | 'informatique' | 'autre';
 export type DAPriority = 'basse' | 'normale' | 'haute' | 'urgente';
-export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'validee_aal' | 'rejetee_aal' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee' | 'retour_aal';
+export type DAStatus = 'brouillon' | 'soumise' | 'en_analyse' | 'chiffree' | 'validee_aal' | 'rejetee_aal' | 'soumise_validation' | 'validee_finance' | 'refusee_finance' | 'en_revision_achats' | 'rejetee' | 'payee' | 'rejetee_comptabilite' | 'annulee' | 'retour_aal' | 'en_attente_dg';
 
 export interface DAArticle {
   id: string;
@@ -536,7 +536,8 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   chiffree: 'Chiffrée',
   validee_aal: 'Validée AAL',
   rejetee_aal: 'Rejetée (AAL)',
-  soumise_validation: 'En attente validation DAF/DG',
+  soumise_validation: 'En attente validation DAF',
+  en_attente_dg: 'En attente validation DG',
   validee_finance: 'Validée financièrement',
   refusee_finance: 'Refusée (DAF/DG)',
   en_revision_achats: 'En révision Achats',
@@ -739,7 +740,7 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
 
 // ==================== MODULE NOTES DE FRAIS ====================
 
-export type NoteFraisStatus = 'brouillon' | 'soumise' | 'validee_daf' | 'payee' | 'rejetee' | 'soumis_aal' | 'retour_aal';
+export type NoteFraisStatus = 'brouillon' | 'soumise' | 'validee_daf' | 'payee' | 'rejetee' | 'soumis_aal' | 'retour_aal' | 'en_attente_dg';
 
 export interface NoteFrais {
   id: string;
@@ -794,6 +795,7 @@ export const NOTE_FRAIS_STATUS_LABELS: Record<NoteFraisStatus, string> = {
   brouillon: 'Brouillon',
   soumis_aal: 'Soumise AAL',
   soumise: 'En attente DAF',
+  en_attente_dg: 'En attente validation DG',
   validee_daf: 'Validée DAF',
   payee: 'Payée',
   rejetee: 'Rejetée',

@@ -49,6 +49,7 @@ import {
   Edit,
   Trash2,
   Building2,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -71,6 +72,7 @@ const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
   soumis_aal: 'bg-accent/10 text-accent-foreground border-accent/20',
   soumise: 'bg-warning/10 text-warning border-warning/20',
+  en_attente_dg: 'bg-warning/10 text-warning border-warning/20',
   validee_daf: 'bg-primary/10 text-primary border-primary/20',
   payee: 'bg-success/10 text-success border-success/20',
   rejetee: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -81,6 +83,7 @@ const statusIcons: Record<NoteFraisStatus, React.ElementType> = {
   brouillon: Clock,
   soumis_aal: FileCheck,
   soumise: FileCheck,
+  en_attente_dg: ShieldCheck,
   validee_daf: CheckCircle,
   payee: Wallet,
   rejetee: XCircle,
@@ -323,15 +326,20 @@ export default function NoteFraisDetail() {
     }
   };
 
+  const SEUIL_DG = 10_000_000; // 10 millions XOF
+
   const handleValidateDAF = async () => {
     if (!note) return;
     setIsSaving(true);
 
     try {
+      const amount = note.total_amount || 0;
+      const needsDG = amount > SEUIL_DG;
+
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'validee_daf',
+          status: needsDG ? 'en_attente_dg' : 'validee_daf',
           validated_daf_by: user?.id,
           validated_daf_at: new Date().toISOString(),
         })
@@ -339,7 +347,60 @@ export default function NoteFraisDetail() {
 
       if (error) throw error;
 
-      toast({ title: 'Note validée', description: 'La note de frais a été validée.' });
+      toast({ 
+        title: needsDG ? 'NDF validée DAF — En attente DG' : 'Note validée',
+        description: needsDG 
+          ? `Montant > ${SEUIL_DG.toLocaleString()} XOF : validation DG requise.`
+          : 'La note de frais a été validée.',
+      });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // DG validates NDF (for amounts > 10M)
+  const handleValidateDG = async () => {
+    if (!note) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'validee_daf',
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note validée par le DG', description: 'La Comptabilité a été notifiée.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRefuseDG = async () => {
+    if (!note || !rejectionReason.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'retour_aal',
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+          dg_comment: rejectionReason.trim(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note renvoyée à l\'AAL par le DG' });
+      setShowRejectDialog(false);
+      setRejectionReason('');
       fetchNote();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -721,6 +782,59 @@ export default function NoteFraisDetail() {
           </Card>
         )}
 
+        {/* PANNEAU VALIDATION DG (montant > 10M après validation DAF) */}
+        {(isDG || isAdmin) && note.status === 'en_attente_dg' && (
+          <Card className="border-2 border-warning bg-gradient-to-r from-warning/5 to-primary/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Validation DG Requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Montant supérieur à 10 000 000 XOF — Votre validation est obligatoire.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-4">
+                <p className="text-xs text-muted-foreground">Montant total</p>
+                <p className="text-xl font-bold text-foreground">
+                  {note.total_amount?.toLocaleString()} {note.currency}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleValidateDG} className="bg-success hover:bg-success/90" disabled={isSaving}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Valider (DG)
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Refuser
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière si en attente DG (visible par les non-DG) */}
+        {note.status === 'en_attente_dg' && !isDG && !isAdmin && (
+          <Card className="border-warning bg-warning/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ShieldCheck className="h-6 w-6 text-warning" />
+              <div>
+                <p className="font-bold text-warning">En attente de validation DG</p>
+                <p className="text-sm text-foreground">
+                  Montant &gt; 10 000 000 XOF — La validation du Directeur Général est requise.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {(isComptable || isAdmin) && note.status === 'validee_daf' && (
           <Card className="border-success/50 bg-success/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
@@ -968,7 +1082,7 @@ export default function NoteFraisDetail() {
             </Button>
             <Button
               variant="destructive"
-              onClick={handleReject}
+              onClick={note?.status === 'en_attente_dg' ? handleRefuseDG : (note?.status === 'soumis_aal' || note?.status === 'retour_aal') ? handleAALReturn : handleReject}
               disabled={isSaving || !rejectionReason.trim()}
             >
               Confirmer le rejet
