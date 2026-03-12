@@ -94,7 +94,8 @@ export default function ProjetsList() {
 
   const isAAL = roles.includes('aal');
   const isDaf = roles.includes('daf');
-  const canCreate = isAAL || isAdmin;
+  const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
+  const canCreate = isAAL || isAdmin || isLogistics;
 
   useEffect(() => {
     fetchProjets();
