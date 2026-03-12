@@ -763,7 +763,43 @@ export default function DADetail() {
   };
 
   // === VALIDATION FINANCIÈRE ===
+  const SEUIL_DG = 10_000_000; // 10 millions XOF
+
   const handleValidateFinance = async () => {
+    if (!da) return;
+    setIsSaving(true);
+    try {
+      const amount = da.total_amount || 0;
+      const needsDG = amount > SEUIL_DG;
+      
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: needsDG ? 'en_attente_dg' : 'validee_finance',
+          validated_finance_by: user?.id,
+          validated_finance_at: new Date().toISOString(),
+          finance_decision_comment: financeComment.trim() || null,
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ 
+        title: needsDG ? 'DA validée DAF — En attente DG' : 'DA validée financièrement',
+        description: needsDG 
+          ? `Montant > ${SEUIL_DG.toLocaleString()} XOF : validation DG requise.`
+          : 'La Comptabilité a été notifiée.',
+      });
+      setShowValidateDialog(false);
+      setFinanceComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // DG validates (for amounts > 10M)
+  const handleValidateDG = async () => {
     if (!da) return;
     setIsSaving(true);
     try {
@@ -771,14 +807,39 @@ export default function DADetail() {
         .from('demandes_achat')
         .update({
           status: 'validee_finance',
-          validated_finance_by: user?.id,
-          validated_finance_at: new Date().toISOString(),
-          finance_decision_comment: financeComment.trim() || null,
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+          dg_comment: financeComment.trim() || null,
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA validée financièrement', description: 'La Comptabilité a été notifiée.' });
+      toast({ title: 'DA validée par le DG', description: 'La Comptabilité a été notifiée.' });
       setShowValidateDialog(false);
+      setFinanceComment('');
+      fetchDA();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRefuseDG = async () => {
+    if (!da || !financeComment.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update({
+          status: 'retour_aal',
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+          dg_comment: financeComment.trim(),
+        })
+        .eq('id', da.id);
+      if (error) throw error;
+      toast({ title: 'DA renvoyée à l\'AAL par le DG' });
+      setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
     } catch (error: any) {
