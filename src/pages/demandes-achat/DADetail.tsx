@@ -1710,13 +1710,13 @@ export default function DADetail() {
                 </div>
               </div>
               
-              {/* Actions pour les Achats */}
-              {(isAchats || isAdmin) && (
+              {/* Actions pour les Achats / Logistique / Opérationnels */}
+              {(isAchats || isOperational || isAdmin) && (
                 <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium text-foreground">Prendre en charge la révision</p>
                     <p className="text-sm text-muted-foreground">
-                      Modifiez les prix ou le fournisseur puis validez le chiffrage. L'AAL re-validera ensuite.
+                      Modifiez les quantités, prix ou fournisseurs dans la section Articles ci-dessous, puis validez le chiffrage. L'AAL re-validera ensuite.
                     </p>
                   </div>
                   <div className="flex gap-2">
