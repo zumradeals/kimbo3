@@ -61,7 +61,7 @@ export function PendingActionsAlert() {
             description: 'Demandes d\'achat chiffrées en attente de votre validation',
           });
         }),
-        safeCount('demandes_achat', { status: 'retour_aal' }).then(count => {
+        safeCount('demandes_achat', 'retour_aal').then(count => {
           if (count > 0) pendingActions.push({
             id: 'aal-retour', label: 'DA retournées par Finance', count,
             icon: <AlertTriangle className="h-5 w-5" />,
@@ -76,7 +76,7 @@ export function PendingActionsAlert() {
     // DAF: DA soumise_validation
     if (hasAnyRole(['daf']) || isAdmin) {
       queries.push(
-        safeCount('demandes_achat', { status: 'soumise_validation' }).then(count => {
+        safeCount('demandes_achat', 'soumise_validation').then(count => {
           if (count > 0) pendingActions.push({
             id: 'daf-validation', label: 'DA à valider (Finance)', count,
             icon: <CreditCard className="h-5 w-5" />,
@@ -91,7 +91,7 @@ export function PendingActionsAlert() {
     // DG: DA en_attente_dg + BL en_attente_validation
     if (hasAnyRole(['dg']) || isAdmin) {
       queries.push(
-        safeCount('demandes_achat', { status: 'en_attente_dg' }).then(count => {
+        safeCount('demandes_achat', 'en_attente_dg').then(count => {
           if (count > 0) pendingActions.push({
             id: 'dg-validation', label: 'DA à approuver (DG)', count,
             icon: <CheckCircle className="h-5 w-5" />,
@@ -100,7 +100,7 @@ export function PendingActionsAlert() {
             description: 'Demandes d\'achat à montant élevé nécessitant votre approbation',
           });
         }),
-        safeCount('bons_livraison', { status: 'en_attente_validation' }).then(count => {
+        safeCount('bons_livraison', 'en_attente_validation').then(count => {
           if (count > 0) pendingActions.push({
             id: 'dg-bl', label: 'BL à valider', count,
             icon: <Truck className="h-5 w-5" />,
@@ -115,7 +115,7 @@ export function PendingActionsAlert() {
     // Comptable: DA validee_finance
     if (hasAnyRole(['comptable']) || isAdmin) {
       queries.push(
-        safeCount('demandes_achat', { status: 'validee_finance' }).then(count => {
+        safeCount('demandes_achat', 'validee_finance').then(count => {
           if (count > 0) pendingActions.push({
             id: 'comptable-paiement', label: 'DA à comptabiliser', count,
             icon: <CreditCard className="h-5 w-5" />,
@@ -130,7 +130,7 @@ export function PendingActionsAlert() {
     // Achats/Logistique
     if (hasAnyRole(['responsable_achats', 'agent_achats', 'responsable_logistique', 'agent_logistique']) || isAdmin) {
       queries.push(
-        safeCount('demandes_achat', { status: 'soumise' }).then(count => {
+        safeCount('demandes_achat', 'soumise').then(count => {
           if (count > 0) pendingActions.push({
             id: 'achats-soumise', label: 'DA à traiter', count,
             icon: <ShoppingCart className="h-5 w-5" />,
@@ -139,7 +139,7 @@ export function PendingActionsAlert() {
             description: 'Nouvelles demandes d\'achat soumises',
           });
         }),
-        safeCount('demandes_achat', { status: 'en_revision_achats' }).then(count => {
+        safeCount('demandes_achat', 'en_revision_achats').then(count => {
           if (count > 0) pendingActions.push({
             id: 'achats-revision', label: 'DA en révision', count,
             icon: <AlertTriangle className="h-5 w-5" />,
@@ -148,7 +148,7 @@ export function PendingActionsAlert() {
             description: 'DA retournées pour révision du chiffrage',
           });
         }),
-        safeCount('besoins', { status: 'cree' }).then(count => {
+        safeCount('besoins', 'cree').then(count => {
           if (count > 0) pendingActions.push({
             id: 'logistique-besoins', label: 'Besoins à traiter', count,
             icon: <FileText className="h-5 w-5" />,
@@ -162,7 +162,7 @@ export function PendingActionsAlert() {
 
     // Manager/Chef: Expressions à valider (ALL users - RLS filters automatically)
     queries.push(
-      safeCount('expressions_besoin', { status: 'soumis' }).then(count => {
+      safeCount('expressions_besoin', 'soumis').then(count => {
         if (count > 0) pendingActions.push({
           id: 'manager-expressions', label: 'Expressions à valider', count,
           icon: <FileText className="h-5 w-5" />,
