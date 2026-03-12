@@ -1082,7 +1082,7 @@ export default function NoteFraisDetail() {
             </Button>
             <Button
               variant="destructive"
-              onClick={handleReject}
+              onClick={note?.status === 'en_attente_dg' ? handleRefuseDG : (note?.status === 'soumis_aal' || note?.status === 'retour_aal') ? handleAALReturn : handleReject}
               disabled={isSaving || !rejectionReason.trim()}
             >
               Confirmer le rejet
