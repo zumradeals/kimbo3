@@ -325,6 +325,9 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Pending Actions Alert */}
+        <PendingActionsAlert />
+
         {/* KPI Cards Row */}
         {isLoading ? (
           <DashboardStatsSkeleton />
