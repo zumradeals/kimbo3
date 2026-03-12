@@ -626,14 +626,16 @@ export default function DADetail() {
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'validee_aal',
+          status: 'soumise_validation',
           validated_aal_by: user?.id,
           validated_aal_at: new Date().toISOString(),
           aal_comment: aalComment.trim() || null,
+          submitted_validation_by: user?.id,
+          submitted_validation_at: new Date().toISOString(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA validée (AAL)', description: 'Vous pouvez maintenant la transmettre au DAF.' });
+      toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour validation financière.' });
       setShowAALValidateDialog(false);
       setAALComment('');
       fetchDA();
@@ -1382,8 +1384,8 @@ export default function DADetail() {
 
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => setShowAALValidateDialog(true)} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Valider (AAL)
+                  <Send className="mr-2 h-4 w-4" />
+                  Valider et transmettre au DAF
                 </Button>
                 <Button variant="destructive" onClick={() => setShowAALRejectDialog(true)} disabled={isSaving}>
                   <XCircle className="mr-2 h-4 w-4" />
@@ -1451,23 +1453,8 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* PANNEAU TRANSMISSION AU DAF (après validation AAL) */}
-        {canTransmitToDAF && (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="space-y-4 py-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-medium text-foreground">DA validée AAL — Prête pour le DAF</p>
-                  <p className="text-sm text-muted-foreground">Transmettez cette DA au DAF pour validation financière.</p>
-                </div>
-                <Button onClick={handleTransmitToDAF} disabled={isSaving}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Transmettre au DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
+
         {canValidateFinance && (
           <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 to-accent/5">
             <CardContent className="space-y-4 py-6">
@@ -2349,8 +2336,8 @@ export default function DADetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAALValidateDialog(false)}>Annuler</Button>
             <Button onClick={handleValidateAAL} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Confirmer la validation
+              <Send className="mr-2 h-4 w-4" />
+              Valider et transmettre au DAF
             </Button>
           </DialogFooter>
         </DialogContent>
