@@ -2056,11 +2056,11 @@ export default function DADetail() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Fournisseur</TableHead>
+                             <TableHead>Fournisseur</TableHead>
                             <TableHead className="text-right">Prix unitaire</TableHead>
                             <TableHead className="text-right">Total ligne</TableHead>
                             <TableHead>Délai</TableHead>
-                            {canPrice && <TableHead className="text-right">Sélection</TableHead>}
+                            {canPrice && <TableHead className="text-right">Actions</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
