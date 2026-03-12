@@ -626,14 +626,16 @@ export default function DADetail() {
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'validee_aal',
+          status: 'soumise_validation',
           validated_aal_by: user?.id,
           validated_aal_at: new Date().toISOString(),
           aal_comment: aalComment.trim() || null,
+          submitted_validation_by: user?.id,
+          submitted_validation_at: new Date().toISOString(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA validée (AAL)', description: 'Vous pouvez maintenant la transmettre au DAF.' });
+      toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour validation financière.' });
       setShowAALValidateDialog(false);
       setAALComment('');
       fetchDA();
