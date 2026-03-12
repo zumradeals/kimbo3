@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { MobileHeader } from './MobileHeader';
 import { MobileBottomNav } from './MobileBottomNav';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { NotificationAlertProvider } from '@/components/notifications/NotificationAlertProvider';
 import { GlobalSearch } from '@/components/ui/GlobalSearch';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -16,6 +17,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <NotificationAlertProvider />
       <Sidebar mobileOpen={mobileMenuOpen} onMobileOpenChange={setMobileMenuOpen} />
       
       {isMobile ? (
