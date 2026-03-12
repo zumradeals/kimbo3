@@ -1729,17 +1729,13 @@ export default function DADetail() {
                   <div>
                     <p className="font-medium text-foreground">Prendre en charge la révision</p>
                     <p className="text-sm text-muted-foreground">
-                      Modifiez les prix ou le fournisseur puis resoumettez à validation.
+                      Modifiez les prix ou le fournisseur puis validez le chiffrage. L'AAL re-validera ensuite.
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={handleMarkAsChiffree} disabled={isSaving || total === 0}>
                       <CheckCircle className="mr-2 h-4 w-4" />
-                      Valider les modifications
-                    </Button>
-                    <Button onClick={handleSubmitToValidation} disabled={isSaving}>
-                      <FileCheck className="mr-2 h-4 w-4" />
-                      Resoumettre à validation
+                      Valider le chiffrage révisé
                     </Button>
                   </div>
                 </div>
