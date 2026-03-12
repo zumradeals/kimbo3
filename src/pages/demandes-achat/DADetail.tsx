@@ -727,7 +727,7 @@ export default function DADetail() {
           status: 'en_revision_achats',
           revision_requested_by: user?.id,
           revision_requested_at: new Date().toISOString(),
-          return_comment: da.finance_decision_comment || da.revision_comment || 'Retour AAL pour correction',
+          revision_comment: da.finance_decision_comment || da.revision_comment || 'Retour AAL pour correction',
         })
         .eq('id', da.id);
       if (error) throw error;
