@@ -2078,18 +2078,40 @@ export default function DADetail() {
                               <TableCell>{price.delivery_delay || '-'}</TableCell>
                               {canPrice && (
                                 <TableCell className="text-right">
-                                  {price.is_selected ? (
-                                    <Badge className="bg-success/10 text-success">Retenu</Badge>
-                                  ) : (
+                                  <div className="flex items-center justify-end gap-1">
+                                    {price.is_selected ? (
+                                      <Badge className="bg-success/10 text-success">Retenu</Badge>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSelectPrice(price.id, art.id, price.fournisseur_id)}
+                                        disabled={isSaving}
+                                      >
+                                        Sélectionner
+                                      </Button>
+                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleSelectPrice(price.id, art.id, price.fournisseur_id)}
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                                      onClick={() => handleEditPrice(price, art.id)}
                                       disabled={isSaving}
+                                      title="Modifier ce prix"
                                     >
-                                      Sélectionner
+                                      <Edit className="h-3.5 w-3.5" />
                                     </Button>
-                                  )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={() => handleDeletePrice(price.id, art.id)}
+                                      disabled={isSaving}
+                                      title="Supprimer ce prix"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               )}
                             </TableRow>
