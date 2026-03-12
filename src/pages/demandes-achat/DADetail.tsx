@@ -2024,12 +2024,13 @@ export default function DADetail() {
                             size="sm"
                             onClick={() => { 
                               setSelectedArticleId(art.id);
+                              setEditingPriceId(null);
                               // Pre-fill reference price if article is linked to stock
                               const stockArticle = (art as any).article_stock;
                               if (stockArticle?.prix_reference) {
-                                setPriceForm(prev => ({ ...prev, unit_price: String(stockArticle.prix_reference) }));
+                                setPriceForm({ fournisseur_id: '', unit_price: String(stockArticle.prix_reference), currency: 'XOF', delivery_delay: '', conditions: '' });
                               } else {
-                                setPriceForm(prev => ({ ...prev, unit_price: '' }));
+                                setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' });
                               }
                               setShowPriceDialog(true); 
                             }}
