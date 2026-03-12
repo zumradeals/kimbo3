@@ -196,28 +196,21 @@ export function PendingActionsAlert() {
         }
       }
 
-      // Manager: Expressions à valider
+      // Manager: Expressions à valider (RLS filters automatically by manager access)
       const { count: exprCount } = await supabase
         .from('expressions_besoin')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'soumis');
       if (exprCount && exprCount > 0) {
-        // Only show if user is a manager (has subordinates)
-        const { count: subCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('chef_hierarchique_id', user.id);
-        if (subCount && subCount > 0) {
-          pendingActions.push({
-            id: 'manager-expressions',
-            label: 'Expressions à valider',
-            count: exprCount,
-            icon: <FileText className="h-5 w-5" />,
-            link: '/expressions-besoin?status=soumis',
-            color: 'bg-primary/15 border-primary/30 text-primary',
-            description: 'Expressions de besoin en attente de votre validation',
-          });
-        }
+        pendingActions.push({
+          id: 'manager-expressions',
+          label: 'Expressions à valider',
+          count: exprCount,
+          icon: <FileText className="h-5 w-5" />,
+          link: '/expressions-besoin?status=soumis',
+          color: 'bg-primary/15 border-primary/30 text-primary',
+          description: 'Expressions de besoin en attente de votre validation',
+        });
       }
     } catch (error) {
       console.error('Error fetching pending actions:', error);
