@@ -533,7 +533,7 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   brouillon: 'Brouillon',
   soumise: 'Soumise aux Achats',
   en_analyse: 'En analyse Achats',
-  chiffree: 'Chiffrée',
+  chiffree: 'En attente validation AAL',
   validee_aal: 'Validée AAL',
   rejetee_aal: 'Rejetée (AAL)',
   soumise_validation: 'En attente validation DAF',
