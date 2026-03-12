@@ -464,7 +464,34 @@ export default function DADetail() {
     }
   };
 
-  const handleSelectPrice = async (priceId: string, articleId: string, fournisseurId: string) => {
+  const handleEditPrice = (price: DAArticlePrice, articleId: string) => {
+    setSelectedArticleId(articleId);
+    setEditingPriceId(price.id);
+    setPriceForm({
+      fournisseur_id: price.fournisseur_id,
+      unit_price: String(price.unit_price),
+      currency: price.currency,
+      delivery_delay: price.delivery_delay || '',
+      conditions: price.conditions || '',
+    });
+    setShowPriceDialog(true);
+  };
+
+  const handleDeletePrice = async (priceId: string, articleId: string) => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('da_article_prices').delete().eq('id', priceId);
+      if (error) throw error;
+      toast({ title: 'Prix supprimé' });
+      fetchArticlePrices(articleId);
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
     setIsSaving(true);
     try {
       // Deselect all prices for this article
