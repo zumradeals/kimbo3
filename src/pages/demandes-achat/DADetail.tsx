@@ -490,8 +490,7 @@ export default function DADetail() {
       setIsSaving(false);
     }
   };
-
-
+  const handleSelectPrice = async (priceId: string, articleId: string, fournisseurId: string) => {
     setIsSaving(true);
     try {
       // Deselect all prices for this article
