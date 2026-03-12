@@ -326,15 +326,20 @@ export default function NoteFraisDetail() {
     }
   };
 
+  const SEUIL_DG = 10_000_000; // 10 millions XOF
+
   const handleValidateDAF = async () => {
     if (!note) return;
     setIsSaving(true);
 
     try {
+      const amount = note.total_amount || 0;
+      const needsDG = amount > SEUIL_DG;
+
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'validee_daf',
+          status: needsDG ? 'en_attente_dg' : 'validee_daf',
           validated_daf_by: user?.id,
           validated_daf_at: new Date().toISOString(),
         })
@@ -342,7 +347,60 @@ export default function NoteFraisDetail() {
 
       if (error) throw error;
 
-      toast({ title: 'Note validée', description: 'La note de frais a été validée.' });
+      toast({ 
+        title: needsDG ? 'NDF validée DAF — En attente DG' : 'Note validée',
+        description: needsDG 
+          ? `Montant > ${SEUIL_DG.toLocaleString()} XOF : validation DG requise.`
+          : 'La note de frais a été validée.',
+      });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // DG validates NDF (for amounts > 10M)
+  const handleValidateDG = async () => {
+    if (!note) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'validee_daf',
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note validée par le DG', description: 'La Comptabilité a été notifiée.' });
+      fetchNote();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRefuseDG = async () => {
+    if (!note || !rejectionReason.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('notes_frais')
+        .update({
+          status: 'retour_aal',
+          validated_dg_by: user?.id,
+          validated_dg_at: new Date().toISOString(),
+          dg_comment: rejectionReason.trim(),
+        })
+        .eq('id', note.id);
+      if (error) throw error;
+      toast({ title: 'Note renvoyée à l\'AAL par le DG' });
+      setShowRejectDialog(false);
+      setRejectionReason('');
       fetchNote();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
