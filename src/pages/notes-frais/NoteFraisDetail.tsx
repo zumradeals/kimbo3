@@ -835,6 +835,7 @@ export default function NoteFraisDetail() {
           </Card>
         )}
 
+        {(isComptable || isAdmin) && note.status === 'validee_daf' && (
           <Card className="border-success/50 bg-success/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div>
