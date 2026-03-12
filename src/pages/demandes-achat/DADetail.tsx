@@ -443,18 +443,32 @@ export default function DADetail() {
     }
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('da_article_prices').upsert({
-        da_article_id: selectedArticleId,
-        fournisseur_id: priceForm.fournisseur_id,
-        unit_price: parseFloat(priceForm.unit_price),
-        currency: priceForm.currency,
-        delivery_delay: priceForm.delivery_delay || null,
-        conditions: priceForm.conditions || null,
-        created_by: user?.id,
-      }, { onConflict: 'da_article_id,fournisseur_id' });
-      if (error) throw error;
-      toast({ title: 'Prix ajouté' });
+      if (editingPriceId) {
+        // Update existing price
+        const { error } = await supabase.from('da_article_prices').update({
+          fournisseur_id: priceForm.fournisseur_id,
+          unit_price: parseFloat(priceForm.unit_price),
+          currency: priceForm.currency,
+          delivery_delay: priceForm.delivery_delay || null,
+          conditions: priceForm.conditions || null,
+        }).eq('id', editingPriceId);
+        if (error) throw error;
+        toast({ title: 'Prix mis à jour' });
+      } else {
+        const { error } = await supabase.from('da_article_prices').upsert({
+          da_article_id: selectedArticleId,
+          fournisseur_id: priceForm.fournisseur_id,
+          unit_price: parseFloat(priceForm.unit_price),
+          currency: priceForm.currency,
+          delivery_delay: priceForm.delivery_delay || null,
+          conditions: priceForm.conditions || null,
+          created_by: user?.id,
+        }, { onConflict: 'da_article_id,fournisseur_id' });
+        if (error) throw error;
+        toast({ title: 'Prix ajouté' });
+      }
       setShowPriceDialog(false);
+      setEditingPriceId(null);
       setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' });
       fetchArticlePrices(selectedArticleId);
     } catch (error: any) {
