@@ -33,13 +33,12 @@ export function PendingActionsAlert() {
     const pendingActions: PendingAction[] = [];
 
     // Helper to safely run a count query
-    const safeCount = async (table: string, filters: Record<string, string>) => {
+    const safeCount = async (table: 'demandes_achat' | 'bons_livraison' | 'besoins' | 'expressions_besoin', statusValue: string) => {
       try {
-        let query = supabase.from(table).select('*', { count: 'exact', head: true });
-        for (const [key, value] of Object.entries(filters)) {
-          query = query.eq(key, value);
-        }
-        const { count } = await query;
+        const { count } = await supabase
+          .from(table)
+          .select('*', { count: 'exact', head: true })
+          .eq('status', statusValue as any);
         return count || 0;
       } catch (e) {
         console.warn(`Error counting ${table}:`, e);
