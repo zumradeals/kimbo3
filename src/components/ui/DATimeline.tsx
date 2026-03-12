@@ -174,7 +174,7 @@ export function DATimeline({ da }: DATimelineProps) {
   }
 
   // 4b. Validation AAL
-  if (da.validated_aal_at && ['validee_aal', 'soumise_validation', 'validee_finance', 'payee', 'rejetee_comptabilite'].includes(da.status)) {
+  if (da.validated_aal_at && ['validee_aal', 'soumise_validation', 'en_attente_dg', 'validee_finance', 'payee', 'rejetee_comptabilite', 'retour_aal'].includes(da.status)) {
     events.push({
       id: 'validated_aal',
       action: 'Validée par l\'AAL',
