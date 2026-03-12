@@ -157,6 +157,7 @@ export default function DADetail() {
   const [revisionComment, setRevisionComment] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingArticle, setEditingArticle] = useState<{ id: string; quantity: number } | null>(null);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
 
   const [priceForm, setPriceForm] = useState({
     fournisseur_id: '',
