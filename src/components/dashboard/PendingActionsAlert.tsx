@@ -32,190 +32,149 @@ export function PendingActionsAlert() {
 
     const pendingActions: PendingAction[] = [];
 
-    try {
-      // AAL: DA chiffrées à valider
-      if (hasAnyRole(['aal']) || isAdmin) {
-        const { count } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'chiffree');
-        if (count && count > 0) {
-          pendingActions.push({
-            id: 'aal-chiffree',
-            label: 'DA à valider (AAL)',
-            count,
+    // Helper to safely run a count query
+    const safeCount = async (table: string, filters: Record<string, string>) => {
+      try {
+        let query = supabase.from(table).select('*', { count: 'exact', head: true });
+        for (const [key, value] of Object.entries(filters)) {
+          query = query.eq(key, value);
+        }
+        const { count } = await query;
+        return count || 0;
+      } catch (e) {
+        console.warn(`Error counting ${table}:`, e);
+        return 0;
+      }
+    };
+
+    // Run ALL queries in parallel for speed and resilience
+    const queries: Promise<void>[] = [];
+
+    // AAL: DA chiffrées à valider
+    if (hasAnyRole(['aal']) || isAdmin) {
+      queries.push(
+        safeCount('demandes_achat', { status: 'chiffree' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'aal-chiffree', label: 'DA à valider (AAL)', count,
             icon: <ClipboardCheck className="h-5 w-5" />,
             link: '/demandes-achat?status=chiffree',
             color: 'bg-warning/15 border-warning/30 text-warning',
             description: 'Demandes d\'achat chiffrées en attente de votre validation',
           });
-        }
-
-        // AAL: DA retour_aal
-        const { count: retourCount } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'retour_aal');
-        if (retourCount && retourCount > 0) {
-          pendingActions.push({
-            id: 'aal-retour',
-            label: 'DA retournées par Finance',
-            count: retourCount,
+        }),
+        safeCount('demandes_achat', { status: 'retour_aal' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'aal-retour', label: 'DA retournées par Finance', count,
             icon: <AlertTriangle className="h-5 w-5" />,
             link: '/demandes-achat?status=retour_aal',
             color: 'bg-destructive/15 border-destructive/30 text-destructive',
             description: 'DA refusées par la Finance nécessitant votre action',
           });
-        }
-      }
+        })
+      );
+    }
 
-      // DAF: DA soumise_validation
-      if (hasAnyRole(['daf']) || isAdmin) {
-        const { count } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'soumise_validation');
-        if (count && count > 0) {
-          pendingActions.push({
-            id: 'daf-validation',
-            label: 'DA à valider (Finance)',
-            count,
+    // DAF: DA soumise_validation
+    if (hasAnyRole(['daf']) || isAdmin) {
+      queries.push(
+        safeCount('demandes_achat', { status: 'soumise_validation' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'daf-validation', label: 'DA à valider (Finance)', count,
             icon: <CreditCard className="h-5 w-5" />,
             link: '/demandes-achat?status=soumise_validation',
             color: 'bg-primary/15 border-primary/30 text-primary',
             description: 'Demandes d\'achat en attente de validation financière',
           });
-        }
-      }
+        })
+      );
+    }
 
-      // DG: DA en_attente_dg
-      if (hasAnyRole(['dg']) || isAdmin) {
-        const { count } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'en_attente_dg');
-        if (count && count > 0) {
-          pendingActions.push({
-            id: 'dg-validation',
-            label: 'DA à approuver (DG)',
-            count,
+    // DG: DA en_attente_dg + BL en_attente_validation
+    if (hasAnyRole(['dg']) || isAdmin) {
+      queries.push(
+        safeCount('demandes_achat', { status: 'en_attente_dg' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'dg-validation', label: 'DA à approuver (DG)', count,
             icon: <CheckCircle className="h-5 w-5" />,
             link: '/demandes-achat?status=en_attente_dg',
             color: 'bg-destructive/15 border-destructive/30 text-destructive',
             description: 'Demandes d\'achat à montant élevé nécessitant votre approbation',
           });
-        }
-
-        // DG: BL en attente validation
-        const { count: blCount } = await supabase
-          .from('bons_livraison')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'en_attente_validation');
-        if (blCount && blCount > 0) {
-          pendingActions.push({
-            id: 'dg-bl',
-            label: 'BL à valider',
-            count: blCount,
+        }),
+        safeCount('bons_livraison', { status: 'en_attente_validation' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'dg-bl', label: 'BL à valider', count,
             icon: <Truck className="h-5 w-5" />,
             link: '/bons-livraison?status=en_attente_validation',
             color: 'bg-warning/15 border-warning/30 text-warning',
             description: 'Bons de livraison en attente de validation',
           });
-        }
-      }
+        })
+      );
+    }
 
-      // Comptable: DA validee_finance à comptabiliser
-      if (hasAnyRole(['comptable']) || isAdmin) {
-        const { count } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'validee_finance');
-        if (count && count > 0) {
-          pendingActions.push({
-            id: 'comptable-paiement',
-            label: 'DA à comptabiliser',
-            count,
+    // Comptable: DA validee_finance
+    if (hasAnyRole(['comptable']) || isAdmin) {
+      queries.push(
+        safeCount('demandes_achat', { status: 'validee_finance' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'comptable-paiement', label: 'DA à comptabiliser', count,
             icon: <CreditCard className="h-5 w-5" />,
             link: '/demandes-achat?status=validee_finance',
             color: 'bg-success/15 border-success/30 text-success',
             description: 'Demandes d\'achat validées en attente de comptabilisation',
           });
-        }
-      }
+        })
+      );
+    }
 
-      // Achats/Logistique: DA soumise à traiter
-      if (hasAnyRole(['responsable_achats', 'agent_achats', 'responsable_logistique', 'agent_logistique']) || isAdmin) {
-        const { count } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'soumise');
-        if (count && count > 0) {
-          pendingActions.push({
-            id: 'achats-soumise',
-            label: 'DA à traiter',
-            count,
+    // Achats/Logistique
+    if (hasAnyRole(['responsable_achats', 'agent_achats', 'responsable_logistique', 'agent_logistique']) || isAdmin) {
+      queries.push(
+        safeCount('demandes_achat', { status: 'soumise' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'achats-soumise', label: 'DA à traiter', count,
             icon: <ShoppingCart className="h-5 w-5" />,
             link: '/demandes-achat?status=soumise',
             color: 'bg-primary/15 border-primary/30 text-primary',
             description: 'Nouvelles demandes d\'achat soumises',
           });
-        }
-
-        // DA en révision
-        const { count: revCount } = await supabase
-          .from('demandes_achat')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'en_revision_achats');
-        if (revCount && revCount > 0) {
-          pendingActions.push({
-            id: 'achats-revision',
-            label: 'DA en révision',
-            count: revCount,
+        }),
+        safeCount('demandes_achat', { status: 'en_revision_achats' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'achats-revision', label: 'DA en révision', count,
             icon: <AlertTriangle className="h-5 w-5" />,
             link: '/demandes-achat?status=en_revision_achats',
             color: 'bg-warning/15 border-warning/30 text-warning',
             description: 'DA retournées pour révision du chiffrage',
           });
-        }
-
-        // Besoins à traiter
-        const { count: besoinCount } = await supabase
-          .from('besoins')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'cree');
-        if (besoinCount && besoinCount > 0) {
-          pendingActions.push({
-            id: 'logistique-besoins',
-            label: 'Besoins à traiter',
-            count: besoinCount,
+        }),
+        safeCount('besoins', { status: 'cree' }).then(count => {
+          if (count > 0) pendingActions.push({
+            id: 'logistique-besoins', label: 'Besoins à traiter', count,
             icon: <FileText className="h-5 w-5" />,
             link: '/besoins?status=cree',
             color: 'bg-primary/15 border-primary/30 text-primary',
             description: 'Nouveaux besoins internes à prendre en charge',
           });
-        }
-      }
+        })
+      );
+    }
 
-      // Manager: Expressions à valider (RLS filters automatically by manager access)
-      const { count: exprCount } = await supabase
-        .from('expressions_besoin')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'soumis');
-      if (exprCount && exprCount > 0) {
-        pendingActions.push({
-          id: 'manager-expressions',
-          label: 'Expressions à valider',
-          count: exprCount,
+    // Manager/Chef: Expressions à valider (ALL users - RLS filters automatically)
+    queries.push(
+      safeCount('expressions_besoin', { status: 'soumis' }).then(count => {
+        if (count > 0) pendingActions.push({
+          id: 'manager-expressions', label: 'Expressions à valider', count,
           icon: <FileText className="h-5 w-5" />,
           link: '/expressions-besoin?status=soumis',
           color: 'bg-primary/15 border-primary/30 text-primary',
           description: 'Expressions de besoin en attente de votre validation',
         });
-      }
-    } catch (error) {
-      console.error('Error fetching pending actions:', error);
-    }
+      })
+    );
 
+    await Promise.all(queries);
     setActions(pendingActions);
     setIsLoading(false);
   };
