@@ -1197,7 +1197,7 @@ export default function DADetail() {
         </div>
 
         {/* Bannière lecture seule pour DAF/DG hors validation */}
-        {(isDAF || isDG) && !isAdmin && !canValidateFinance && (
+        {(isDAF || isDG) && !isAdmin && !canValidateFinance && !canValidateDG && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex items-center gap-3 py-4">
               <ShieldCheck className="h-6 w-6 text-primary" />
