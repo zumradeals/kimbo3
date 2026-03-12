@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DashboardStatsSkeleton, DashboardFinancialSkeleton, DashboardChartSkeleton } from '@/components/ui/DashboardSkeleton';
 import { LogistiqueDashboard } from '@/components/dashboard/LogistiqueDashboard';
+import { PendingActionsAlert } from '@/components/dashboard/PendingActionsAlert';
 import { AchatsDashboard } from '@/components/dashboard/AchatsDashboard';
 import { ComptabiliteDashboard } from '@/components/dashboard/ComptabiliteDashboard';
 import { DAFDashboard } from '@/components/dashboard/DAFDashboard';
