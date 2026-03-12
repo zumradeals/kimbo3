@@ -49,6 +49,7 @@ import {
   Edit,
   Trash2,
   Building2,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   AlertDialog,
