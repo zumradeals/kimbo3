@@ -1384,8 +1384,8 @@ export default function DADetail() {
 
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => setShowAALValidateDialog(true)} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Valider (AAL)
+                  <Send className="mr-2 h-4 w-4" />
+                  Valider et transmettre au DAF
                 </Button>
                 <Button variant="destructive" onClick={() => setShowAALRejectDialog(true)} disabled={isSaving}>
                   <XCircle className="mr-2 h-4 w-4" />
