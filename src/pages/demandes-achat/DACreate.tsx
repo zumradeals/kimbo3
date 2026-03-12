@@ -182,6 +182,8 @@ export default function DACreate() {
           desired_date: form.desired_date || null,
           observations: form.observations.trim() || null,
           projet_id: form.projet_id || null,
+          status: 'soumise' as any,
+          submitted_at: new Date().toISOString(),
         })
         .select()
         .single();
