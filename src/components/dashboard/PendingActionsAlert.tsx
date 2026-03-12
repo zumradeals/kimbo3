@@ -52,7 +52,7 @@ export function PendingActionsAlert() {
     // AAL: DA chiffrées à valider
     if (hasAnyRole(['aal']) || isAdmin) {
       queries.push(
-        safeCount('demandes_achat', { status: 'chiffree' }).then(count => {
+        safeCount('demandes_achat', 'chiffree').then(count => {
           if (count > 0) pendingActions.push({
             id: 'aal-chiffree', label: 'DA à valider (AAL)', count,
             icon: <ClipboardCheck className="h-5 w-5" />,
