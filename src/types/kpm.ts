@@ -740,7 +740,7 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
 
 // ==================== MODULE NOTES DE FRAIS ====================
 
-export type NoteFraisStatus = 'brouillon' | 'soumise' | 'validee_daf' | 'payee' | 'rejetee' | 'soumis_aal' | 'retour_aal';
+export type NoteFraisStatus = 'brouillon' | 'soumise' | 'validee_daf' | 'payee' | 'rejetee' | 'soumis_aal' | 'retour_aal' | 'en_attente_dg';
 
 export interface NoteFrais {
   id: string;
