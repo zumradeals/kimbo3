@@ -1453,23 +1453,8 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* PANNEAU TRANSMISSION AU DAF (après validation AAL) */}
-        {canTransmitToDAF && (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="space-y-4 py-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-medium text-foreground">DA validée AAL — Prête pour le DAF</p>
-                  <p className="text-sm text-muted-foreground">Transmettez cette DA au DAF pour validation financière.</p>
-                </div>
-                <Button onClick={handleTransmitToDAF} disabled={isSaving}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Transmettre au DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
+
         {canValidateFinance && (
           <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 to-accent/5">
             <CardContent className="space-y-4 py-6">
