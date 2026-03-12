@@ -157,6 +157,7 @@ export default function DADetail() {
   const [revisionComment, setRevisionComment] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingArticle, setEditingArticle] = useState<{ id: string; quantity: number } | null>(null);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
 
   const [priceForm, setPriceForm] = useState({
     fournisseur_id: '',
@@ -442,18 +443,32 @@ export default function DADetail() {
     }
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('da_article_prices').upsert({
-        da_article_id: selectedArticleId,
-        fournisseur_id: priceForm.fournisseur_id,
-        unit_price: parseFloat(priceForm.unit_price),
-        currency: priceForm.currency,
-        delivery_delay: priceForm.delivery_delay || null,
-        conditions: priceForm.conditions || null,
-        created_by: user?.id,
-      }, { onConflict: 'da_article_id,fournisseur_id' });
-      if (error) throw error;
-      toast({ title: 'Prix ajouté' });
+      if (editingPriceId) {
+        // Update existing price
+        const { error } = await supabase.from('da_article_prices').update({
+          fournisseur_id: priceForm.fournisseur_id,
+          unit_price: parseFloat(priceForm.unit_price),
+          currency: priceForm.currency,
+          delivery_delay: priceForm.delivery_delay || null,
+          conditions: priceForm.conditions || null,
+        }).eq('id', editingPriceId);
+        if (error) throw error;
+        toast({ title: 'Prix mis à jour' });
+      } else {
+        const { error } = await supabase.from('da_article_prices').upsert({
+          da_article_id: selectedArticleId,
+          fournisseur_id: priceForm.fournisseur_id,
+          unit_price: parseFloat(priceForm.unit_price),
+          currency: priceForm.currency,
+          delivery_delay: priceForm.delivery_delay || null,
+          conditions: priceForm.conditions || null,
+          created_by: user?.id,
+        }, { onConflict: 'da_article_id,fournisseur_id' });
+        if (error) throw error;
+        toast({ title: 'Prix ajouté' });
+      }
       setShowPriceDialog(false);
+      setEditingPriceId(null);
       setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' });
       fetchArticlePrices(selectedArticleId);
     } catch (error: any) {
@@ -463,6 +478,32 @@ export default function DADetail() {
     }
   };
 
+  const handleEditPrice = (price: DAArticlePrice, articleId: string) => {
+    setSelectedArticleId(articleId);
+    setEditingPriceId(price.id);
+    setPriceForm({
+      fournisseur_id: price.fournisseur_id,
+      unit_price: String(price.unit_price),
+      currency: price.currency,
+      delivery_delay: price.delivery_delay || '',
+      conditions: price.conditions || '',
+    });
+    setShowPriceDialog(true);
+  };
+
+  const handleDeletePrice = async (priceId: string, articleId: string) => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('da_article_prices').delete().eq('id', priceId);
+      if (error) throw error;
+      toast({ title: 'Prix supprimé' });
+      fetchArticlePrices(articleId);
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const handleSelectPrice = async (priceId: string, articleId: string, fournisseurId: string) => {
     setIsSaving(true);
     try {
@@ -1983,12 +2024,13 @@ export default function DADetail() {
                             size="sm"
                             onClick={() => { 
                               setSelectedArticleId(art.id);
+                              setEditingPriceId(null);
                               // Pre-fill reference price if article is linked to stock
                               const stockArticle = (art as any).article_stock;
                               if (stockArticle?.prix_reference) {
-                                setPriceForm(prev => ({ ...prev, unit_price: String(stockArticle.prix_reference) }));
+                                setPriceForm({ fournisseur_id: '', unit_price: String(stockArticle.prix_reference), currency: 'XOF', delivery_delay: '', conditions: '' });
                               } else {
-                                setPriceForm(prev => ({ ...prev, unit_price: '' }));
+                                setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' });
                               }
                               setShowPriceDialog(true); 
                             }}
@@ -2015,11 +2057,11 @@ export default function DADetail() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Fournisseur</TableHead>
+                             <TableHead>Fournisseur</TableHead>
                             <TableHead className="text-right">Prix unitaire</TableHead>
                             <TableHead className="text-right">Total ligne</TableHead>
                             <TableHead>Délai</TableHead>
-                            {canPrice && <TableHead className="text-right">Sélection</TableHead>}
+                            {canPrice && <TableHead className="text-right">Actions</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -2037,18 +2079,40 @@ export default function DADetail() {
                               <TableCell>{price.delivery_delay || '-'}</TableCell>
                               {canPrice && (
                                 <TableCell className="text-right">
-                                  {price.is_selected ? (
-                                    <Badge className="bg-success/10 text-success">Retenu</Badge>
-                                  ) : (
+                                  <div className="flex items-center justify-end gap-1">
+                                    {price.is_selected ? (
+                                      <Badge className="bg-success/10 text-success">Retenu</Badge>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSelectPrice(price.id, art.id, price.fournisseur_id)}
+                                        disabled={isSaving}
+                                      >
+                                        Sélectionner
+                                      </Button>
+                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleSelectPrice(price.id, art.id, price.fournisseur_id)}
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                                      onClick={() => handleEditPrice(price, art.id)}
                                       disabled={isSaving}
+                                      title="Modifier ce prix"
                                     >
-                                      Sélectionner
+                                      <Edit className="h-3.5 w-3.5" />
                                     </Button>
-                                  )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={() => handleDeletePrice(price.id, art.id)}
+                                      disabled={isSaving}
+                                      title="Supprimer ce prix"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               )}
                             </TableRow>
@@ -2065,11 +2129,11 @@ export default function DADetail() {
       </div>
 
       {/* Add Price Dialog */}
-      <Dialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+      <Dialog open={showPriceDialog} onOpenChange={(open) => { setShowPriceDialog(open); if (!open) { setEditingPriceId(null); setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' }); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter un prix fournisseur</DialogTitle>
-            <DialogDescription>Renseignez le prix proposé par un fournisseur.</DialogDescription>
+            <DialogTitle>{editingPriceId ? 'Modifier le prix fournisseur' : 'Ajouter un prix fournisseur'}</DialogTitle>
+            <DialogDescription>{editingPriceId ? 'Modifiez les informations du prix.' : 'Renseignez le prix proposé par un fournisseur.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Reference price hint */}
@@ -2151,7 +2215,7 @@ export default function DADetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPriceDialog(false)}>Annuler</Button>
             <Button onClick={handleAddPrice} disabled={isSaving}>
-              {isSaving ? 'Ajout...' : 'Ajouter'}
+              {isSaving ? (editingPriceId ? 'Mise à jour...' : 'Ajout...') : (editingPriceId ? 'Mettre à jour' : 'Ajouter')}
             </Button>
           </DialogFooter>
         </DialogContent>
