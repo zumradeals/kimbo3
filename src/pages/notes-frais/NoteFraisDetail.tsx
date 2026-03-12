@@ -782,7 +782,59 @@ export default function NoteFraisDetail() {
           </Card>
         )}
 
-        {(isComptable || isAdmin) && note.status === 'validee_daf' && (
+        {/* PANNEAU VALIDATION DG (montant > 10M après validation DAF) */}
+        {(isDG || isAdmin) && note.status === 'en_attente_dg' && (
+          <Card className="border-2 border-warning bg-gradient-to-r from-warning/5 to-primary/5">
+            <CardContent className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">Validation DG Requise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Montant supérieur à 10 000 000 XOF — Votre validation est obligatoire.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-4">
+                <p className="text-xs text-muted-foreground">Montant total</p>
+                <p className="text-xl font-bold text-foreground">
+                  {note.total_amount?.toLocaleString()} {note.currency}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleValidateDG} className="bg-success hover:bg-success/90" disabled={isSaving}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Valider (DG)
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={isSaving}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Refuser
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bannière si en attente DG (visible par les non-DG) */}
+        {note.status === 'en_attente_dg' && !isDG && !isAdmin && (
+          <Card className="border-warning bg-warning/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <ShieldCheck className="h-6 w-6 text-warning" />
+              <div>
+                <p className="font-bold text-warning">En attente de validation DG</p>
+                <p className="text-sm text-foreground">
+                  Montant &gt; 10 000 000 XOF — La validation du Directeur Général est requise.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
           <Card className="border-success/50 bg-success/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div>
