@@ -2214,7 +2214,7 @@ export default function DADetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPriceDialog(false)}>Annuler</Button>
             <Button onClick={handleAddPrice} disabled={isSaving}>
-              {isSaving ? 'Ajout...' : 'Ajouter'}
+              {isSaving ? (editingPriceId ? 'Mise à jour...' : 'Ajout...') : (editingPriceId ? 'Mettre à jour' : 'Ajouter')}
             </Button>
           </DialogFooter>
         </DialogContent>
