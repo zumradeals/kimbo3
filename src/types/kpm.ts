@@ -795,6 +795,7 @@ export const NOTE_FRAIS_STATUS_LABELS: Record<NoteFraisStatus, string> = {
   brouillon: 'Brouillon',
   soumis_aal: 'Soumise AAL',
   soumise: 'En attente DAF',
+  en_attente_dg: 'En attente validation DG',
   validee_daf: 'Validée DAF',
   payee: 'Payée',
   rejetee: 'Rejetée',
