@@ -2128,11 +2128,11 @@ export default function DADetail() {
       </div>
 
       {/* Add Price Dialog */}
-      <Dialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+      <Dialog open={showPriceDialog} onOpenChange={(open) => { setShowPriceDialog(open); if (!open) { setEditingPriceId(null); setPriceForm({ fournisseur_id: '', unit_price: '', currency: 'XOF', delivery_delay: '', conditions: '' }); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter un prix fournisseur</DialogTitle>
-            <DialogDescription>Renseignez le prix proposé par un fournisseur.</DialogDescription>
+            <DialogTitle>{editingPriceId ? 'Modifier le prix fournisseur' : 'Ajouter un prix fournisseur'}</DialogTitle>
+            <DialogDescription>{editingPriceId ? 'Modifiez les informations du prix.' : 'Renseignez le prix proposé par un fournisseur.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Reference price hint */}
