@@ -62,13 +62,15 @@ function showPushNotification(title: string, body: string, link?: string | null)
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   
   try {
-    const notification = new Notification(title, {
+    const options: NotificationOptions & { renotify?: boolean } = {
       body,
       icon: '/logo-kimbo.png',
       badge: '/logo-kimbo.png',
       tag: 'kpm-notification',
-      renotify: true,
-    });
+    };
+    // @ts-ignore - renotify is supported in most browsers but not in TS types
+    options.renotify = true;
+    const notification = new Notification(title, options);
 
     if (link) {
       notification.onclick = () => {
