@@ -29,6 +29,7 @@ interface SyscohadaFormDynamicProps {
   value: SyscohadaFormData;
   onChange: (data: SyscohadaFormData) => void;
   disabled?: boolean;
+  allowedClasses?: number[];
 }
 
 const SYSCOHADA_CLASSES: Record<number, string> = {
