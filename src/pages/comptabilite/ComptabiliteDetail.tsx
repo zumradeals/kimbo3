@@ -567,6 +567,7 @@ export default function ComptabiliteDetail() {
                   value={syscohadaForm}
                   onChange={setSyscohadaForm}
                   disabled={false}
+                  allowedClasses={[5, 6]}
                 />
               </div>
 

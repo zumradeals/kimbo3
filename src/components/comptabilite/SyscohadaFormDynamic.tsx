@@ -29,6 +29,7 @@ interface SyscohadaFormDynamicProps {
   value: SyscohadaFormData;
   onChange: (data: SyscohadaFormData) => void;
   disabled?: boolean;
+  allowedClasses?: number[];
 }
 
 const SYSCOHADA_CLASSES: Record<number, string> = {
@@ -42,9 +43,9 @@ const SYSCOHADA_CLASSES: Record<number, string> = {
 };
 
 // Liste de toutes les classes SYSCOHADA (1 à 7)
-const ALL_CLASSES = [1, 2, 3, 4, 5, 6, 7];
+const DEFAULT_CLASSES = [1, 2, 3, 4, 5, 6, 7];
 
-export function SyscohadaFormDynamic({ value, onChange, disabled = false }: SyscohadaFormDynamicProps) {
+export function SyscohadaFormDynamic({ value, onChange, disabled = false, allowedClasses }: SyscohadaFormDynamicProps) {
   const [comptes, setComptes] = useState<CompteComptable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -178,7 +179,7 @@ export function SyscohadaFormDynamic({ value, onChange, disabled = false }: Sysc
             <SelectValue placeholder="Sélectionner une classe" />
           </SelectTrigger>
           <SelectContent>
-            {ALL_CLASSES.map((classe) => {
+            {(allowedClasses || DEFAULT_CLASSES).map((classe) => {
               const count = comptesCountByClasse(classe);
               return (
                 <SelectItem key={classe} value={classe.toString()}>
