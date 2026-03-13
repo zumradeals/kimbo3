@@ -395,6 +395,7 @@ export default function ComptabiliteDetail() {
       return; // Only export if DA is paid and has SYSCOHADA info
     }
     
+    const daAny = da as any;
     exportEcritureToPDF({
       reference: `EC-${da.reference}`,
       daReference: da.reference,
@@ -406,8 +407,12 @@ export default function ComptabiliteDetail() {
       compteComptable: da.syscohada_compte || 'N/A',
       natureCharge: da.syscohada_nature_charge || 'N/A',
       centreCout: da.syscohada_centre_cout || undefined,
+      classesSyscohada2: daAny.syscohada_classe_2 || undefined,
+      compteComptable2: daAny.syscohada_compte_2 || undefined,
+      natureCharge2: daAny.syscohada_nature_charge_2 || undefined,
+      centreCout2: daAny.syscohada_centre_cout_2 || undefined,
       debit: da.total_amount || 0,
-      credit: 0,
+      credit: da.total_amount || 0,
       devise: da.currency || 'XOF',
       modePaiement: da.mode_paiement || undefined,
       referencePaiement: da.reference_paiement || undefined,
