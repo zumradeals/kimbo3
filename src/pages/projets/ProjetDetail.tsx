@@ -51,7 +51,9 @@ import {
   Send,
   CheckCircle,
   XCircle,
+  X,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -97,6 +99,9 @@ export default function ProjetDetail() {
     bl: 0,
     mouvements: 0,
   });
+  const [linkedCaisses, setLinkedCaisses] = useState<{ id: string; code: string; name: string; devise: string }[]>([]);
+  const [availableCaisses, setAvailableCaisses] = useState<{ id: string; code: string; name: string; devise: string }[]>([]);
+  const [editSelectedCaisses, setEditSelectedCaisses] = useState<string[]>([]);
 
   const isAAL = roles.includes('aal');
   const isDaf = roles.includes('daf');
@@ -115,8 +120,43 @@ export default function ProjetDetail() {
     if (id) {
       fetchProjet();
       fetchLinkedItems();
+      fetchLinkedCaisses();
+      fetchAvailableCaisses();
     }
   }, [id]);
+
+  const fetchLinkedCaisses = async () => {
+    try {
+      const { data } = await supabase
+        .from('projet_caisses')
+        .select('caisse_id, caisses(id, code, name, devise)')
+        .eq('projet_id', id);
+      const caisses = (data || []).map((d: any) => d.caisses).filter(Boolean);
+      setLinkedCaisses(caisses);
+      setEditSelectedCaisses(caisses.map((c: any) => c.id));
+    } catch (e) {
+      console.error('Error fetching linked caisses:', e);
+    }
+  };
+
+  const fetchAvailableCaisses = async () => {
+    try {
+      const { data } = await supabase
+        .from('caisses')
+        .select('id, code, name, devise')
+        .eq('is_active', true)
+        .order('code');
+      setAvailableCaisses(data || []);
+    } catch (e) {
+      console.error('Error fetching caisses:', e);
+    }
+  };
+
+  const toggleEditCaisse = (caisseId: string) => {
+    setEditSelectedCaisses((prev) =>
+      prev.includes(caisseId) ? prev.filter((id) => id !== caisseId) : [...prev, caisseId]
+    );
+  };
 
   const fetchProjet = async () => {
     try {
@@ -192,9 +232,22 @@ export default function ProjetDetail() {
 
       if (error) throw error;
 
+      // Sync caisses: delete existing, re-insert selected
+      await supabase.from('projet_caisses').delete().eq('projet_id', projet.id);
+      if (editSelectedCaisses.length > 0) {
+        await supabase.from('projet_caisses').insert(
+          editSelectedCaisses.map((caisseId) => ({
+            projet_id: projet.id,
+            caisse_id: caisseId,
+            created_by: user?.id,
+          }))
+        );
+      }
+
       toast({ title: 'Projet modifié', description: 'Les modifications ont été enregistrées.' });
       setShowEditDialog(false);
       fetchProjet();
+      fetchLinkedCaisses();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
@@ -547,6 +600,23 @@ export default function ProjetDetail() {
                 <p className="whitespace-pre-wrap">{projet.description}</p>
               </div>
             )}
+
+            {/* Caisses associées */}
+            {linkedCaisses.length > 0 && (
+              <div className="border-t pt-4">
+                <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                  <Wallet className="h-4 w-4" />
+                  Caisses associées
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {linkedCaisses.map((c) => (
+                    <Badge key={c.id} variant="outline" className="gap-1">
+                      {c.code} - {c.name} ({c.devise})
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -624,6 +694,41 @@ export default function ProjetDetail() {
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                 rows={3}
               />
+            </div>
+            {/* Caisse selector in edit */}
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-1">
+                <Wallet className="h-4 w-4" />
+                Caisses associées
+              </Label>
+              {editSelectedCaisses.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {editSelectedCaisses.map((cId) => {
+                    const c = availableCaisses.find((x) => x.id === cId);
+                    return c ? (
+                      <Badge key={cId} variant="secondary" className="gap-1">
+                        {c.code} - {c.name}
+                        <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEditCaisse(cId)} />
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              {availableCaisses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune caisse disponible</p>
+              ) : (
+                <div className="max-h-32 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {availableCaisses.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
+                      <Checkbox
+                        checked={editSelectedCaisses.includes(c.id)}
+                        onCheckedChange={() => toggleEditCaisse(c.id)}
+                      />
+                      <span className="text-sm">{c.code} - {c.name} ({c.devise})</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
