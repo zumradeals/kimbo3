@@ -539,7 +539,7 @@ export default function ProjetsList() {
                     </label>
                   ))}
                 </div>
-              )
+              )}
             </div>
           </div>
           <DialogFooter>
