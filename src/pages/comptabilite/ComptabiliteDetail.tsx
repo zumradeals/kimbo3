@@ -863,10 +863,13 @@ export default function ComptabiliteDetail() {
               enregistré comme payé au fournisseur <strong>{(da.selected_fournisseur as Fournisseur)?.name}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-lg border bg-muted/50 p-3">
+          <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
             <p className="text-xs text-muted-foreground">Rattachement comptable</p>
             <p className="font-medium">
-              Classe {syscohadaForm.classe} • {syscohadaForm.compte} • {syscohadaForm.nature_charge}
+              <span className="text-destructive">DÉBIT</span> • Classe {syscohadaForm.classe} • {syscohadaForm.compte} • {syscohadaForm.nature_charge}
+            </p>
+            <p className="font-medium">
+              <span className="text-success">CRÉDIT</span> • Classe {syscohadaForm2.classe} • {syscohadaForm2.compte} • {syscohadaForm2.nature_charge}
             </p>
             {paymentForm.category_id && (
               <p className="text-sm text-muted-foreground">
