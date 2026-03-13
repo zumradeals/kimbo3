@@ -248,15 +248,23 @@ export default function ComptabiliteDetail() {
 
   const validateForms = (): boolean => {
     if (!syscohadaForm.classe) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner une classe SYSCOHADA.' });
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner une classe SYSCOHADA (charges).' });
       return false;
     }
     if (!syscohadaForm.compte.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable.' });
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (charges).' });
       return false;
     }
     if (!syscohadaForm.nature_charge.trim()) {
       toast({ title: 'Informations incomplètes', description: 'La nature de charge est requise.' });
+      return false;
+    }
+    if (!syscohadaForm2.classe) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner la classe SYSCOHADA (trésorerie).' });
+      return false;
+    }
+    if (!syscohadaForm2.compte.trim()) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (trésorerie).' });
       return false;
     }
     if (!paymentForm.category_id) {
