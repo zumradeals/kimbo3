@@ -179,7 +179,7 @@ export function SyscohadaFormDynamic({ value, onChange, disabled = false, allowe
             <SelectValue placeholder="Sélectionner une classe" />
           </SelectTrigger>
           <SelectContent>
-            {ALL_CLASSES.map((classe) => {
+            {(allowedClasses || DEFAULT_CLASSES).map((classe) => {
               const count = comptesCountByClasse(classe);
               return (
                 <SelectItem key={classe} value={classe.toString()}>
