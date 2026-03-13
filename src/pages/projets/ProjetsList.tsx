@@ -104,7 +104,27 @@ export default function ProjetsList() {
 
   useEffect(() => {
     fetchProjets();
+    fetchCaisses();
   }, []);
+
+  const fetchCaisses = async () => {
+    try {
+      const { data } = await supabase
+        .from('caisses')
+        .select('id, code, name, devise')
+        .eq('is_active', true)
+        .order('code');
+      setAvailableCaisses(data || []);
+    } catch (e) {
+      console.error('Error fetching caisses:', e);
+    }
+  };
+
+  const toggleCaisse = (caisseId: string) => {
+    setSelectedCaisses((prev) =>
+      prev.includes(caisseId) ? prev.filter((id) => id !== caisseId) : [...prev, caisseId]
+    );
+  };
 
   const fetchProjets = async () => {
     try {
