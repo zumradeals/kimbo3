@@ -219,6 +219,15 @@ export default function ComptabiliteDetail() {
           centre_cout: data.syscohada_centre_cout || '',
         });
       }
+      // Pré-remplir le formulaire 2 (classe 5 trésorerie)
+      if (data.syscohada_classe_2) {
+        setSyscohadaForm2({
+          classe: data.syscohada_classe_2.toString(),
+          compte: data.syscohada_compte_2 || '',
+          nature_charge: data.syscohada_nature_charge_2 || '',
+          centre_cout: data.syscohada_centre_cout_2 || '',
+        });
+      }
       // Pré-remplir paiement si déjà enregistré
       if (data.payment_category_id) {
         setPaymentForm({
