@@ -232,9 +232,22 @@ export default function ProjetDetail() {
 
       if (error) throw error;
 
+      // Sync caisses: delete existing, re-insert selected
+      await supabase.from('projet_caisses').delete().eq('projet_id', projet.id);
+      if (editSelectedCaisses.length > 0) {
+        await supabase.from('projet_caisses').insert(
+          editSelectedCaisses.map((caisseId) => ({
+            projet_id: projet.id,
+            caisse_id: caisseId,
+            created_by: user?.id,
+          }))
+        );
+      }
+
       toast({ title: 'Projet modifié', description: 'Les modifications ont été enregistrées.' });
       setShowEditDialog(false);
       fetchProjet();
+      fetchLinkedCaisses();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } finally {
