@@ -99,6 +99,9 @@ export default function ProjetDetail() {
     bl: 0,
     mouvements: 0,
   });
+  const [linkedCaisses, setLinkedCaisses] = useState<{ id: string; code: string; name: string; devise: string }[]>([]);
+  const [availableCaisses, setAvailableCaisses] = useState<{ id: string; code: string; name: string; devise: string }[]>([]);
+  const [editSelectedCaisses, setEditSelectedCaisses] = useState<string[]>([]);
 
   const isAAL = roles.includes('aal');
   const isDaf = roles.includes('daf');
