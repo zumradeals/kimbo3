@@ -888,24 +888,29 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   
   y = 42;
   
-  // Montant principal
+  // Montant principal - show both Débit and Crédit
   const amount = data.debit || data.credit;
-  const amountLabel = data.debit > 0 ? 'DÉBIT' : 'CRÉDIT';
   
   doc.setFillColor(...COLORS.orangeLight);
   doc.setDrawColor(...COLORS.orange);
   doc.setLineWidth(1);
-  doc.roundedRect(pageWidth - margin - 70, y, 70, 18, 2, 2, 'FD');
+  doc.roundedRect(pageWidth - margin - 70, y, 70, 26, 2, 2, 'FD');
   
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.marron);
-  doc.setFont('helvetica', 'normal');
-  doc.text(amountLabel, pageWidth - margin - 35, y + 6, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text('DÉBIT', pageWidth - margin - 55, y + 6);
+  doc.text('CRÉDIT', pageWidth - margin - 25, y + 6);
   
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setTextColor(...COLORS.orange);
   doc.setFont('helvetica', 'bold');
-  doc.text(formatMontant(amount, data.devise), pageWidth - margin - 35, y + 14, { align: 'center' });
+  doc.text(formatMontant(data.debit, data.devise), pageWidth - margin - 55, y + 14, { align: 'left' });
+  doc.text(formatMontant(data.credit, data.devise), pageWidth - margin - 25, y + 14, { align: 'left' });
+  
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.textSecondary);
+  doc.text(`Solde: ${formatMontant(data.debit - data.credit, data.devise)}`, pageWidth - margin - 35, y + 22, { align: 'center' });
   
   // Informations générales
   y = drawSectionTitle(doc, y, margin, 'INFORMATIONS GÉNÉRALES');
