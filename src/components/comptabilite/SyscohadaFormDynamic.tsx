@@ -45,7 +45,7 @@ const SYSCOHADA_CLASSES: Record<number, string> = {
 // Liste de toutes les classes SYSCOHADA (1 à 7)
 const ALL_CLASSES = [1, 2, 3, 4, 5, 6, 7];
 
-export function SyscohadaFormDynamic({ value, onChange, disabled = false }: SyscohadaFormDynamicProps) {
+export function SyscohadaFormDynamic({ value, onChange, disabled = false, allowedClasses }: SyscohadaFormDynamicProps) {
   const [comptes, setComptes] = useState<CompteComptable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
