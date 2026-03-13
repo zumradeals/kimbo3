@@ -1035,6 +1035,58 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   
   y = doc.lastAutoTable.finalY + 10;
   
+  // Tableau des écritures comptables (double entrée)
+  if (hasSecondClass) {
+    y = drawSectionTitle(doc, y, margin, 'ÉCRITURES COMPTABLES');
+    
+    autoTable(doc, {
+      startY: y,
+      head: [['N° Compte', 'Nature', 'Débit', 'Crédit', 'Solde']],
+      body: [
+        [
+          data.compteComptable,
+          `Classe ${data.classesSyscohada} - ${data.natureCharge}`,
+          formatMontant(data.debit, data.devise),
+          '',
+          formatMontant(data.debit, data.devise),
+        ],
+        [
+          data.compteComptable2 || '',
+          `Classe ${data.classesSyscohada2} - ${data.natureCharge2 || ''}`,
+          '',
+          formatMontant(data.credit, data.devise),
+          '',
+        ],
+      ],
+      theme: 'grid',
+      headStyles: {
+        fillColor: COLORS.marron,
+        textColor: COLORS.white,
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 4,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: COLORS.textPrimary,
+        cellPadding: 5,
+      },
+      alternateRowStyles: {
+        fillColor: COLORS.grisTresClair,
+      },
+      columnStyles: {
+        0: { cellWidth: 28, fontStyle: 'bold', font: 'courier' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 30, halign: 'right' },
+        3: { cellWidth: 30, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' },
+      },
+      margin: { left: margin, right: margin },
+    });
+    
+    y = doc.lastAutoTable.finalY + 10;
+  }
+  
   // Infos paiement
   if (data.modePaiement) {
     y = drawSectionTitle(doc, y, margin, 'INFORMATIONS DE PAIEMENT');
