@@ -120,8 +120,43 @@ export default function ProjetDetail() {
     if (id) {
       fetchProjet();
       fetchLinkedItems();
+      fetchLinkedCaisses();
+      fetchAvailableCaisses();
     }
   }, [id]);
+
+  const fetchLinkedCaisses = async () => {
+    try {
+      const { data } = await supabase
+        .from('projet_caisses')
+        .select('caisse_id, caisses(id, code, name, devise)')
+        .eq('projet_id', id);
+      const caisses = (data || []).map((d: any) => d.caisses).filter(Boolean);
+      setLinkedCaisses(caisses);
+      setEditSelectedCaisses(caisses.map((c: any) => c.id));
+    } catch (e) {
+      console.error('Error fetching linked caisses:', e);
+    }
+  };
+
+  const fetchAvailableCaisses = async () => {
+    try {
+      const { data } = await supabase
+        .from('caisses')
+        .select('id, code, name, devise')
+        .eq('is_active', true)
+        .order('code');
+      setAvailableCaisses(data || []);
+    } catch (e) {
+      console.error('Error fetching caisses:', e);
+    }
+  };
+
+  const toggleEditCaisse = (caisseId: string) => {
+    setEditSelectedCaisses((prev) =>
+      prev.includes(caisseId) ? prev.filter((id) => id !== caisseId) : [...prev, caisseId]
+    );
+  };
 
   const fetchProjet = async () => {
     try {
