@@ -822,6 +822,10 @@ interface EcritureExportData {
   compteComptable: string;
   natureCharge: string;
   centreCout?: string;
+  classesSyscohada2?: number;
+  compteComptable2?: string;
+  natureCharge2?: string;
+  centreCout2?: string;
   debit: number;
   credit: number;
   devise: string;
