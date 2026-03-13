@@ -2176,6 +2176,45 @@ export type Database = {
           },
         ]
       }
+      projet_caisses: {
+        Row: {
+          caisse_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          projet_id: string
+        }
+        Insert: {
+          caisse_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          projet_id: string
+        }
+        Update: {
+          caisse_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          projet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projet_caisses_caisse_id_fkey"
+            columns: ["caisse_id"]
+            isOneToOne: false
+            referencedRelation: "caisses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projet_caisses_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projets: {
         Row: {
           budget: number | null
