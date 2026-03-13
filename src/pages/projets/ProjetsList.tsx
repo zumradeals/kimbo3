@@ -151,7 +151,7 @@ export default function ProjetsList() {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('projets').insert({
+      const { data: newProjet, error } = await supabase.from('projets').insert({
         code: formData.code.toUpperCase(),
         name: formData.name,
         description: formData.description || null,
@@ -162,9 +162,21 @@ export default function ProjetsList() {
         budget: formData.budget ? Number(formData.budget) : null,
         status: 'brouillon',
         created_by: user?.id,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Link selected caisses
+      if (selectedCaisses.length > 0 && newProjet) {
+        const { error: linkError } = await supabase.from('projet_caisses').insert(
+          selectedCaisses.map((caisseId) => ({
+            projet_id: newProjet.id,
+            caisse_id: caisseId,
+            created_by: user?.id,
+          }))
+        );
+        if (linkError) console.error('Error linking caisses:', linkError);
+      }
 
       toast({ title: 'Projet créé', description: 'Le projet a été ajouté avec succès.' });
       setShowAddDialog(false);
@@ -178,6 +190,7 @@ export default function ProjetsList() {
         end_date: '',
         budget: '',
       });
+      setSelectedCaisses([]);
       fetchProjets();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
