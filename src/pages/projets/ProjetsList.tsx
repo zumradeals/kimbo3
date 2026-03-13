@@ -94,6 +94,8 @@ export default function ProjetsList() {
     end_date: '',
     budget: '',
   });
+  const [selectedCaisses, setSelectedCaisses] = useState<string[]>([]);
+  const [availableCaisses, setAvailableCaisses] = useState<{ id: string; code: string; name: string; devise: string }[]>([]);
 
   const isAAL = roles.includes('aal');
   const isDaf = roles.includes('daf');
