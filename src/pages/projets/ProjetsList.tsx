@@ -506,6 +506,41 @@ export default function ProjetsList() {
                 placeholder="0"
               />
             </div>
+            {/* Caisse selector */}
+            <div className="space-y-2">
+              <Label>
+                <Wallet className="inline h-4 w-4 mr-1" />
+                Caisses associées
+              </Label>
+              {selectedCaisses.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedCaisses.map((cId) => {
+                    const c = availableCaisses.find((x) => x.id === cId);
+                    return c ? (
+                      <Badge key={cId} variant="secondary" className="gap-1">
+                        {c.code} - {c.name}
+                        <X className="h-3 w-3 cursor-pointer" onClick={() => toggleCaisse(cId)} />
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              {availableCaisses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune caisse disponible</p>
+              ) : (
+                <div className="max-h-32 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {availableCaisses.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
+                      <Checkbox
+                        checked={selectedCaisses.includes(c.id)}
+                        onCheckedChange={() => toggleCaisse(c.id)}
+                      />
+                      <span className="text-sm">{c.code} - {c.name} ({c.devise})</span>
+                    </label>
+                  ))}
+                </div>
+              )
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
