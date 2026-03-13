@@ -72,8 +72,16 @@ export default function ComptabiliteDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Formulaire SYSCOHADA
+  // Formulaire SYSCOHADA - Classe 6 (charges / débit)
   const [syscohadaForm, setSyscohadaForm] = useState({
+    classe: '',
+    compte: '',
+    nature_charge: '',
+    centre_cout: '',
+  });
+  
+  // Formulaire SYSCOHADA 2 - Classe 5 (trésorerie / crédit)
+  const [syscohadaForm2, setSyscohadaForm2] = useState({
     classe: '',
     compte: '',
     nature_charge: '',
@@ -211,6 +219,15 @@ export default function ComptabiliteDetail() {
           centre_cout: data.syscohada_centre_cout || '',
         });
       }
+      // Pré-remplir le formulaire 2 (classe 5 trésorerie)
+      if (data.syscohada_classe_2) {
+        setSyscohadaForm2({
+          classe: data.syscohada_classe_2.toString(),
+          compte: data.syscohada_compte_2 || '',
+          nature_charge: data.syscohada_nature_charge_2 || '',
+          centre_cout: data.syscohada_centre_cout_2 || '',
+        });
+      }
       // Pré-remplir paiement si déjà enregistré
       if (data.payment_category_id) {
         setPaymentForm({
@@ -231,15 +248,23 @@ export default function ComptabiliteDetail() {
 
   const validateForms = (): boolean => {
     if (!syscohadaForm.classe) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner une classe SYSCOHADA.' });
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner une classe SYSCOHADA (charges).' });
       return false;
     }
     if (!syscohadaForm.compte.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable.' });
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (charges).' });
       return false;
     }
     if (!syscohadaForm.nature_charge.trim()) {
       toast({ title: 'Informations incomplètes', description: 'La nature de charge est requise.' });
+      return false;
+    }
+    if (!syscohadaForm2.classe) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner la classe SYSCOHADA (trésorerie).' });
+      return false;
+    }
+    if (!syscohadaForm2.compte.trim()) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (trésorerie).' });
       return false;
     }
     if (!paymentForm.category_id) {
@@ -282,6 +307,10 @@ export default function ComptabiliteDetail() {
           syscohada_compte: syscohadaForm.compte.trim(),
           syscohada_nature_charge: syscohadaForm.nature_charge.trim(),
           syscohada_centre_cout: syscohadaForm.centre_cout.trim() || null,
+          syscohada_classe_2: parseInt(syscohadaForm2.classe),
+          syscohada_compte_2: syscohadaForm2.compte.trim(),
+          syscohada_nature_charge_2: syscohadaForm2.nature_charge.trim(),
+          syscohada_centre_cout_2: syscohadaForm2.centre_cout.trim() || null,
           payment_category_id: paymentForm.category_id || null,
           payment_method_id: paymentForm.method_id || null,
           payment_details: paymentDetailsJson,
@@ -366,6 +395,7 @@ export default function ComptabiliteDetail() {
       return; // Only export if DA is paid and has SYSCOHADA info
     }
     
+    const daAny = da as any;
     exportEcritureToPDF({
       reference: `EC-${da.reference}`,
       daReference: da.reference,
@@ -377,8 +407,12 @@ export default function ComptabiliteDetail() {
       compteComptable: da.syscohada_compte || 'N/A',
       natureCharge: da.syscohada_nature_charge || 'N/A',
       centreCout: da.syscohada_centre_cout || undefined,
+      classesSyscohada2: daAny.syscohada_classe_2 || undefined,
+      compteComptable2: daAny.syscohada_compte_2 || undefined,
+      natureCharge2: daAny.syscohada_nature_charge_2 || undefined,
+      centreCout2: daAny.syscohada_centre_cout_2 || undefined,
       debit: da.total_amount || 0,
-      credit: 0,
+      credit: da.total_amount || 0,
       devise: da.currency || 'XOF',
       modePaiement: da.mode_paiement || undefined,
       referencePaiement: da.reference_paiement || undefined,
@@ -561,13 +595,31 @@ export default function ComptabiliteDetail() {
                 </div>
               </div>
 
-              {/* Formulaire SYSCOHADA dynamique */}
+              {/* Formulaire SYSCOHADA Classe 6 - Charges (DÉBIT) */}
               <div className="rounded-lg border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">DÉBIT</span>
+                  <span className="text-sm font-medium text-muted-foreground">Compte de charges</span>
+                </div>
                 <SyscohadaFormDynamic
                   value={syscohadaForm}
                   onChange={setSyscohadaForm}
                   disabled={false}
-                  allowedClasses={[5, 6]}
+                  allowedClasses={[6]}
+                />
+              </div>
+
+              {/* Formulaire SYSCOHADA Classe 5 - Trésorerie (CRÉDIT) */}
+              <div className="rounded-lg border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-bold text-success">CRÉDIT</span>
+                  <span className="text-sm font-medium text-muted-foreground">Compte de trésorerie</span>
+                </div>
+                <SyscohadaFormDynamic
+                  value={syscohadaForm2}
+                  onChange={setSyscohadaForm2}
+                  disabled={false}
+                  allowedClasses={[5]}
                 />
               </div>
 
@@ -811,10 +863,13 @@ export default function ComptabiliteDetail() {
               enregistré comme payé au fournisseur <strong>{(da.selected_fournisseur as Fournisseur)?.name}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-lg border bg-muted/50 p-3">
+          <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
             <p className="text-xs text-muted-foreground">Rattachement comptable</p>
             <p className="font-medium">
-              Classe {syscohadaForm.classe} • {syscohadaForm.compte} • {syscohadaForm.nature_charge}
+              <span className="text-destructive">DÉBIT</span> • Classe {syscohadaForm.classe} • {syscohadaForm.compte} • {syscohadaForm.nature_charge}
+            </p>
+            <p className="font-medium">
+              <span className="text-success">CRÉDIT</span> • Classe {syscohadaForm2.classe} • {syscohadaForm2.compte} • {syscohadaForm2.nature_charge}
             </p>
             {paymentForm.category_id && (
               <p className="text-sm text-muted-foreground">

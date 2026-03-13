@@ -822,6 +822,10 @@ interface EcritureExportData {
   compteComptable: string;
   natureCharge: string;
   centreCout?: string;
+  classesSyscohada2?: number;
+  compteComptable2?: string;
+  natureCharge2?: string;
+  centreCout2?: string;
   debit: number;
   credit: number;
   devise: string;
@@ -884,24 +888,29 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   
   y = 42;
   
-  // Montant principal
+  // Montant principal - show both Débit and Crédit
   const amount = data.debit || data.credit;
-  const amountLabel = data.debit > 0 ? 'DÉBIT' : 'CRÉDIT';
   
   doc.setFillColor(...COLORS.orangeLight);
   doc.setDrawColor(...COLORS.orange);
   doc.setLineWidth(1);
-  doc.roundedRect(pageWidth - margin - 70, y, 70, 18, 2, 2, 'FD');
+  doc.roundedRect(pageWidth - margin - 70, y, 70, 26, 2, 2, 'FD');
   
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.marron);
-  doc.setFont('helvetica', 'normal');
-  doc.text(amountLabel, pageWidth - margin - 35, y + 6, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text('DÉBIT', pageWidth - margin - 55, y + 6);
+  doc.text('CRÉDIT', pageWidth - margin - 25, y + 6);
   
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setTextColor(...COLORS.orange);
   doc.setFont('helvetica', 'bold');
-  doc.text(formatMontant(amount, data.devise), pageWidth - margin - 35, y + 14, { align: 'center' });
+  doc.text(formatMontant(data.debit, data.devise), pageWidth - margin - 55, y + 14, { align: 'left' });
+  doc.text(formatMontant(data.credit, data.devise), pageWidth - margin - 25, y + 14, { align: 'left' });
+  
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.textSecondary);
+  doc.text(`Solde: ${formatMontant(data.debit - data.credit, data.devise)}`, pageWidth - margin - 35, y + 22, { align: 'center' });
   
   // Informations générales
   y = drawSectionTitle(doc, y, margin, 'INFORMATIONS GÉNÉRALES');
@@ -934,11 +943,15 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   // Classification SYSCOHADA
   y = drawSectionTitle(doc, y, margin, 'CLASSIFICATION SYSCOHADA');
   
+  // Show both classes side by side
+  const hasSecondClass = data.classesSyscohada2 && data.compteComptable2;
+  const classBoxWidth = hasSecondClass ? (contentWidth - 6) / 2 : contentWidth;
+  
+  // Class 6 - Charges (left)
   doc.setFillColor(...COLORS.white);
   doc.setDrawColor(...COLORS.orange);
   doc.setLineWidth(0.3);
-  doc.roundedRect(margin, y, contentWidth, 28, 2, 2, 'FD');
-  
+  doc.roundedRect(margin, y, classBoxWidth, 28, 2, 2, 'FD');
   doc.setFillColor(...COLORS.orange);
   doc.rect(margin, y, 3, 28, 'F');
   
@@ -952,9 +965,40 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   doc.setFont('helvetica', 'normal');
   doc.text(`Compte: ${data.compteComptable}`, margin + 8, cardY + 7);
   doc.text(`Nature: ${data.natureCharge}`, margin + 8, cardY + 14);
-  doc.text(`Centre de coût: ${data.centreCout || 'Non spécifié'}`, margin + 8, cardY + 21);
+  if (!hasSecondClass) {
+    doc.text(`Centre de coût: ${data.centreCout || 'Non spécifié'}`, margin + 8, cardY + 21);
+  }
   
-  y += 34;
+  // Class 5 - Trésorerie (right)
+  if (hasSecondClass) {
+    const rightBoxX = margin + classBoxWidth + 6;
+    doc.setFillColor(...COLORS.white);
+    doc.setDrawColor(...COLORS.orange);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(rightBoxX, y, classBoxWidth, 28, 2, 2, 'FD');
+    doc.setFillColor(...COLORS.orange);
+    doc.rect(rightBoxX, y, 3, 28, 'F');
+    
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.orange);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Classe ${data.classesSyscohada2}`, rightBoxX + 8, cardY);
+    
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Compte: ${data.compteComptable2}`, rightBoxX + 8, cardY + 7);
+    doc.text(`Nature: ${data.natureCharge2 || ''}`, rightBoxX + 8, cardY + 14);
+  }
+  
+  // Centre de coût below both boxes
+  y += 30;
+  if (data.centreCout) {
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.text(`Centre de coût: ${data.centreCout}`, margin + 8, y);
+    y += 4;
+  }
+  y += 4;
   
   // Tableau montants
   y = drawSectionTitle(doc, y, margin, 'DÉTAIL DES MONTANTS');
@@ -990,6 +1034,58 @@ export const exportEcritureToPDF = async (data: EcritureExportData) => {
   });
   
   y = doc.lastAutoTable.finalY + 10;
+  
+  // Tableau des écritures comptables (double entrée)
+  if (hasSecondClass) {
+    y = drawSectionTitle(doc, y, margin, 'ÉCRITURES COMPTABLES');
+    
+    autoTable(doc, {
+      startY: y,
+      head: [['N° Compte', 'Nature', 'Débit', 'Crédit', 'Solde']],
+      body: [
+        [
+          data.compteComptable,
+          `Classe ${data.classesSyscohada} - ${data.natureCharge}`,
+          formatMontant(data.debit, data.devise),
+          '',
+          formatMontant(data.debit, data.devise),
+        ],
+        [
+          data.compteComptable2 || '',
+          `Classe ${data.classesSyscohada2} - ${data.natureCharge2 || ''}`,
+          '',
+          formatMontant(data.credit, data.devise),
+          '',
+        ],
+      ],
+      theme: 'grid',
+      headStyles: {
+        fillColor: COLORS.marron,
+        textColor: COLORS.white,
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 4,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: COLORS.textPrimary,
+        cellPadding: 5,
+      },
+      alternateRowStyles: {
+        fillColor: COLORS.grisTresClair,
+      },
+      columnStyles: {
+        0: { cellWidth: 28, fontStyle: 'bold', font: 'courier' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 30, halign: 'right' },
+        3: { cellWidth: 30, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' },
+      },
+      margin: { left: margin, right: margin },
+    });
+    
+    y = doc.lastAutoTable.finalY + 10;
+  }
   
   // Infos paiement
   if (data.modePaiement) {
