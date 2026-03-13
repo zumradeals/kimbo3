@@ -590,13 +590,31 @@ export default function ComptabiliteDetail() {
                 </div>
               </div>
 
-              {/* Formulaire SYSCOHADA dynamique */}
+              {/* Formulaire SYSCOHADA Classe 6 - Charges (DÉBIT) */}
               <div className="rounded-lg border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">DÉBIT</span>
+                  <span className="text-sm font-medium text-muted-foreground">Compte de charges</span>
+                </div>
                 <SyscohadaFormDynamic
                   value={syscohadaForm}
                   onChange={setSyscohadaForm}
                   disabled={false}
-                  allowedClasses={[5, 6]}
+                  allowedClasses={[6]}
+                />
+              </div>
+
+              {/* Formulaire SYSCOHADA Classe 5 - Trésorerie (CRÉDIT) */}
+              <div className="rounded-lg border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-bold text-success">CRÉDIT</span>
+                  <span className="text-sm font-medium text-muted-foreground">Compte de trésorerie</span>
+                </div>
+                <SyscohadaFormDynamic
+                  value={syscohadaForm2}
+                  onChange={setSyscohadaForm2}
+                  disabled={false}
+                  allowedClasses={[5]}
                 />
               </div>
 
