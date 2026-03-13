@@ -48,7 +48,10 @@ import {
   FileEdit,
   Send,
   ShieldCheck,
+  Wallet,
+  X,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
