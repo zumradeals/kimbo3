@@ -960,9 +960,13 @@ export type Database = {
           submitted_validation_at: string | null
           submitted_validation_by: string | null
           syscohada_centre_cout: string | null
+          syscohada_centre_cout_2: string | null
           syscohada_classe: number | null
+          syscohada_classe_2: number | null
           syscohada_compte: string | null
+          syscohada_compte_2: string | null
           syscohada_nature_charge: string | null
+          syscohada_nature_charge_2: string | null
           tiers_id: string | null
           total_amount: number | null
           updated_at: string
@@ -1023,9 +1027,13 @@ export type Database = {
           submitted_validation_at?: string | null
           submitted_validation_by?: string | null
           syscohada_centre_cout?: string | null
+          syscohada_centre_cout_2?: string | null
           syscohada_classe?: number | null
+          syscohada_classe_2?: number | null
           syscohada_compte?: string | null
+          syscohada_compte_2?: string | null
           syscohada_nature_charge?: string | null
+          syscohada_nature_charge_2?: string | null
           tiers_id?: string | null
           total_amount?: number | null
           updated_at?: string
@@ -1086,9 +1094,13 @@ export type Database = {
           submitted_validation_at?: string | null
           submitted_validation_by?: string | null
           syscohada_centre_cout?: string | null
+          syscohada_centre_cout_2?: string | null
           syscohada_classe?: number | null
+          syscohada_classe_2?: number | null
           syscohada_compte?: string | null
+          syscohada_compte_2?: string | null
           syscohada_nature_charge?: string | null
+          syscohada_nature_charge_2?: string | null
           tiers_id?: string | null
           total_amount?: number | null
           updated_at?: string
@@ -1265,8 +1277,11 @@ export type Database = {
       ecritures_comptables: {
         Row: {
           centre_cout: string | null
+          centre_cout_2: string | null
           classe_syscohada: number
+          classe_syscohada_2: number | null
           compte_comptable: string
+          compte_comptable_2: string | null
           created_at: string
           created_by: string
           credit: number
@@ -1279,6 +1294,7 @@ export type Database = {
           libelle: string
           mode_paiement: string | null
           nature_charge: string
+          nature_charge_2: string | null
           note_frais_id: string | null
           observations: string | null
           reference: string
@@ -1289,8 +1305,11 @@ export type Database = {
         }
         Insert: {
           centre_cout?: string | null
+          centre_cout_2?: string | null
           classe_syscohada: number
+          classe_syscohada_2?: number | null
           compte_comptable: string
+          compte_comptable_2?: string | null
           created_at?: string
           created_by: string
           credit?: number
@@ -1303,6 +1322,7 @@ export type Database = {
           libelle: string
           mode_paiement?: string | null
           nature_charge: string
+          nature_charge_2?: string | null
           note_frais_id?: string | null
           observations?: string | null
           reference: string
@@ -1313,8 +1333,11 @@ export type Database = {
         }
         Update: {
           centre_cout?: string | null
+          centre_cout_2?: string | null
           classe_syscohada?: number
+          classe_syscohada_2?: number | null
           compte_comptable?: string
+          compte_comptable_2?: string | null
           created_at?: string
           created_by?: string
           credit?: number
@@ -1327,6 +1350,7 @@ export type Database = {
           libelle?: string
           mode_paiement?: string | null
           nature_charge?: string
+          nature_charge_2?: string | null
           note_frais_id?: string | null
           observations?: string | null
           reference?: string
@@ -1771,9 +1795,13 @@ export type Database = {
           status: Database["public"]["Enums"]["note_frais_status"]
           submitted_at: string | null
           syscohada_centre_cout: string | null
+          syscohada_centre_cout_2: string | null
           syscohada_classe: number | null
+          syscohada_classe_2: number | null
           syscohada_compte: string | null
+          syscohada_compte_2: string | null
           syscohada_nature_charge: string | null
+          syscohada_nature_charge_2: string | null
           tiers_id: string | null
           title: string
           total_amount: number
@@ -1815,9 +1843,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["note_frais_status"]
           submitted_at?: string | null
           syscohada_centre_cout?: string | null
+          syscohada_centre_cout_2?: string | null
           syscohada_classe?: number | null
+          syscohada_classe_2?: number | null
           syscohada_compte?: string | null
+          syscohada_compte_2?: string | null
           syscohada_nature_charge?: string | null
+          syscohada_nature_charge_2?: string | null
           tiers_id?: string | null
           title: string
           total_amount?: number
@@ -1859,9 +1891,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["note_frais_status"]
           submitted_at?: string | null
           syscohada_centre_cout?: string | null
+          syscohada_centre_cout_2?: string | null
           syscohada_classe?: number | null
+          syscohada_classe_2?: number | null
           syscohada_compte?: string | null
+          syscohada_compte_2?: string | null
           syscohada_nature_charge?: string | null
+          syscohada_nature_charge_2?: string | null
           tiers_id?: string | null
           title?: string
           total_amount?: number
