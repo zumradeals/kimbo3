@@ -600,6 +600,23 @@ export default function ProjetDetail() {
                 <p className="whitespace-pre-wrap">{projet.description}</p>
               </div>
             )}
+
+            {/* Caisses associées */}
+            {linkedCaisses.length > 0 && (
+              <div className="border-t pt-4">
+                <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                  <Wallet className="h-4 w-4" />
+                  Caisses associées
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {linkedCaisses.map((c) => (
+                    <Badge key={c.id} variant="outline" className="gap-1">
+                      {c.code} - {c.name} ({c.devise})
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
