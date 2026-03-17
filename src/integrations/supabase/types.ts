@@ -3064,9 +3064,10 @@ export type Database = {
       stock_status: "disponible" | "reserve" | "epuise"
       tiers_type:
         | "fournisseur"
-        | "prestataire"
-        | "transporteur"
-        | "particulier"
+        | "sous_traitant"
+        | "salarie"
+        | "client"
+        | "banque"
         | "autre"
       user_status: "active" | "inactive" | "suspended"
     }
@@ -3302,9 +3303,10 @@ export const Constants = {
       stock_status: ["disponible", "reserve", "epuise"],
       tiers_type: [
         "fournisseur",
-        "prestataire",
-        "transporteur",
-        "particulier",
+        "sous_traitant",
+        "salarie",
+        "client",
+        "banque",
         "autre",
       ],
       user_status: ["active", "inactive", "suspended"],

@@ -1,4 +1,4 @@
-export type TiersType = 'fournisseur' | 'prestataire' | 'transporteur' | 'particulier' | 'autre';
+export type TiersType = 'fournisseur' | 'sous_traitant' | 'salarie' | 'client' | 'banque' | 'autre';
 
 export interface Tiers {
   id: string;
@@ -17,16 +17,18 @@ export interface Tiers {
 
 export const TIERS_TYPE_LABELS: Record<TiersType, string> = {
   fournisseur: 'Fournisseur',
-  prestataire: 'Prestataire',
-  transporteur: 'Transporteur',
-  particulier: 'Particulier',
+  sous_traitant: 'Sous-traitant',
+  salarie: 'Salarié',
+  client: 'Client',
+  banque: 'Banque',
   autre: 'Autre',
 };
 
 export const TIERS_TYPE_COLORS: Record<TiersType, string> = {
   fournisseur: 'bg-blue-100 text-blue-800',
-  prestataire: 'bg-purple-100 text-purple-800',
-  transporteur: 'bg-orange-100 text-orange-800',
-  particulier: 'bg-green-100 text-green-800',
+  sous_traitant: 'bg-purple-100 text-purple-800',
+  salarie: 'bg-emerald-100 text-emerald-800',
+  client: 'bg-orange-100 text-orange-800',
+  banque: 'bg-cyan-100 text-cyan-800',
   autre: 'bg-gray-100 text-gray-800',
 };
