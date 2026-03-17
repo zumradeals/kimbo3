@@ -255,24 +255,14 @@ export default function ComptabiliteDetail() {
   };
 
   const validateForms = (): boolean => {
-    if (!syscohadaForm.classe) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner une classe SYSCOHADA (charges).' });
+    const hasValidDebit = debitEntries.some(e => e.classe && e.compte.trim() && e.nature_charge.trim());
+    if (!hasValidDebit) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez renseigner au moins une entrée DÉBIT valide.' });
       return false;
     }
-    if (!syscohadaForm.compte.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (charges).' });
-      return false;
-    }
-    if (!syscohadaForm.nature_charge.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'La nature de charge est requise.' });
-      return false;
-    }
-    if (!syscohadaForm2.classe) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner la classe SYSCOHADA (trésorerie).' });
-      return false;
-    }
-    if (!syscohadaForm2.compte.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (trésorerie).' });
+    const hasValidCredit = creditEntries.some(e => e.classe && e.compte.trim() && e.nature_charge.trim());
+    if (!hasValidCredit) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez renseigner au moins une entrée CRÉDIT valide.' });
       return false;
     }
     if (!paymentForm.category_id) {
