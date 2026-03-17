@@ -965,6 +965,8 @@ export type Database = {
           syscohada_classe_2: number | null
           syscohada_compte: string | null
           syscohada_compte_2: string | null
+          syscohada_credits: Json | null
+          syscohada_debits: Json | null
           syscohada_nature_charge: string | null
           syscohada_nature_charge_2: string | null
           tiers_id: string | null
@@ -1032,6 +1034,8 @@ export type Database = {
           syscohada_classe_2?: number | null
           syscohada_compte?: string | null
           syscohada_compte_2?: string | null
+          syscohada_credits?: Json | null
+          syscohada_debits?: Json | null
           syscohada_nature_charge?: string | null
           syscohada_nature_charge_2?: string | null
           tiers_id?: string | null
@@ -1099,6 +1103,8 @@ export type Database = {
           syscohada_classe_2?: number | null
           syscohada_compte?: string | null
           syscohada_compte_2?: string | null
+          syscohada_credits?: Json | null
+          syscohada_debits?: Json | null
           syscohada_nature_charge?: string | null
           syscohada_nature_charge_2?: string | null
           tiers_id?: string | null
