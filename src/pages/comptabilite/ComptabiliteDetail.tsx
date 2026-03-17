@@ -759,29 +759,52 @@ export default function ComptabiliteDetail() {
                 Rattachement SYSCOHADA
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Classe</p>
-                  <p className="font-medium">
-                    Classe {da.syscohada_classe} - {SYSCOHADA_CLASSES[da.syscohada_classe]}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Compte</p>
-                  <p className="font-medium">{da.syscohada_compte}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Nature de charge</p>
-                  <p className="font-medium">{da.syscohada_nature_charge}</p>
-                </div>
-                {da.syscohada_centre_cout && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Centre de coût</p>
-                    <p className="font-medium">{da.syscohada_centre_cout}</p>
-                  </div>
-                )}
-              </div>
+            <CardContent className="space-y-4">
+              {/* Afficher les entrées multiples si disponibles */}
+              {(() => {
+                const daAny = da as any;
+                const debits = Array.isArray(daAny.syscohada_debits) && daAny.syscohada_debits.length > 0
+                  ? daAny.syscohada_debits
+                  : da.syscohada_classe ? [{ classe: da.syscohada_classe, compte: da.syscohada_compte, nature_charge: da.syscohada_nature_charge, centre_cout: da.syscohada_centre_cout }] : [];
+                const credits = Array.isArray(daAny.syscohada_credits) && daAny.syscohada_credits.length > 0
+                  ? daAny.syscohada_credits
+                  : (daAny.syscohada_classe_2 ? [{ classe: daAny.syscohada_classe_2, compte: daAny.syscohada_compte_2, nature_charge: daAny.syscohada_nature_charge_2, centre_cout: daAny.syscohada_centre_cout_2 }] : []);
+
+                return (
+                  <>
+                    {debits.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">DÉBIT</span>
+                        </div>
+                        {debits.map((e: any, i: number) => (
+                          <div key={i} className="grid gap-2 sm:grid-cols-4 rounded-md border bg-muted/30 p-2 mb-2">
+                            <div><p className="text-xs text-muted-foreground">Classe</p><p className="text-sm font-medium">Classe {e.classe} - {SYSCOHADA_CLASSES[Number(e.classe)] || ''}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Compte</p><p className="text-sm font-medium font-mono">{e.compte}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Nature</p><p className="text-sm font-medium">{e.nature_charge}</p></div>
+                            {e.centre_cout && <div><p className="text-xs text-muted-foreground">Centre coût</p><p className="text-sm font-medium">{e.centre_cout}</p></div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {credits.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-bold text-success">CRÉDIT</span>
+                        </div>
+                        {credits.map((e: any, i: number) => (
+                          <div key={i} className="grid gap-2 sm:grid-cols-4 rounded-md border bg-muted/30 p-2 mb-2">
+                            <div><p className="text-xs text-muted-foreground">Classe</p><p className="text-sm font-medium">Classe {e.classe} - {SYSCOHADA_CLASSES[Number(e.classe)] || ''}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Compte</p><p className="text-sm font-medium font-mono">{e.compte}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Nature</p><p className="text-sm font-medium">{e.nature_charge}</p></div>
+                            {e.centre_cout && <div><p className="text-xs text-muted-foreground">Centre coût</p><p className="text-sm font-medium">{e.centre_cout}</p></div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
