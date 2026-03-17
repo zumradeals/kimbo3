@@ -599,33 +599,25 @@ export default function ComptabiliteDetail() {
                 </div>
               </div>
 
-              {/* Formulaire SYSCOHADA Classe 6 - Charges (DÉBIT) */}
-              <div className="rounded-lg border bg-card p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">DÉBIT</span>
-                  <span className="text-sm font-medium text-muted-foreground">Compte de charges</span>
-                </div>
-                <SyscohadaFormDynamic
-                  value={syscohadaForm}
-                  onChange={setSyscohadaForm}
-                  disabled={false}
-                  allowedClasses={[6]}
-                />
-              </div>
+              <SyscohadaMultiEntry
+                entries={debitEntries}
+                onChange={setDebitEntries}
+                disabled={false}
+                label="DÉBIT"
+                badgeColor="destructive"
+                badgeText="DÉBIT"
+                description="Comptes de charges (Classes 1 à 7)"
+              />
 
-              {/* Formulaire SYSCOHADA Classe 5 - Trésorerie (CRÉDIT) */}
-              <div className="rounded-lg border bg-card p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-bold text-success">CRÉDIT</span>
-                  <span className="text-sm font-medium text-muted-foreground">Compte de trésorerie</span>
-                </div>
-                <SyscohadaFormDynamic
-                  value={syscohadaForm2}
-                  onChange={setSyscohadaForm2}
-                  disabled={false}
-                  allowedClasses={[5]}
-                />
-              </div>
+              <SyscohadaMultiEntry
+                entries={creditEntries}
+                onChange={setCreditEntries}
+                disabled={false}
+                label="CRÉDIT"
+                badgeColor="success"
+                badgeText="CRÉDIT"
+                description="Comptes de trésorerie (Classes 1 à 7)"
+              />
 
               {/* Formulaire Paiement dynamique */}
               <div className="rounded-lg border bg-card p-4">
