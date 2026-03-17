@@ -297,18 +297,24 @@ export default function ComptabiliteDetail() {
         tiersIdToSave = da.selected_fournisseur.tiers_id;
       }
       
+      // Use first entries for backward-compatible single fields
+      const firstDebit = debitEntries.find(e => e.classe && e.compte) || debitEntries[0];
+      const firstCredit = creditEntries.find(e => e.classe && e.compte) || creditEntries[0];
+      
       const { error } = await supabase
         .from('demandes_achat')
         .update({
           status: 'payee',
-          syscohada_classe: parseInt(syscohadaForm.classe),
-          syscohada_compte: syscohadaForm.compte.trim(),
-          syscohada_nature_charge: syscohadaForm.nature_charge.trim(),
-          syscohada_centre_cout: syscohadaForm.centre_cout.trim() || null,
-          syscohada_classe_2: parseInt(syscohadaForm2.classe),
-          syscohada_compte_2: syscohadaForm2.compte.trim(),
-          syscohada_nature_charge_2: syscohadaForm2.nature_charge.trim(),
-          syscohada_centre_cout_2: syscohadaForm2.centre_cout.trim() || null,
+          syscohada_classe: firstDebit.classe ? parseInt(firstDebit.classe) : null,
+          syscohada_compte: firstDebit.compte.trim() || null,
+          syscohada_nature_charge: firstDebit.nature_charge.trim() || null,
+          syscohada_centre_cout: firstDebit.centre_cout.trim() || null,
+          syscohada_classe_2: firstCredit.classe ? parseInt(firstCredit.classe) : null,
+          syscohada_compte_2: firstCredit.compte.trim() || null,
+          syscohada_nature_charge_2: firstCredit.nature_charge.trim() || null,
+          syscohada_centre_cout_2: firstCredit.centre_cout.trim() || null,
+          syscohada_debits: debitEntries.filter(e => e.classe && e.compte),
+          syscohada_credits: creditEntries.filter(e => e.classe && e.compte),
           payment_category_id: paymentForm.category_id || null,
           payment_method_id: paymentForm.method_id || null,
           payment_details: paymentDetailsJson,
