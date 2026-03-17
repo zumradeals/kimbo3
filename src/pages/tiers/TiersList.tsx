@@ -47,7 +47,7 @@ import { toast } from 'sonner';
 import { Plus, Search, Pencil, Users, Phone, Mail, MapPin, Building2, Trash2 } from 'lucide-react';
 import { Tiers, TiersType, TIERS_TYPE_LABELS, TIERS_TYPE_COLORS } from '@/types/tiers';
 
-const TIERS_TYPES: TiersType[] = ['fournisseur', 'prestataire', 'transporteur', 'particulier', 'autre'];
+const TIERS_TYPES: TiersType[] = ['fournisseur', 'sous_traitant', 'salarie', 'client', 'banque', 'autre'];
 
 export default function TiersList() {
   const { roles, isAdmin } = useAuth();
