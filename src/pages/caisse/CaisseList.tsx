@@ -177,6 +177,10 @@ export default function CaisseList() {
     }
 
     try {
+      // Calculer le delta si le solde initial a changé, et l'appliquer au solde actuel
+      const deltaInitial = formData.solde_initial - editingCaisse.solde_initial;
+      const newSoldeActuel = editingCaisse.solde_actuel + deltaInitial;
+
       const { error } = await supabase
         .from('caisses')
         .update({
@@ -184,7 +188,8 @@ export default function CaisseList() {
           name: formData.name,
           type: formData.type,
           responsable_id: formData.responsable_id && formData.responsable_id !== '_none' ? formData.responsable_id : null,
-          solde_initial: formData.solde_initial, // LOT 2: Modification traçable via trigger
+          solde_initial: formData.solde_initial,
+          solde_actuel: newSoldeActuel,
           devise: formData.devise,
           description: formData.description || null,
         })
