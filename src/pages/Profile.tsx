@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ROLE_LABELS, AppRole } from '@/types/kpm';
-import { User, Lock, Building2, Shield, Save, Eye, EyeOff, Camera, Upload, UserCheck, Briefcase } from 'lucide-react';
+import { User, Lock, Building2, Shield, Save, Eye, EyeOff, Camera, Upload, UserCheck, Briefcase, Bell, Volume2, VolumeX } from 'lucide-react';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { Link } from 'react-router-dom';
