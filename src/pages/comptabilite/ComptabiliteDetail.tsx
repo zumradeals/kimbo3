@@ -55,7 +55,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportEcritureToPDF, exportDechargeComptableToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
-import { SyscohadaFormDynamic } from '@/components/comptabilite/SyscohadaFormDynamic';
+import { SyscohadaMultiEntry, type SyscohadaEntry } from '@/components/comptabilite/SyscohadaMultiEntry';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
 import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
 
