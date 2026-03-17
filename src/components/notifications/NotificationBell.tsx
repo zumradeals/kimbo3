@@ -169,6 +169,22 @@ export function NotificationBell() {
   };
 
   return (
+    <div className="flex items-center gap-0.5">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("h-8 w-8", isMuted && "text-muted-foreground")}
+            onClick={toggleMute}
+          >
+            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {isMuted ? 'Réactiver le son des notifications' : 'Désactiver le son des notifications'}
+        </TooltipContent>
+      </Tooltip>
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
