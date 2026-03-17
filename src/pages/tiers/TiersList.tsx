@@ -291,7 +291,7 @@ export default function TiersList() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
           {TIERS_TYPES.map(type => {
             const count = tiers.filter(t => t.type === type && t.is_active).length;
             return (
