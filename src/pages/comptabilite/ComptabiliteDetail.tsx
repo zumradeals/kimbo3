@@ -861,12 +861,16 @@ export default function ComptabiliteDetail() {
           </AlertDialogHeader>
           <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
             <p className="text-xs text-muted-foreground">Rattachement comptable</p>
-            <p className="font-medium">
-              <span className="text-destructive">DÉBIT</span> • Classe {syscohadaForm.classe} • {syscohadaForm.compte} • {syscohadaForm.nature_charge}
-            </p>
-            <p className="font-medium">
-              <span className="text-success">CRÉDIT</span> • Classe {syscohadaForm2.classe} • {syscohadaForm2.compte} • {syscohadaForm2.nature_charge}
-            </p>
+            {debitEntries.filter(e => e.classe && e.compte).map((e, i) => (
+              <p key={`d-${i}`} className="font-medium text-sm">
+                <span className="text-destructive">DÉBIT</span> • Classe {e.classe} • {e.compte} • {e.nature_charge}
+              </p>
+            ))}
+            {creditEntries.filter(e => e.classe && e.compte).map((e, i) => (
+              <p key={`c-${i}`} className="font-medium text-sm">
+                <span className="text-success">CRÉDIT</span> • Classe {e.classe} • {e.compte} • {e.nature_charge}
+              </p>
+            ))}
             {paymentForm.category_id && (
               <p className="text-sm text-muted-foreground">
                 Paiement configuré
