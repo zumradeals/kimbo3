@@ -204,23 +204,37 @@ export default function ComptabiliteDetail() {
 
       setDA(enrichedDA as unknown as DemandeAchat);
       
-      // Pré-remplir le formulaire si déjà enregistré
-      if (data.syscohada_classe) {
-        setSyscohadaForm({
+      // Pré-remplir les entrées multiples si déjà enregistrées
+      const daAny = data as any;
+      if (Array.isArray(daAny.syscohada_debits) && daAny.syscohada_debits.length > 0) {
+        setDebitEntries(daAny.syscohada_debits.map((e: any) => ({
+          classe: e.classe?.toString() || '',
+          compte: e.compte || '',
+          nature_charge: e.nature_charge || '',
+          centre_cout: e.centre_cout || '',
+        })));
+      } else if (data.syscohada_classe) {
+        setDebitEntries([{
           classe: data.syscohada_classe.toString(),
           compte: data.syscohada_compte || '',
           nature_charge: data.syscohada_nature_charge || '',
           centre_cout: data.syscohada_centre_cout || '',
-        });
+        }]);
       }
-      // Pré-remplir le formulaire 2 (classe 5 trésorerie)
-      if (data.syscohada_classe_2) {
-        setSyscohadaForm2({
+      if (Array.isArray(daAny.syscohada_credits) && daAny.syscohada_credits.length > 0) {
+        setCreditEntries(daAny.syscohada_credits.map((e: any) => ({
+          classe: e.classe?.toString() || '',
+          compte: e.compte || '',
+          nature_charge: e.nature_charge || '',
+          centre_cout: e.centre_cout || '',
+        })));
+      } else if (data.syscohada_classe_2) {
+        setCreditEntries([{
           classe: data.syscohada_classe_2.toString(),
           compte: data.syscohada_compte_2 || '',
           nature_charge: data.syscohada_nature_charge_2 || '',
           centre_cout: data.syscohada_centre_cout_2 || '',
-        });
+        }]);
       }
       // Pré-remplir paiement si déjà enregistré
       if (data.payment_category_id) {
