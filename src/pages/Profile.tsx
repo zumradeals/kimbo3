@@ -10,10 +10,12 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ROLE_LABELS, AppRole } from '@/types/kpm';
-import { User, Lock, Building2, Shield, Save, Eye, EyeOff, Camera, Upload, UserCheck, Briefcase } from 'lucide-react';
+import { User, Lock, Building2, Shield, Save, Eye, EyeOff, Camera, Upload, UserCheck, Briefcase, Bell, Volume2, VolumeX } from 'lucide-react';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { Link } from 'react-router-dom';
+import { Switch } from '@/components/ui/switch';
+import { getNotificationSoundMuted, setNotificationSoundMuted } from '@/hooks/useNotificationAlert';
 
 const POSITION_LABELS: Record<string, string> = {
   membre: 'Membre',
@@ -478,6 +480,44 @@ export default function Profile() {
               <p className="text-xs text-muted-foreground">
                 Les rôles sont attribués par un administrateur
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Préférences de notifications */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>Gérez vos préférences de notifications</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {getNotificationSoundMuted() ? (
+                  <VolumeX className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <Volume2 className="h-5 w-5 text-primary" />
+                )}
+                <div>
+                  <p className="font-medium text-sm">Son des notifications</p>
+                  <p className="text-xs text-muted-foreground">
+                    Émet un signal sonore répétitif lorsque vous avez des actions en attente
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={!getNotificationSoundMuted()}
+                onCheckedChange={(checked) => {
+                  setNotificationSoundMuted(!checked);
+                  // Force re-render
+                  setForm(f => ({ ...f }));
+                }}
+              />
             </div>
           </CardContent>
         </Card>

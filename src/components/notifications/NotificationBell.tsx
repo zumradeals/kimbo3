@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Check, ExternalLink } from 'lucide-react';
+import { Bell, Check, ExternalLink, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { getNotificationSoundMuted, setNotificationSoundMuted } from '@/hooks/useNotificationAlert';
 
 interface Notification {
   id: string;
@@ -29,6 +31,22 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(getNotificationSoundMuted);
+
+  // Sync mute state across components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setIsMuted((e as CustomEvent).detail.muted);
+    };
+    window.addEventListener('kpm-sound-mute-change', handler);
+    return () => window.removeEventListener('kpm-sound-mute-change', handler);
+  }, []);
+
+  const toggleMute = () => {
+    const newMuted = !isMuted;
+    setNotificationSoundMuted(newMuted);
+    setIsMuted(newMuted);
+  };
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -151,6 +169,22 @@ export function NotificationBell() {
   };
 
   return (
+    <div className="flex items-center gap-0.5">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("h-8 w-8", isMuted && "text-muted-foreground")}
+            onClick={toggleMute}
+          >
+            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {isMuted ? 'Réactiver le son des notifications' : 'Désactiver le son des notifications'}
+        </TooltipContent>
+      </Tooltip>
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
@@ -250,5 +284,6 @@ export function NotificationBell() {
         </div>
       </PopoverContent>
     </Popover>
+    </div>
   );
 }
