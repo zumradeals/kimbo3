@@ -14,6 +14,8 @@ import { User, Lock, Building2, Shield, Save, Eye, EyeOff, Camera, Upload, UserC
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { Link } from 'react-router-dom';
+import { Switch } from '@/components/ui/switch';
+import { getNotificationSoundMuted, setNotificationSoundMuted } from '@/hooks/useNotificationAlert';
 
 const POSITION_LABELS: Record<string, string> = {
   membre: 'Membre',
