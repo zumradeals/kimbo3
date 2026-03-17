@@ -55,7 +55,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportEcritureToPDF, exportDechargeComptableToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
-import { SyscohadaFormDynamic } from '@/components/comptabilite/SyscohadaFormDynamic';
+import { SyscohadaMultiEntry, type SyscohadaEntry } from '@/components/comptabilite/SyscohadaMultiEntry';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
 import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
 
@@ -72,21 +72,15 @@ export default function ComptabiliteDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Formulaire SYSCOHADA - Classe 6 (charges / débit)
-  const [syscohadaForm, setSyscohadaForm] = useState({
-    classe: '',
-    compte: '',
-    nature_charge: '',
-    centre_cout: '',
-  });
+  // Formulaire SYSCOHADA - Entrées multiples DÉBIT
+  const [debitEntries, setDebitEntries] = useState<SyscohadaEntry[]>([
+    { classe: '', compte: '', nature_charge: '', centre_cout: '' },
+  ]);
   
-  // Formulaire SYSCOHADA 2 - Classe 5 (trésorerie / crédit)
-  const [syscohadaForm2, setSyscohadaForm2] = useState({
-    classe: '',
-    compte: '',
-    nature_charge: '',
-    centre_cout: '',
-  });
+  // Formulaire SYSCOHADA - Entrées multiples CRÉDIT
+  const [creditEntries, setCreditEntries] = useState<SyscohadaEntry[]>([
+    { classe: '', compte: '', nature_charge: '', centre_cout: '' },
+  ]);
   
   // Formulaire Paiement
   const [paymentForm, setPaymentForm] = useState<{
@@ -210,23 +204,37 @@ export default function ComptabiliteDetail() {
 
       setDA(enrichedDA as unknown as DemandeAchat);
       
-      // Pré-remplir le formulaire si déjà enregistré
-      if (data.syscohada_classe) {
-        setSyscohadaForm({
+      // Pré-remplir les entrées multiples si déjà enregistrées
+      const daAny = data as any;
+      if (Array.isArray(daAny.syscohada_debits) && daAny.syscohada_debits.length > 0) {
+        setDebitEntries(daAny.syscohada_debits.map((e: any) => ({
+          classe: e.classe?.toString() || '',
+          compte: e.compte || '',
+          nature_charge: e.nature_charge || '',
+          centre_cout: e.centre_cout || '',
+        })));
+      } else if (data.syscohada_classe) {
+        setDebitEntries([{
           classe: data.syscohada_classe.toString(),
           compte: data.syscohada_compte || '',
           nature_charge: data.syscohada_nature_charge || '',
           centre_cout: data.syscohada_centre_cout || '',
-        });
+        }]);
       }
-      // Pré-remplir le formulaire 2 (classe 5 trésorerie)
-      if (data.syscohada_classe_2) {
-        setSyscohadaForm2({
+      if (Array.isArray(daAny.syscohada_credits) && daAny.syscohada_credits.length > 0) {
+        setCreditEntries(daAny.syscohada_credits.map((e: any) => ({
+          classe: e.classe?.toString() || '',
+          compte: e.compte || '',
+          nature_charge: e.nature_charge || '',
+          centre_cout: e.centre_cout || '',
+        })));
+      } else if (data.syscohada_classe_2) {
+        setCreditEntries([{
           classe: data.syscohada_classe_2.toString(),
           compte: data.syscohada_compte_2 || '',
           nature_charge: data.syscohada_nature_charge_2 || '',
           centre_cout: data.syscohada_centre_cout_2 || '',
-        });
+        }]);
       }
       // Pré-remplir paiement si déjà enregistré
       if (data.payment_category_id) {
@@ -247,24 +255,14 @@ export default function ComptabiliteDetail() {
   };
 
   const validateForms = (): boolean => {
-    if (!syscohadaForm.classe) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner une classe SYSCOHADA (charges).' });
+    const hasValidDebit = debitEntries.some(e => e.classe && e.compte.trim() && e.nature_charge.trim());
+    if (!hasValidDebit) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez renseigner au moins une entrée DÉBIT valide.' });
       return false;
     }
-    if (!syscohadaForm.compte.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (charges).' });
-      return false;
-    }
-    if (!syscohadaForm.nature_charge.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'La nature de charge est requise.' });
-      return false;
-    }
-    if (!syscohadaForm2.classe) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner la classe SYSCOHADA (trésorerie).' });
-      return false;
-    }
-    if (!syscohadaForm2.compte.trim()) {
-      toast({ title: 'Informations incomplètes', description: 'Veuillez sélectionner un compte comptable (trésorerie).' });
+    const hasValidCredit = creditEntries.some(e => e.classe && e.compte.trim() && e.nature_charge.trim());
+    if (!hasValidCredit) {
+      toast({ title: 'Informations incomplètes', description: 'Veuillez renseigner au moins une entrée CRÉDIT valide.' });
       return false;
     }
     if (!paymentForm.category_id) {
@@ -299,18 +297,24 @@ export default function ComptabiliteDetail() {
         tiersIdToSave = da.selected_fournisseur.tiers_id;
       }
       
+      // Use first entries for backward-compatible single fields
+      const firstDebit = debitEntries.find(e => e.classe && e.compte) || debitEntries[0];
+      const firstCredit = creditEntries.find(e => e.classe && e.compte) || creditEntries[0];
+      
       const { error } = await supabase
         .from('demandes_achat')
         .update({
           status: 'payee',
-          syscohada_classe: parseInt(syscohadaForm.classe),
-          syscohada_compte: syscohadaForm.compte.trim(),
-          syscohada_nature_charge: syscohadaForm.nature_charge.trim(),
-          syscohada_centre_cout: syscohadaForm.centre_cout.trim() || null,
-          syscohada_classe_2: parseInt(syscohadaForm2.classe),
-          syscohada_compte_2: syscohadaForm2.compte.trim(),
-          syscohada_nature_charge_2: syscohadaForm2.nature_charge.trim(),
-          syscohada_centre_cout_2: syscohadaForm2.centre_cout.trim() || null,
+          syscohada_classe: firstDebit.classe ? parseInt(firstDebit.classe) : null,
+          syscohada_compte: firstDebit.compte.trim() || null,
+          syscohada_nature_charge: firstDebit.nature_charge.trim() || null,
+          syscohada_centre_cout: firstDebit.centre_cout.trim() || null,
+          syscohada_classe_2: firstCredit.classe ? parseInt(firstCredit.classe) : null,
+          syscohada_compte_2: firstCredit.compte.trim() || null,
+          syscohada_nature_charge_2: firstCredit.nature_charge.trim() || null,
+          syscohada_centre_cout_2: firstCredit.centre_cout.trim() || null,
+          syscohada_debits: debitEntries.filter(e => e.classe && e.compte) as unknown as any,
+          syscohada_credits: creditEntries.filter(e => e.classe && e.compte) as unknown as any,
           payment_category_id: paymentForm.category_id || null,
           payment_method_id: paymentForm.method_id || null,
           payment_details: paymentDetailsJson,
@@ -595,33 +599,25 @@ export default function ComptabiliteDetail() {
                 </div>
               </div>
 
-              {/* Formulaire SYSCOHADA Classe 6 - Charges (DÉBIT) */}
-              <div className="rounded-lg border bg-card p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">DÉBIT</span>
-                  <span className="text-sm font-medium text-muted-foreground">Compte de charges</span>
-                </div>
-                <SyscohadaFormDynamic
-                  value={syscohadaForm}
-                  onChange={setSyscohadaForm}
-                  disabled={false}
-                  allowedClasses={[6]}
-                />
-              </div>
+              <SyscohadaMultiEntry
+                entries={debitEntries}
+                onChange={setDebitEntries}
+                disabled={false}
+                label="DÉBIT"
+                badgeColor="destructive"
+                badgeText="DÉBIT"
+                description="Comptes de charges (Classes 1 à 7)"
+              />
 
-              {/* Formulaire SYSCOHADA Classe 5 - Trésorerie (CRÉDIT) */}
-              <div className="rounded-lg border bg-card p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-bold text-success">CRÉDIT</span>
-                  <span className="text-sm font-medium text-muted-foreground">Compte de trésorerie</span>
-                </div>
-                <SyscohadaFormDynamic
-                  value={syscohadaForm2}
-                  onChange={setSyscohadaForm2}
-                  disabled={false}
-                  allowedClasses={[5]}
-                />
-              </div>
+              <SyscohadaMultiEntry
+                entries={creditEntries}
+                onChange={setCreditEntries}
+                disabled={false}
+                label="CRÉDIT"
+                badgeColor="success"
+                badgeText="CRÉDIT"
+                description="Comptes de trésorerie (Classes 1 à 7)"
+              />
 
               {/* Formulaire Paiement dynamique */}
               <div className="rounded-lg border bg-card p-4">
@@ -763,29 +759,52 @@ export default function ComptabiliteDetail() {
                 Rattachement SYSCOHADA
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Classe</p>
-                  <p className="font-medium">
-                    Classe {da.syscohada_classe} - {SYSCOHADA_CLASSES[da.syscohada_classe]}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Compte</p>
-                  <p className="font-medium">{da.syscohada_compte}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Nature de charge</p>
-                  <p className="font-medium">{da.syscohada_nature_charge}</p>
-                </div>
-                {da.syscohada_centre_cout && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Centre de coût</p>
-                    <p className="font-medium">{da.syscohada_centre_cout}</p>
-                  </div>
-                )}
-              </div>
+            <CardContent className="space-y-4">
+              {/* Afficher les entrées multiples si disponibles */}
+              {(() => {
+                const daAny = da as any;
+                const debits = Array.isArray(daAny.syscohada_debits) && daAny.syscohada_debits.length > 0
+                  ? daAny.syscohada_debits
+                  : da.syscohada_classe ? [{ classe: da.syscohada_classe, compte: da.syscohada_compte, nature_charge: da.syscohada_nature_charge, centre_cout: da.syscohada_centre_cout }] : [];
+                const credits = Array.isArray(daAny.syscohada_credits) && daAny.syscohada_credits.length > 0
+                  ? daAny.syscohada_credits
+                  : (daAny.syscohada_classe_2 ? [{ classe: daAny.syscohada_classe_2, compte: daAny.syscohada_compte_2, nature_charge: daAny.syscohada_nature_charge_2, centre_cout: daAny.syscohada_centre_cout_2 }] : []);
+
+                return (
+                  <>
+                    {debits.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">DÉBIT</span>
+                        </div>
+                        {debits.map((e: any, i: number) => (
+                          <div key={i} className="grid gap-2 sm:grid-cols-4 rounded-md border bg-muted/30 p-2 mb-2">
+                            <div><p className="text-xs text-muted-foreground">Classe</p><p className="text-sm font-medium">Classe {e.classe} - {SYSCOHADA_CLASSES[Number(e.classe)] || ''}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Compte</p><p className="text-sm font-medium font-mono">{e.compte}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Nature</p><p className="text-sm font-medium">{e.nature_charge}</p></div>
+                            {e.centre_cout && <div><p className="text-xs text-muted-foreground">Centre coût</p><p className="text-sm font-medium">{e.centre_cout}</p></div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {credits.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-bold text-success">CRÉDIT</span>
+                        </div>
+                        {credits.map((e: any, i: number) => (
+                          <div key={i} className="grid gap-2 sm:grid-cols-4 rounded-md border bg-muted/30 p-2 mb-2">
+                            <div><p className="text-xs text-muted-foreground">Classe</p><p className="text-sm font-medium">Classe {e.classe} - {SYSCOHADA_CLASSES[Number(e.classe)] || ''}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Compte</p><p className="text-sm font-medium font-mono">{e.compte}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Nature</p><p className="text-sm font-medium">{e.nature_charge}</p></div>
+                            {e.centre_cout && <div><p className="text-xs text-muted-foreground">Centre coût</p><p className="text-sm font-medium">{e.centre_cout}</p></div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
@@ -865,12 +884,16 @@ export default function ComptabiliteDetail() {
           </AlertDialogHeader>
           <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
             <p className="text-xs text-muted-foreground">Rattachement comptable</p>
-            <p className="font-medium">
-              <span className="text-destructive">DÉBIT</span> • Classe {syscohadaForm.classe} • {syscohadaForm.compte} • {syscohadaForm.nature_charge}
-            </p>
-            <p className="font-medium">
-              <span className="text-success">CRÉDIT</span> • Classe {syscohadaForm2.classe} • {syscohadaForm2.compte} • {syscohadaForm2.nature_charge}
-            </p>
+            {debitEntries.filter(e => e.classe && e.compte).map((e, i) => (
+              <p key={`d-${i}`} className="font-medium text-sm">
+                <span className="text-destructive">DÉBIT</span> • Classe {e.classe} • {e.compte} • {e.nature_charge}
+              </p>
+            ))}
+            {creditEntries.filter(e => e.classe && e.compte).map((e, i) => (
+              <p key={`c-${i}`} className="font-medium text-sm">
+                <span className="text-success">CRÉDIT</span> • Classe {e.classe} • {e.compte} • {e.nature_charge}
+              </p>
+            ))}
             {paymentForm.category_id && (
               <p className="text-sm text-muted-foreground">
                 Paiement configuré
