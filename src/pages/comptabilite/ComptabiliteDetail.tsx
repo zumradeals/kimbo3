@@ -72,21 +72,15 @@ export default function ComptabiliteDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Formulaire SYSCOHADA - Classe 6 (charges / débit)
-  const [syscohadaForm, setSyscohadaForm] = useState({
-    classe: '',
-    compte: '',
-    nature_charge: '',
-    centre_cout: '',
-  });
+  // Formulaire SYSCOHADA - Entrées multiples DÉBIT
+  const [debitEntries, setDebitEntries] = useState<SyscohadaEntry[]>([
+    { classe: '', compte: '', nature_charge: '', centre_cout: '' },
+  ]);
   
-  // Formulaire SYSCOHADA 2 - Classe 5 (trésorerie / crédit)
-  const [syscohadaForm2, setSyscohadaForm2] = useState({
-    classe: '',
-    compte: '',
-    nature_charge: '',
-    centre_cout: '',
-  });
+  // Formulaire SYSCOHADA - Entrées multiples CRÉDIT
+  const [creditEntries, setCreditEntries] = useState<SyscohadaEntry[]>([
+    { classe: '', compte: '', nature_charge: '', centre_cout: '' },
+  ]);
   
   // Formulaire Paiement
   const [paymentForm, setPaymentForm] = useState<{
