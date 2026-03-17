@@ -31,6 +31,22 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(getNotificationSoundMuted);
+
+  // Sync mute state across components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setIsMuted((e as CustomEvent).detail.muted);
+    };
+    window.addEventListener('kpm-sound-mute-change', handler);
+    return () => window.removeEventListener('kpm-sound-mute-change', handler);
+  }, []);
+
+  const toggleMute = () => {
+    const newMuted = !isMuted;
+    setNotificationSoundMuted(newMuted);
+    setIsMuted(newMuted);
+  };
 
   const fetchNotifications = async () => {
     if (!user) return;
