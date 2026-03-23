@@ -150,6 +150,8 @@ export default function DADetail() {
   const [showAALRejectDialog, setShowAALRejectDialog] = useState(false);
   const [aalComment, setAALComment] = useState('');
   const [aalRejectionReason, setAALRejectionReason] = useState('');
+  const [aalSelectedProjetId, setAALSelectedProjetId] = useState<string | null>(null);
+  const [availableProjets, setAvailableProjets] = useState<{ id: string; code: string; name: string }[]>([]);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [justification, setJustification] = useState('');
