@@ -50,10 +50,20 @@ import {
   ShieldCheck,
   Wallet,
   X,
+  Info,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+interface CaisseWithSolde {
+  id: string;
+  code: string;
+  name: string;
+  devise: string;
+  solde_actuel: number;
+}
 
 const statusColors: Record<ProjetStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -95,23 +105,36 @@ export default function ProjetsList() {
     budget: '',
   });
   const [selectedCaisses, setSelectedCaisses] = useState<string[]>([]);
-  const [availableCaisses, setAvailableCaisses] = useState<{ id: string; code: string; name: string; devise: string }[]>([]);
+  const [availableCaisses, setAvailableCaisses] = useState<CaisseWithSolde[]>([]);
 
   const isAAL = roles.includes('aal');
   const isDaf = roles.includes('daf');
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
-  const canCreate = isAAL || isAdmin || isLogistics;
+  const canCreate = isAAL || isAdmin || isLogistics || isDaf;
+
+  // Auto-calculate budget from selected caisses
+  const totalCaissesBudget = selectedCaisses.reduce((sum, cId) => {
+    const c = availableCaisses.find((x) => x.id === cId);
+    return sum + (c?.solde_actuel || 0);
+  }, 0);
 
   useEffect(() => {
     fetchProjets();
     fetchCaisses();
   }, []);
 
+  // Auto-update budget when caisses change
+  useEffect(() => {
+    if (selectedCaisses.length > 0) {
+      setFormData((prev) => ({ ...prev, budget: Math.ceil(totalCaissesBudget).toString() }));
+    }
+  }, [selectedCaisses, totalCaissesBudget]);
+
   const fetchCaisses = async () => {
     try {
       const { data } = await supabase
         .from('caisses')
-        .select('id, code, name, devise')
+        .select('id, code, name, devise, solde_actuel')
         .eq('is_active', true)
         .order('code');
       setAvailableCaisses(data || []);
@@ -495,17 +518,7 @@ export default function ProjetsList() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="budget">Budget (XOF)</Label>
-              <Input
-                id="budget"
-                type="number"
-                min={0}
-                value={formData.budget}
-                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                placeholder="0"
-              />
-            </div>
+
             {/* Caisse selector */}
             <div className="space-y-2">
               <Label>
@@ -519,6 +532,9 @@ export default function ProjetsList() {
                     return c ? (
                       <Badge key={cId} variant="secondary" className="gap-1">
                         {c.code} - {c.name}
+                        <span className="text-xs font-normal ml-1">
+                          ({Math.ceil(c.solde_actuel).toLocaleString()} {c.devise})
+                        </span>
                         <X className="h-3 w-3 cursor-pointer" onClick={() => toggleCaisse(cId)} />
                       </Badge>
                     ) : null;
@@ -530,15 +546,52 @@ export default function ProjetsList() {
               ) : (
                 <div className="max-h-32 overflow-y-auto rounded-md border p-2 space-y-1">
                   {availableCaisses.map((c) => (
-                    <label key={c.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
-                      <Checkbox
-                        checked={selectedCaisses.includes(c.id)}
-                        onCheckedChange={() => toggleCaisse(c.id)}
-                      />
-                      <span className="text-sm">{c.code} - {c.name} ({c.devise})</span>
+                    <label key={c.id} className="flex items-center justify-between gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedCaisses.includes(c.id)}
+                          onCheckedChange={() => toggleCaisse(c.id)}
+                        />
+                        <span className="text-sm">{c.code} - {c.name}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {Math.ceil(c.solde_actuel).toLocaleString()} {c.devise}
+                      </span>
                     </label>
                   ))}
                 </div>
+              )}
+            </div>
+
+            {/* Budget - auto-calculated */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="budget">Budget (XOF)</Label>
+                {selectedCaisses.length > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Budget auto-calculé depuis les soldes des caisses sélectionnées. Vous pouvez le modifier manuellement.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+              <Input
+                id="budget"
+                type="number"
+                min={0}
+                value={formData.budget}
+                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                placeholder="0"
+              />
+              {selectedCaisses.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  💰 Total soldes caisses : <span className="font-medium">{Math.ceil(totalCaissesBudget).toLocaleString()} XOF</span>
+                </p>
               )}
             </div>
           </div>
