@@ -1447,7 +1447,7 @@ export default function DADetail() {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Button onClick={() => setShowAALValidateDialog(true)} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
+                <Button onClick={() => { setAALSelectedProjetId(da?.projet_id || null); setShowAALValidateDialog(true); }} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
                   <Send className="mr-2 h-4 w-4" />
                   Valider et transmettre au DAF
                 </Button>
