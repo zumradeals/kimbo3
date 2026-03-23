@@ -211,6 +211,22 @@ export default function DADetail() {
     }
   }, [id]);
 
+  // Fetch available projects for AAL
+  useEffect(() => {
+    if (isAAL) {
+      const fetchProjets = async () => {
+        const { data } = await supabase
+          .from('projets')
+          .select('id, code, name')
+          .in('status', ['actif', 'valide_daf'])
+          .eq('is_active', true)
+          .order('code');
+        setAvailableProjets(data || []);
+      };
+      fetchProjets();
+    }
+  }, [isAAL]);
+
   const fetchDA = async () => {
     try {
       const { data, error } = await supabase
