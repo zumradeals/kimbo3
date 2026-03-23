@@ -150,6 +150,8 @@ export default function DADetail() {
   const [showAALRejectDialog, setShowAALRejectDialog] = useState(false);
   const [aalComment, setAALComment] = useState('');
   const [aalRejectionReason, setAALRejectionReason] = useState('');
+  const [aalSelectedProjetId, setAALSelectedProjetId] = useState<string | null>(null);
+  const [availableProjets, setAvailableProjets] = useState<{ id: string; code: string; name: string }[]>([]);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [justification, setJustification] = useState('');
@@ -208,6 +210,22 @@ export default function DADetail() {
       fetchFournisseurs();
     }
   }, [id]);
+
+  // Fetch available projects for AAL
+  useEffect(() => {
+    if (isAAL) {
+      const fetchProjets = async () => {
+        const { data } = await supabase
+          .from('projets')
+          .select('id, code, name')
+          .in('status', ['actif', 'valide_daf'])
+          .eq('is_active', true)
+          .order('code');
+        setAvailableProjets(data || []);
+      };
+      fetchProjets();
+    }
+  }, [isAAL]);
 
   const fetchDA = async () => {
     try {
@@ -664,21 +682,26 @@ export default function DADetail() {
     if (!da) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('demandes_achat')
-        .update({
+      const updateData: any = {
           status: 'soumise_validation',
           validated_aal_by: user?.id,
           validated_aal_at: new Date().toISOString(),
           aal_comment: aalComment.trim() || null,
           submitted_validation_by: user?.id,
           submitted_validation_at: new Date().toISOString(),
-        })
+        };
+        if (aalSelectedProjetId) {
+          updateData.projet_id = aalSelectedProjetId;
+        }
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update(updateData)
         .eq('id', da.id);
       if (error) throw error;
       toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour validation financière.' });
       setShowAALValidateDialog(false);
       setAALComment('');
+      setAALSelectedProjetId(null);
       fetchDA();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -1424,7 +1447,7 @@ export default function DADetail() {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Button onClick={() => setShowAALValidateDialog(true)} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
+                <Button onClick={() => { setAALSelectedProjetId(da?.projet_id || null); setShowAALValidateDialog(true); }} disabled={isSaving} className="bg-success text-success-foreground hover:bg-success/90">
                   <Send className="mr-2 h-4 w-4" />
                   Valider et transmettre au DAF
                 </Button>
@@ -2388,14 +2411,35 @@ export default function DADetail() {
               En validant, vous confirmez que cette DA est conforme aux exigences budgétaires et opérationnelles.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <Label>Commentaire (optionnel)</Label>
-            <Textarea
-              placeholder="Ajoutez un commentaire si nécessaire..."
-              value={aalComment}
-              onChange={(e) => setAALComment(e.target.value)}
-              rows={3}
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Associer à un projet (optionnel)</Label>
+              <Select
+                value={aalSelectedProjetId || '_none'}
+                onValueChange={(v) => setAALSelectedProjetId(v === '_none' ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Aucun projet</SelectItem>
+                  {availableProjets.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.code} - {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Commentaire (optionnel)</Label>
+              <Textarea
+                placeholder="Ajoutez un commentaire si nécessaire..."
+                value={aalComment}
+                onChange={(e) => setAALComment(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAALValidateDialog(false)}>Annuler</Button>
