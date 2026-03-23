@@ -177,6 +177,23 @@ export default function ProjetDetail() {
     }
   }, [id]);
 
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`projet-detail-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'besoins', filter: `projet_id=eq.${id}` }, () => fetchLinkedItems())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'demandes_achat', filter: `projet_id=eq.${id}` }, () => { fetchLinkedItems(); fetchProjectDepenses(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bons_livraison', filter: `projet_id=eq.${id}` }, () => fetchLinkedItems())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes_frais', filter: `projet_id=eq.${id}` }, () => fetchProjectDepenses())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projet_caisses', filter: `projet_id=eq.${id}` }, () => fetchLinkedCaisses())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'caisse_mouvements' }, () => { fetchLinkedCaisses(); fetchProjectDepenses(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
+
   useEffect(() => {
     if (linkedCaisses.length > 0 && id) {
       fetchProjectDepenses();
