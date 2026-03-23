@@ -682,21 +682,26 @@ export default function DADetail() {
     if (!da) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('demandes_achat')
-        .update({
+      const updateData: any = {
           status: 'soumise_validation',
           validated_aal_by: user?.id,
           validated_aal_at: new Date().toISOString(),
           aal_comment: aalComment.trim() || null,
           submitted_validation_by: user?.id,
           submitted_validation_at: new Date().toISOString(),
-        })
+        };
+        if (aalSelectedProjetId) {
+          updateData.projet_id = aalSelectedProjetId;
+        }
+      const { error } = await supabase
+        .from('demandes_achat')
+        .update(updateData)
         .eq('id', da.id);
       if (error) throw error;
       toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour validation financière.' });
       setShowAALValidateDialog(false);
       setAALComment('');
+      setAALSelectedProjetId(null);
       fetchDA();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
