@@ -192,7 +192,7 @@ export default function DADetail() {
   // Mutualisation: Les deux peuvent soumettre aux Achats
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
+  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'chiffree', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
   // Achats/Logistique ne soumet plus directement au DAF. Après chiffrage → AAL prend la main.
   // En révision achats, on re-soumet en chiffré pour que l'AAL re-valide.
   const canSubmitToValidation = false; // Désactivé: tout passe par l'AAL
