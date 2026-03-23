@@ -2411,14 +2411,35 @@ export default function DADetail() {
               En validant, vous confirmez que cette DA est conforme aux exigences budgétaires et opérationnelles.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <Label>Commentaire (optionnel)</Label>
-            <Textarea
-              placeholder="Ajoutez un commentaire si nécessaire..."
-              value={aalComment}
-              onChange={(e) => setAALComment(e.target.value)}
-              rows={3}
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Associer à un projet (optionnel)</Label>
+              <Select
+                value={aalSelectedProjetId || '_none'}
+                onValueChange={(v) => setAALSelectedProjetId(v === '_none' ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Aucun projet</SelectItem>
+                  {availableProjets.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.code} - {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Commentaire (optionnel)</Label>
+              <Textarea
+                placeholder="Ajoutez un commentaire si nécessaire..."
+                value={aalComment}
+                onChange={(e) => setAALComment(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAALValidateDialog(false)}>Annuler</Button>
