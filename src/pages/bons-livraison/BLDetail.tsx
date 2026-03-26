@@ -32,6 +32,8 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportBLToPDF } from '@/utils/pdfExport';
 import { CancelDialog } from '@/components/ui/CancelDialog';
+import { SignaturePad } from '@/components/bons-livraison/SignaturePad';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 
 const statusColors: Record<BLStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
