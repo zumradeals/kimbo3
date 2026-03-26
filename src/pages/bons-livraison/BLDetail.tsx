@@ -275,6 +275,14 @@ export default function BLDetail() {
 
   const handleDelivery = async () => {
     if (!bl || !user) return;
+    if (!receiverName.trim()) {
+      toast({ title: 'Nom du réceptionnaire requis', description: 'Veuillez saisir le nom de la personne qui réceptionne.', variant: 'destructive' });
+      return;
+    }
+    if (!deliverySignature) {
+      toast({ title: 'Signature requise', description: 'Veuillez apposer une signature de réception.', variant: 'destructive' });
+      return;
+    }
     setIsSaving(true);
     try {
       for (const art of deliveryArticles) {
@@ -289,14 +297,53 @@ export default function BLDetail() {
         status: newStatus,
         delivered_by: user.id,
         delivered_at: new Date().toISOString(),
+        receiver_name: receiverName.trim(),
+        delivery_signature: deliverySignature,
+        delivery_observations: deliveryObs.trim() || null,
       }).eq('id', bl.id);
       if (error) throw error;
 
       toast({
         title: isPartial ? 'Livraison partielle' : 'Livraison complète',
-        description: 'Le stock a été mis à jour automatiquement via le mouvement de sortie.',
+        description: 'Le stock a été mis à jour. Le PDF de décharge est en cours de génération...',
       });
       setShowDeliveryDialog(false);
+
+      // Auto-generate discharge PDF
+      setTimeout(() => {
+        const deliveredByName = user ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() || user.email || 'N/A' : 'N/A';
+        exportBLToPDF({
+          reference: bl.reference,
+          status: newStatus,
+          statusLabel: BL_STATUS_LABELS[newStatus],
+          department: bl.department?.name || 'N/A',
+          warehouse: bl.warehouse || undefined,
+          blType: bl.bl_type === 'interne' ? 'Depuis stock' : 'Fournisseur externe',
+          deliveryDate: bl.delivery_date || undefined,
+          createdAt: bl.created_at,
+          createdBy: bl.created_by_profile ? `${bl.created_by_profile.first_name || ''} ${bl.created_by_profile.last_name || ''}`.trim() : 'N/A',
+          deliveredBy: deliveredByName,
+          deliveredAt: new Date().toISOString(),
+          validatedBy: bl.validated_daf_by_profile ? `${bl.validated_daf_by_profile.first_name || ''} ${bl.validated_daf_by_profile.last_name || ''}`.trim() : undefined,
+          validatedAt: bl.validated_daf_at || bl.validated_at || undefined,
+          besoinTitle: (bl.besoin as any)?.title || 'N/A',
+          observations: bl.observations || undefined,
+          articles: articles.map(art => {
+            const da = deliveryArticles.find(d => d.id === art.id);
+            return {
+              designation: art.designation,
+              quantityOrdered: art.quantity_ordered || art.quantity,
+              quantityDelivered: da?.quantity_delivered || art.quantity_delivered || 0,
+              unit: art.unit,
+              ecartReason: da?.ecart_reason || art.ecart_reason || undefined,
+            };
+          }),
+          receiverName: receiverName.trim(),
+          signatureDataUrl: deliverySignature,
+          deliveryObservations: deliveryObs.trim() || undefined,
+        });
+      }, 500);
+
       fetchBL();
       fetchArticles();
     } catch (error: any) {
