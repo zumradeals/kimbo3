@@ -292,6 +292,8 @@ export default function StockList() {
       classe_comptable: 3,
       nombre_pieces: 1,
       conditionnement: 'durable',
+      prix_reference: null,
+      prix_reference_note: '',
     });
     setCustomUnit(false);
   };
