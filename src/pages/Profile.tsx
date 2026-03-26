@@ -99,7 +99,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('photo_url, fonction, position_departement, statut_utilisateur, chef_hierarchique_id')
+        .select('photo_url, fonction, position_departement, statut_utilisateur, chef_hierarchique_id, matricule')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -299,6 +299,11 @@ export default function Profile() {
                 <h1 className="text-2xl font-bold text-foreground">
                   {[profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Mon profil'}
                 </h1>
+                {extendedProfile.matricule && (
+                  <p className="font-mono text-sm text-muted-foreground mt-0.5">
+                    {extendedProfile.matricule}
+                  </p>
+                )}
                 {extendedProfile.fonction && (
                   <p className="text-muted-foreground flex items-center gap-2 justify-center sm:justify-start mt-1">
                     <Briefcase className="h-4 w-4" />
