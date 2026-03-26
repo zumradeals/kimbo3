@@ -210,7 +210,26 @@ export default function BLDetail() {
   };
 
   // Submit to AAL
-  const handleSubmitToAAL = () => updateStatus('soumis_aal');
+  const handleSubmitToAAL = async () => {
+    if (!bl) return;
+
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase.rpc('submit_bl_to_aal', { _bl_id: bl.id });
+
+      if (error) throw error;
+      if (!data) {
+        throw new Error('La soumission du BL a échoué.');
+      }
+
+      toast({ title: 'BL soumis', description: 'Le BL a été transmis à l\'AAL pour validation.' });
+      await fetchBL();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // AAL validates → soumis_daf
   const handleAALValidate = () => updateStatus('soumis_daf', {
