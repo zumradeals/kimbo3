@@ -551,11 +551,11 @@ export default function StockDetail() {
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
+                  <TrendingDown className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{article.quantity_reserved}</p>
-                  <p className="text-xs text-muted-foreground">Réservé</p>
+                  <p className="text-2xl font-bold">{movements.filter(m => m.movement_type === 'sortie').reduce((sum, m) => sum + m.quantity, 0)}</p>
+                  <p className="text-xs text-muted-foreground">Total sorties</p>
                 </div>
               </div>
             </CardContent>
