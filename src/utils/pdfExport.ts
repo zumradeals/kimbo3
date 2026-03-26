@@ -593,6 +593,9 @@ interface BLExportData {
   besoinTitle: string;
   besoinReference?: string;
   observations?: string;
+  receiverName?: string;
+  signatureDataUrl?: string;
+  deliveryObservations?: string;
   articles: Array<{
     designation: string;
     quantityOrdered: number;
