@@ -637,6 +637,62 @@ export default function StockDetail() {
           </Card>
         )}
 
+        {/* Fiche article complète */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Info className="h-4 w-4" />
+              Fiche technique
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Code article</p>
+                  <p className="font-mono font-semibold">{(article as any).code || 'N/A'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Classe comptable</p>
+                  <p className="font-semibold">Classe {(article as any).classe_comptable || 3}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <BoxIcon className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Conditionnement</p>
+                  <p className="font-semibold capitalize">{(article as any).conditionnement || 'Durable'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Nombre de pièces</p>
+                  <p className="font-semibold">{(article as any).nombre_pieces || 1}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <span className="text-sm font-bold text-muted-foreground">₣</span>
+                <div>
+                  <p className="text-xs text-muted-foreground">Devise</p>
+                  <p className="font-semibold">{(article as any).devise || 'XOF'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Créé le</p>
+                  <p className="font-semibold">{format(new Date(article.created_at), 'dd/MM/yyyy', { locale: fr })}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Graphique d'évolution */}
         <Card>
           <CardHeader>
@@ -678,18 +734,40 @@ export default function StockDetail() {
           </CardContent>
         </Card>
 
-        {/* Historique des mouvements */}
+        {/* Historique des mouvements enrichi */}
         <Card>
           <CardHeader>
-            <CardTitle>Historique des mouvements</CardTitle>
-            <CardDescription>
-              Derniers mouvements de stock
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Historique des mouvements</CardTitle>
+                <CardDescription>
+                  {movements.length} mouvement{movements.length > 1 ? 's' : ''} enregistré{movements.length > 1 ? 's' : ''}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={movementFilter} onValueChange={setMovementFilter}>
+                  <SelectTrigger className="h-8 w-[140px]">
+                    <Filter className="mr-1 h-3 w-3" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="entree">Entrées</SelectItem>
+                    <SelectItem value="sortie">Sorties</SelectItem>
+                    <SelectItem value="ajustement">Ajustements</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                  <Download className="mr-1 h-3 w-3" />
+                  CSV
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {movements.length === 0 ? (
+            {filteredMovements.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
-                Aucun mouvement enregistré
+                {movements.length === 0 ? 'Aucun mouvement enregistré' : 'Aucun mouvement pour ce filtre'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -698,43 +776,68 @@ export default function StockDetail() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Référence</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
-                      <TableHead className="text-right">Avant</TableHead>
+                      <TableHead className="text-right">P.U.</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
                       <TableHead className="text-right">Après</TableHead>
-                      <TableHead>Observations</TableHead>
+                      <TableHead>Source</TableHead>
                       <TableHead>Par</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {movements.map((mvt) => {
+                    {filteredMovements.map((mvt) => {
                       const MvtIcon = movementIcons[mvt.movement_type];
                       return (
                         <TableRow key={mvt.id}>
-                          <TableCell className="whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              {format(new Date(mvt.created_at), 'dd/MM/yyyy HH:mm', { locale: fr })}
-                            </div>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {format(new Date(mvt.created_at), 'dd/MM/yy HH:mm', { locale: fr })}
                           </TableCell>
                           <TableCell>
-                            <div className={`flex items-center gap-2 ${movementColors[mvt.movement_type]}`}>
-                              <MvtIcon className="h-4 w-4" />
+                            <div className={`flex items-center gap-1.5 text-xs font-medium ${movementColors[mvt.movement_type]}`}>
+                              <MvtIcon className="h-3.5 w-3.5" />
                               {STOCK_MOVEMENT_TYPE_LABELS[mvt.movement_type]}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono font-bold">
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {mvt.reference || '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm font-bold">
                             {mvt.movement_type === 'sortie' ? '-' : '+'}{mvt.quantity}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">
-                            {mvt.quantity_before}
+                          <TableCell className="text-right font-mono text-xs">
+                            {mvt.prix_unitaire ? `${Math.ceil(mvt.prix_unitaire).toLocaleString('fr-FR')}` : '-'}
                           </TableCell>
-                          <TableCell className="text-right font-mono font-medium">
+                          <TableCell className="text-right font-mono text-xs">
+                            {mvt.montant_total ? `${Math.ceil(mvt.montant_total).toLocaleString('fr-FR')}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm font-medium">
                             {mvt.quantity_after}
                           </TableCell>
-                          <TableCell className="max-w-[150px] truncate">
-                            {mvt.observations || '-'}
-                          </TableCell>
                           <TableCell>
+                            {mvt.da_id ? (
+                              <Link to={`/demandes-achat/${mvt.da_id}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                <FileText className="h-3 w-3" />
+                                DA
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </Link>
+                            ) : mvt.bl_id ? (
+                              <Link to={`/bons-livraison/${mvt.bl_id}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                <FileText className="h-3 w-3" />
+                                BL
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </Link>
+                            ) : mvt.note_frais_id ? (
+                              <Link to={`/notes-frais/${mvt.note_frais_id}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                <FileText className="h-3 w-3" />
+                                NDF
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Manuel</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs">
                             {mvt.created_by_profile 
                               ? `${mvt.created_by_profile.first_name || ''} ${mvt.created_by_profile.last_name || ''}`.trim()
                               : 'Système'
