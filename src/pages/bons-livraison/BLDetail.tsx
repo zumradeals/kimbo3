@@ -189,9 +189,15 @@ export default function BLDetail() {
     setIsSaving(true);
     try {
       const updates: any = { status: newStatus, ...extraUpdates };
-      const { error, count } = await supabase.from('bons_livraison').update(updates).eq('id', bl.id).select('id');
+      const { data, error } = await supabase
+        .from('bons_livraison')
+        .update(updates)
+        .eq('id', bl.id)
+        .select('id');
+
       if (error) throw error;
-      if (!count && count !== null) {
+
+      if (!data || data.length === 0) {
         throw new Error('Mise à jour refusée. Vérifiez vos permissions ou le statut actuel du BL.');
       }
       toast({ title: 'Statut mis à jour', description: BL_STATUS_LABELS[newStatus] });
