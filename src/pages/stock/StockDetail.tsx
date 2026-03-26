@@ -236,6 +236,7 @@ export default function StockDetail() {
     }
   };
 
+  const fetchMovements = async () => {
     try {
       const { data, error } = await supabase
         .from('stock_movements')
