@@ -593,6 +593,9 @@ interface BLExportData {
   besoinTitle: string;
   besoinReference?: string;
   observations?: string;
+  receiverName?: string;
+  signatureDataUrl?: string;
+  deliveryObservations?: string;
   articles: Array<{
     designation: string;
     quantityOrdered: number;
@@ -787,26 +790,71 @@ export const exportBLToPDF = async (data: BLExportData) => {
   });
   
   // Zones signatures
-  const sigY = doc.lastAutoTable.finalY + 15;
+  const sigY = doc.lastAutoTable.finalY + 10;
+  
+  // Delivery observations
+  if (data.deliveryObservations) {
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Observations de livraison:', margin, sigY);
+    doc.setTextColor(...COLORS.textPrimary);
+    const splitObs = doc.splitTextToSize(data.deliveryObservations, contentWidth - 8);
+    doc.text(splitObs.slice(0, 2), margin, sigY + 5);
+  }
+  
+  const sigBoxY = data.deliveryObservations ? sigY + 15 : sigY;
   const boxWidth = 80;
   
+  // Box "Livré par"
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.3);
-  doc.roundedRect(margin, sigY, boxWidth, 28, 2, 2, 'S');
+  doc.roundedRect(margin, sigBoxY, boxWidth, 32, 2, 2, 'S');
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.textMuted);
-  doc.text('Livré par:', margin + 4, sigY + 8);
+  doc.text('Livré par:', margin + 4, sigBoxY + 8);
   doc.setTextColor(...COLORS.textPrimary);
-  doc.text(data.deliveredBy || '________________________', margin + 4, sigY + 14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.deliveredBy || '________________________', margin + 4, sigBoxY + 14);
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLORS.textMuted);
-  doc.text('Signature:', margin + 4, sigY + 24);
+  doc.text('Date: ' + formatDateTime(data.deliveredAt), margin + 4, sigBoxY + 20);
+  doc.text('Signature:', margin + 4, sigBoxY + 28);
   
-  doc.roundedRect(pageWidth - margin - boxWidth, sigY, boxWidth, 28, 2, 2, 'S');
-  doc.text('Reçu par:', pageWidth - margin - boxWidth + 4, sigY + 8);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.text('________________________', pageWidth - margin - boxWidth + 4, sigY + 14);
+  // Box "Reçu par" with actual signature
+  doc.roundedRect(pageWidth - margin - boxWidth, sigBoxY, boxWidth, 32, 2, 2, 'S');
+  doc.setFontSize(8);
   doc.setTextColor(...COLORS.textMuted);
-  doc.text('Signature:', pageWidth - margin - boxWidth + 4, sigY + 24);
+  doc.text('Reçu par:', pageWidth - margin - boxWidth + 4, sigBoxY + 8);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.receiverName || '________________________', pageWidth - margin - boxWidth + 4, sigBoxY + 14);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...COLORS.textMuted);
+  doc.text('Signature:', pageWidth - margin - boxWidth + 4, sigBoxY + 20);
+  
+  // Embed actual signature image if available
+  if (data.signatureDataUrl) {
+    try {
+      doc.addImage(data.signatureDataUrl, 'PNG', pageWidth - margin - boxWidth + 20, sigBoxY + 18, 40, 12);
+    } catch (e) {
+      console.warn('Could not embed signature image', e);
+    }
+  }
+  
+  // DÉCHARGE stamp for delivered BLs
+  if (data.status === 'livre' || data.status === 'cloture') {
+    doc.setFontSize(16);
+    doc.setTextColor(...COLORS.success);
+    doc.setFont('helvetica', 'bold');
+    const stampY = sigBoxY + 40;
+    doc.setDrawColor(...COLORS.success);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(pageWidth / 2 - 30, stampY, 60, 14, 3, 3, 'S');
+    doc.text('DÉCHARGE', pageWidth / 2, stampY + 10, { align: 'center' });
+    doc.setFontSize(7);
+    doc.text('Document valant preuve de réception', pageWidth / 2, stampY + 18, { align: 'center' });
+  }
   
   addInstitutionalFooter(doc);
   doc.save(`BL_${data.reference}.pdf`);

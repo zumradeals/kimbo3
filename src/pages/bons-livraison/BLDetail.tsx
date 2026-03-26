@@ -32,6 +32,8 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportBLToPDF } from '@/utils/pdfExport';
 import { CancelDialog } from '@/components/ui/CancelDialog';
+import { SignaturePad } from '@/components/bons-livraison/SignaturePad';
+import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 
 const statusColors: Record<BLStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -94,6 +96,9 @@ export default function BLDetail() {
   const [rejectSource, setRejectSource] = useState<'aal' | 'daf'>('daf');
   const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
   const [isCreatingDA, setIsCreatingDA] = useState(false);
+  const [receiverName, setReceiverName] = useState('');
+  const [deliverySignature, setDeliverySignature] = useState<string | null>(null);
+  const [deliveryObs, setDeliveryObs] = useState('');
 
   const isOperational = roles.some((r) => OPERATIONAL_ROLES.includes(r));
   const isDAF = roles.includes('daf');
@@ -270,6 +275,14 @@ export default function BLDetail() {
 
   const handleDelivery = async () => {
     if (!bl || !user) return;
+    if (!receiverName.trim()) {
+      toast({ title: 'Nom du réceptionnaire requis', description: 'Veuillez saisir le nom de la personne qui réceptionne.', variant: 'destructive' });
+      return;
+    }
+    if (!deliverySignature) {
+      toast({ title: 'Signature requise', description: 'Veuillez apposer une signature de réception.', variant: 'destructive' });
+      return;
+    }
     setIsSaving(true);
     try {
       for (const art of deliveryArticles) {
@@ -284,14 +297,53 @@ export default function BLDetail() {
         status: newStatus,
         delivered_by: user.id,
         delivered_at: new Date().toISOString(),
+        receiver_name: receiverName.trim(),
+        delivery_signature: deliverySignature,
+        delivery_observations: deliveryObs.trim() || null,
       }).eq('id', bl.id);
       if (error) throw error;
 
       toast({
         title: isPartial ? 'Livraison partielle' : 'Livraison complète',
-        description: 'Le stock a été mis à jour automatiquement via le mouvement de sortie.',
+        description: 'Le stock a été mis à jour. Le PDF de décharge est en cours de génération...',
       });
       setShowDeliveryDialog(false);
+
+      // Auto-generate discharge PDF
+      setTimeout(() => {
+        const deliveredByName = user ? `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() || user.email || 'N/A' : 'N/A';
+        exportBLToPDF({
+          reference: bl.reference,
+          status: newStatus,
+          statusLabel: BL_STATUS_LABELS[newStatus],
+          department: bl.department?.name || 'N/A',
+          warehouse: bl.warehouse || undefined,
+          blType: bl.bl_type === 'interne' ? 'Depuis stock' : 'Fournisseur externe',
+          deliveryDate: bl.delivery_date || undefined,
+          createdAt: bl.created_at,
+          createdBy: bl.created_by_profile ? `${bl.created_by_profile.first_name || ''} ${bl.created_by_profile.last_name || ''}`.trim() : 'N/A',
+          deliveredBy: deliveredByName,
+          deliveredAt: new Date().toISOString(),
+          validatedBy: bl.validated_daf_by_profile ? `${bl.validated_daf_by_profile.first_name || ''} ${bl.validated_daf_by_profile.last_name || ''}`.trim() : undefined,
+          validatedAt: bl.validated_daf_at || bl.validated_at || undefined,
+          besoinTitle: (bl.besoin as any)?.title || 'N/A',
+          observations: bl.observations || undefined,
+          articles: articles.map(art => {
+            const da = deliveryArticles.find(d => d.id === art.id);
+            return {
+              designation: art.designation,
+              quantityOrdered: art.quantity_ordered || art.quantity,
+              quantityDelivered: da?.quantity_delivered || art.quantity_delivered || 0,
+              unit: art.unit,
+              ecartReason: da?.ecart_reason || art.ecart_reason || undefined,
+            };
+          }),
+          receiverName: receiverName.trim(),
+          signatureDataUrl: deliverySignature,
+          deliveryObservations: deliveryObs.trim() || undefined,
+        });
+      }, 500);
+
       fetchBL();
       fetchArticles();
     } catch (error: any) {
@@ -444,6 +496,7 @@ export default function BLDetail() {
                   <StatusIcon className="mr-1 h-3 w-3" />
                   {BL_STATUS_LABELS[bl.status]}
                 </Badge>
+                {['livre', 'cloture'].includes(bl.status) && <ReadOnlyBadge />}
               </div>
               <p className="text-muted-foreground">
                 Créé le {format(new Date(bl.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
@@ -718,6 +771,26 @@ export default function BLDetail() {
                 </p>
               </div>
             )}
+
+            {/* Receiver & Signature for delivered BLs */}
+            {['livre', 'livree_partiellement', 'cloture'].includes(bl.status) && (bl as any).receiver_name && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm text-muted-foreground">Réceptionné par</p>
+                <p className="font-medium">{(bl as any).receiver_name}</p>
+                {(bl as any).delivery_observations && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Observations livraison</p>
+                    <p className="text-sm">{(bl as any).delivery_observations}</p>
+                  </div>
+                )}
+                {(bl as any).delivery_signature && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Signature de réception</p>
+                    <img src={(bl as any).delivery_signature} alt="Signature" className="h-16 rounded border bg-background p-1" />
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -796,45 +869,78 @@ export default function BLDetail() {
 
       {/* Delivery Dialog */}
       <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enregistrer la livraison</DialogTitle>
-            <DialogDescription>⚠️ Le stock sera décrémenté automatiquement après confirmation.</DialogDescription>
+            <DialogDescription>⚠️ Le stock sera décrémenté automatiquement. La signature et le nom du réceptionnaire sont obligatoires.</DialogDescription>
           </DialogHeader>
-          <div className="max-h-96 overflow-y-auto py-4 space-y-4">
-            {deliveryArticles.map((art, index) => (
-              <div key={art.id} className="rounded-lg border p-4">
-                <p className="mb-3 font-medium">{art.designation}</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Quantité commandée</Label>
-                    <Input value={art.quantity_ordered} disabled className="bg-muted" />
+          <div className="py-4 space-y-6">
+            {/* Articles */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Articles</Label>
+              {deliveryArticles.map((art, index) => (
+                <div key={art.id} className="rounded-lg border p-4">
+                  <p className="mb-3 font-medium">{art.designation}</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Quantité commandée</Label>
+                      <Input value={art.quantity_ordered} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantité livrée</Label>
+                      <Input type="number" min={0} max={art.quantity_ordered} value={art.quantity_delivered} onChange={(e) => {
+                        const newArticles = [...deliveryArticles];
+                        newArticles[index].quantity_delivered = Number(e.target.value);
+                        setDeliveryArticles(newArticles);
+                      }} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Quantité livrée</Label>
-                    <Input type="number" min={0} max={art.quantity_ordered} value={art.quantity_delivered} onChange={(e) => {
-                      const newArticles = [...deliveryArticles];
-                      newArticles[index].quantity_delivered = Number(e.target.value);
-                      setDeliveryArticles(newArticles);
-                    }} />
-                  </div>
+                  {art.quantity_delivered < art.quantity_ordered && (
+                    <div className="mt-3 space-y-2">
+                      <Label className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4" />Motif de l'écart</Label>
+                      <Textarea placeholder="Expliquez..." value={art.ecart_reason} onChange={(e) => {
+                        const newArticles = [...deliveryArticles];
+                        newArticles[index].ecart_reason = e.target.value;
+                        setDeliveryArticles(newArticles);
+                      }} rows={2} />
+                    </div>
+                  )}
                 </div>
-                {art.quantity_delivered < art.quantity_ordered && (
-                  <div className="mt-3 space-y-2">
-                    <Label className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4" />Motif de l'écart</Label>
-                    <Textarea placeholder="Expliquez..." value={art.ecart_reason} onChange={(e) => {
-                      const newArticles = [...deliveryArticles];
-                      newArticles[index].ecart_reason = e.target.value;
-                      setDeliveryArticles(newArticles);
-                    }} rows={2} />
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Observations livraison */}
+            <div className="space-y-2">
+              <Label>Observations de livraison (optionnel)</Label>
+              <Textarea
+                placeholder="Remarques sur la livraison..."
+                value={deliveryObs}
+                onChange={(e) => setDeliveryObs(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Réceptionnaire */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">Réceptionnaire *</Label>
+              <Input
+                placeholder="Nom complet de la personne qui réceptionne"
+                value={receiverName}
+                onChange={(e) => setReceiverName(e.target.value)}
+              />
+            </div>
+
+            {/* Signature */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">Signature de réception *</Label>
+              <SignaturePad onSignatureChange={setDeliverySignature} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeliveryDialog(false)}>Annuler</Button>
-            <Button onClick={handleDelivery} disabled={isSaving}>{isSaving ? 'Enregistrement...' : 'Confirmer la livraison'}</Button>
+            <Button onClick={handleDelivery} disabled={isSaving || !receiverName.trim() || !deliverySignature}>
+              {isSaving ? 'Enregistrement...' : 'Confirmer la livraison'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
