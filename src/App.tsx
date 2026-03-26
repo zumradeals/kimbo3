@@ -55,6 +55,7 @@ import ComptabiliteDetail from "./pages/comptabilite/ComptabiliteDetail";
 import StockList from "./pages/stock/StockList";
 import StockMovements from "./pages/stock/StockMovements";
 import StockDetail from "./pages/stock/StockDetail";
+import StockKimbo from "./pages/stock/StockKimbo";
 import StockCategories from "./pages/admin/StockCategories";
 
 // Module Stocks (Multi-stocks)
@@ -167,6 +168,7 @@ function AppRoutes() {
       {/* Module Stock */}
       <Route path="/stock" element={<ProtectedRoute><StockList /></ProtectedRoute>} />
       <Route path="/stock/mouvements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
+      <Route path="/stock/kimbo" element={<ProtectedRoute><StockKimbo /></ProtectedRoute>} />
       <Route path="/stock/categories" element={<ProtectedRoute><StockCategories /></ProtectedRoute>} />
       <Route path="/stock/:id" element={<ProtectedRoute><StockDetail /></ProtectedRoute>} />
       
