@@ -15,6 +15,8 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
 
+type ImmoStatus = 'brouillon' | 'validee' | 'active' | 'en_maintenance' | 'sortie' | 'reformee' | 'cedee';
+
 const STATUS_LABELS: Record<string, string> = {
   brouillon: 'Brouillon',
   validee: 'Validée',
@@ -48,7 +50,7 @@ const PAGE_SIZE = 20;
 export default function ImmobilisationsList() {
   const { isAdmin, roles } = useAuth();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<ImmoStatus | 'all'>('all');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
 
@@ -66,8 +68,8 @@ export default function ImmobilisationsList() {
       if (debouncedSearch) {
         query = query.or(`designation.ilike.%${debouncedSearch}%,code.ilike.%${debouncedSearch}%,numero_serie.ilike.%${debouncedSearch}%`);
       }
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter as ImmoStatus);
       }
 
       const { data, error, count } = await query;
@@ -188,7 +190,7 @@ export default function ImmobilisationsList() {
         )}
 
         {totalPages > 1 && (
-          <PaginationControls currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+          <PaginationControls page={page} totalPages={totalPages} totalCount={data?.count || 0} pageSize={PAGE_SIZE} onPageChange={setPage} />
         )}
       </div>
     </AppLayout>
