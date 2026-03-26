@@ -77,9 +77,13 @@ export default function StockMovements() {
         .from('stock_movements')
         .select(`
           *,
-          article_stock:articles_stock(id, designation),
+          article_stock:articles_stock(id, designation, code),
           entrepot:entrepots(id, nom, type),
-          created_by_profile:profiles!stock_movements_created_by_fkey(id, first_name, last_name)
+          created_by_profile:profiles!stock_movements_created_by_fkey(id, first_name, last_name),
+          da:demandes_achat(id, reference),
+          bl:bons_livraison(id, reference),
+          note_frais:notes_frais(id, reference),
+          projet:projets(id, nom)
         `)
         .order('created_at', { ascending: false })
         .limit(500);
