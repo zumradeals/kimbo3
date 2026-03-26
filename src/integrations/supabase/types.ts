@@ -17,6 +17,9 @@ export type Database = {
       articles_stock: {
         Row: {
           category_id: string | null
+          classe_comptable: number | null
+          code: string | null
+          conditionnement: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -25,6 +28,7 @@ export type Database = {
           entrepot_id: string | null
           id: string
           location: string | null
+          nombre_pieces: number | null
           prix_reference: number | null
           prix_reference_note: string | null
           prix_reference_updated_at: string | null
@@ -37,6 +41,9 @@ export type Database = {
         }
         Insert: {
           category_id?: string | null
+          classe_comptable?: number | null
+          code?: string | null
+          conditionnement?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -45,6 +52,7 @@ export type Database = {
           entrepot_id?: string | null
           id?: string
           location?: string | null
+          nombre_pieces?: number | null
           prix_reference?: number | null
           prix_reference_note?: string | null
           prix_reference_updated_at?: string | null
@@ -57,6 +65,9 @@ export type Database = {
         }
         Update: {
           category_id?: string | null
+          classe_comptable?: number | null
+          code?: string | null
+          conditionnement?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -65,6 +76,7 @@ export type Database = {
           entrepot_id?: string | null
           id?: string
           location?: string | null
+          nombre_pieces?: number | null
           prix_reference?: number | null
           prix_reference_note?: string | null
           prix_reference_updated_at?: string | null
@@ -2610,8 +2622,11 @@ export type Database = {
           da_id: string | null
           entrepot_id: string | null
           id: string
+          montant_total: number | null
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          note_frais_id: string | null
           observations: string | null
+          prix_unitaire: number | null
           projet_id: string | null
           quantity: number
           quantity_after: number
@@ -2626,8 +2641,11 @@ export type Database = {
           da_id?: string | null
           entrepot_id?: string | null
           id?: string
+          montant_total?: number | null
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          note_frais_id?: string | null
           observations?: string | null
+          prix_unitaire?: number | null
           projet_id?: string | null
           quantity: number
           quantity_after: number
@@ -2642,8 +2660,11 @@ export type Database = {
           da_id?: string | null
           entrepot_id?: string | null
           id?: string
+          montant_total?: number | null
           movement_type?: Database["public"]["Enums"]["stock_movement_type"]
+          note_frais_id?: string | null
           observations?: string | null
+          prix_unitaire?: number | null
           projet_id?: string | null
           quantity?: number
           quantity_after?: number
@@ -2684,6 +2705,13 @@ export type Database = {
             columns: ["entrepot_id"]
             isOneToOne: false
             referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_note_frais_id_fkey"
+            columns: ["note_frais_id"]
+            isOneToOne: false
+            referencedRelation: "notes_frais"
             referencedColumns: ["id"]
           },
           {
@@ -2852,6 +2880,7 @@ export type Database = {
         Returns: string
       }
       dashboard_summary_by_role: { Args: { _user_id: string }; Returns: Json }
+      generate_article_code: { Args: never; Returns: string }
       generate_bl_reference: { Args: never; Returns: string }
       generate_da_reference: { Args: never; Returns: string }
       generate_ecriture_reference: { Args: never; Returns: string }
