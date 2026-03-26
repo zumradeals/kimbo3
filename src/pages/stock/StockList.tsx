@@ -33,6 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { BarChart3 } from 'lucide-react';
 import { CategorySelector } from '@/components/stock/CategorySelector';
 import { StockSelector } from '@/components/stock/EntrepotSelector';
 import { AddArticleToStockDialog } from '@/components/stock/AddArticleToStockDialog';
