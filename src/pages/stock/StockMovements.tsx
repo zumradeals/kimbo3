@@ -83,7 +83,7 @@ export default function StockMovements() {
           da:demandes_achat(id, reference),
           bl:bons_livraison(id, reference),
           note_frais:notes_frais(id, reference),
-          projet:projets(id, nom)
+          projet:projets(id, name)
         `)
         .order('created_at', { ascending: false })
         .limit(500);
