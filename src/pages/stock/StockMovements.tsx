@@ -272,9 +272,9 @@ export default function StockMovements() {
                             {mv.quantity_after}
                           </TableCell>
                           <TableCell className="text-xs">
-                            {mv.projet?.nom ? (
+                            {mv.projet?.name ? (
                               <Link to={`/projets/${mv.projet_id}`} className="text-primary hover:underline">
-                                {mv.projet.nom}
+                                {mv.projet.name}
                               </Link>
                             ) : '-'}
                           </TableCell>
