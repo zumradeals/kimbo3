@@ -339,18 +339,19 @@ export default function BLDetail() {
         observations: `Reliquat BL ${bl.reference}`,
       }));
 
-      const { data: daData, error: daError } = await supabase.from('demandes_achat').insert({
+      const daInsertData: any = {
         reference: refData,
         besoin_id: besoinData.id,
         department_id: besoinData.department_id,
         created_by: user.id,
-        category: 'materiel' as const,
-        priority: 'normale' as const,
+        category: 'materiel',
+        priority: 'normale',
         desired_date: besoinData.desired_date,
         projet_id: besoinData.projet_id,
-        status: 'brouillon' as const,
+        status: 'brouillon',
         description: `Reliquat BL ${bl.reference}`,
-      }).select().single();
+      };
+      const { data: daData, error: daError } = await supabase.from('demandes_achat').insert(daInsertData).select().single();
       if (daError || !daData) throw daError || new Error('Impossible de créer la DA');
 
       await supabase.from('da_articles').insert(reliquatItems.map((item) => ({
