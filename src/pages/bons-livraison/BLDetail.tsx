@@ -849,45 +849,78 @@ export default function BLDetail() {
 
       {/* Delivery Dialog */}
       <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enregistrer la livraison</DialogTitle>
-            <DialogDescription>⚠️ Le stock sera décrémenté automatiquement après confirmation.</DialogDescription>
+            <DialogDescription>⚠️ Le stock sera décrémenté automatiquement. La signature et le nom du réceptionnaire sont obligatoires.</DialogDescription>
           </DialogHeader>
-          <div className="max-h-96 overflow-y-auto py-4 space-y-4">
-            {deliveryArticles.map((art, index) => (
-              <div key={art.id} className="rounded-lg border p-4">
-                <p className="mb-3 font-medium">{art.designation}</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Quantité commandée</Label>
-                    <Input value={art.quantity_ordered} disabled className="bg-muted" />
+          <div className="py-4 space-y-6">
+            {/* Articles */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Articles</Label>
+              {deliveryArticles.map((art, index) => (
+                <div key={art.id} className="rounded-lg border p-4">
+                  <p className="mb-3 font-medium">{art.designation}</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Quantité commandée</Label>
+                      <Input value={art.quantity_ordered} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantité livrée</Label>
+                      <Input type="number" min={0} max={art.quantity_ordered} value={art.quantity_delivered} onChange={(e) => {
+                        const newArticles = [...deliveryArticles];
+                        newArticles[index].quantity_delivered = Number(e.target.value);
+                        setDeliveryArticles(newArticles);
+                      }} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Quantité livrée</Label>
-                    <Input type="number" min={0} max={art.quantity_ordered} value={art.quantity_delivered} onChange={(e) => {
-                      const newArticles = [...deliveryArticles];
-                      newArticles[index].quantity_delivered = Number(e.target.value);
-                      setDeliveryArticles(newArticles);
-                    }} />
-                  </div>
+                  {art.quantity_delivered < art.quantity_ordered && (
+                    <div className="mt-3 space-y-2">
+                      <Label className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4" />Motif de l'écart</Label>
+                      <Textarea placeholder="Expliquez..." value={art.ecart_reason} onChange={(e) => {
+                        const newArticles = [...deliveryArticles];
+                        newArticles[index].ecart_reason = e.target.value;
+                        setDeliveryArticles(newArticles);
+                      }} rows={2} />
+                    </div>
+                  )}
                 </div>
-                {art.quantity_delivered < art.quantity_ordered && (
-                  <div className="mt-3 space-y-2">
-                    <Label className="flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4" />Motif de l'écart</Label>
-                    <Textarea placeholder="Expliquez..." value={art.ecart_reason} onChange={(e) => {
-                      const newArticles = [...deliveryArticles];
-                      newArticles[index].ecart_reason = e.target.value;
-                      setDeliveryArticles(newArticles);
-                    }} rows={2} />
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Observations livraison */}
+            <div className="space-y-2">
+              <Label>Observations de livraison (optionnel)</Label>
+              <Textarea
+                placeholder="Remarques sur la livraison..."
+                value={deliveryObs}
+                onChange={(e) => setDeliveryObs(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Réceptionnaire */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">Réceptionnaire *</Label>
+              <Input
+                placeholder="Nom complet de la personne qui réceptionne"
+                value={receiverName}
+                onChange={(e) => setReceiverName(e.target.value)}
+              />
+            </div>
+
+            {/* Signature */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">Signature de réception *</Label>
+              <SignaturePad onSignatureChange={setDeliverySignature} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeliveryDialog(false)}>Annuler</Button>
-            <Button onClick={handleDelivery} disabled={isSaving}>{isSaving ? 'Enregistrement...' : 'Confirmer la livraison'}</Button>
+            <Button onClick={handleDelivery} disabled={isSaving || !receiverName.trim() || !deliverySignature}>
+              {isSaving ? 'Enregistrement...' : 'Confirmer la livraison'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
