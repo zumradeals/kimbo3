@@ -9,6 +9,7 @@ interface EnrichedProfile {
   photo_url: string | null;
   fonction: string | null;
   department_name: string | null;
+  matricule: string | null;
 }
 
 // Cache for profiles to avoid repeated fetches
@@ -42,7 +43,7 @@ export function useEnrichedProfiles(userIds: (string | null | undefined)[]) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, photo_url, fonction, department:departments(name)')
+        .select('id, first_name, last_name, email, photo_url, fonction, matricule, department:departments(name)')
         .in('id', idsToFetch);
 
       if (error) throw error;
@@ -58,6 +59,7 @@ export function useEnrichedProfiles(userIds: (string | null | undefined)[]) {
           photo_url: profile.photo_url,
           fonction: profile.fonction,
           department_name: (profile.department as any)?.name || null,
+          matricule: (profile as any).matricule || null,
         };
         newProfiles.set(profile.id, enriched);
         profileCache.set(profile.id, enriched);

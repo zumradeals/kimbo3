@@ -57,12 +57,14 @@ export default function Profile() {
     position_departement: string | null;
     statut_utilisateur: string | null;
     chef_hierarchique_id: string | null;
+    matricule: string | null;
   }>({
     photo_url: null,
     fonction: null,
     position_departement: 'membre',
     statut_utilisateur: 'actif',
     chef_hierarchique_id: null,
+    matricule: null,
   });
   
   const [form, setForm] = useState({
@@ -99,7 +101,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('photo_url, fonction, position_departement, statut_utilisateur, chef_hierarchique_id')
+        .select('photo_url, fonction, position_departement, statut_utilisateur, chef_hierarchique_id, matricule')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -112,6 +114,7 @@ export default function Profile() {
           position_departement: data.position_departement,
           statut_utilisateur: data.statut_utilisateur,
           chef_hierarchique_id: data.chef_hierarchique_id,
+          matricule: (data as any).matricule || null,
         });
         setForm(prev => ({ ...prev, fonction: data.fonction || '' }));
 
@@ -299,6 +302,11 @@ export default function Profile() {
                 <h1 className="text-2xl font-bold text-foreground">
                   {[profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Mon profil'}
                 </h1>
+                {extendedProfile.matricule && (
+                  <p className="font-mono text-sm text-muted-foreground mt-0.5">
+                    {extendedProfile.matricule}
+                  </p>
+                )}
                 {extendedProfile.fonction && (
                   <p className="text-muted-foreground flex items-center gap-2 justify-center sm:justify-start mt-1">
                     <Briefcase className="h-4 w-4" />

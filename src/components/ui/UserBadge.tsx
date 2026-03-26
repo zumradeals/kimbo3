@@ -9,9 +9,11 @@ interface UserBadgeProps {
   lastName?: string | null;
   fonction?: string | null;
   departmentName?: string | null;
+  matricule?: string | null;
   size?: 'sm' | 'md' | 'lg';
   showDepartment?: boolean;
   showFonction?: boolean;
+  showMatricule?: boolean;
   linkToProfile?: boolean;
   className?: string;
 }
@@ -23,9 +25,11 @@ export function UserBadge({
   lastName,
   fonction,
   departmentName,
+  matricule,
   size = 'md',
   showDepartment = false,
   showFonction = false,
+  showMatricule = false,
   linkToProfile = false,
   className,
 }: UserBadgeProps) {
@@ -45,13 +49,18 @@ export function UserBadge({
         size={avatarSize}
       />
       <div className="min-w-0 flex-1">
-        <p className={cn(
-          'font-medium text-foreground truncate',
-          size === 'sm' && 'text-sm',
-          size === 'lg' && 'text-base'
-        )}>
-          {fullName}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className={cn(
+            'font-medium text-foreground truncate',
+            size === 'sm' && 'text-sm',
+            size === 'lg' && 'text-base'
+          )}>
+            {fullName}
+          </p>
+          {(showMatricule && matricule) && (
+            <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">{matricule}</span>
+          )}
+        </div>
         {(showFonction && fonction) && (
           <p className="text-xs text-muted-foreground truncate">{fonction}</p>
         )}

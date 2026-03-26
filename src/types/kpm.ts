@@ -44,6 +44,7 @@ export interface Profile {
   chef_hierarchique_id?: string | null;
   position_departement?: PositionDepartement | null;
   statut_utilisateur?: StatutUtilisateur | null;
+  matricule?: string;
 }
 
 export const POSITION_DEPARTEMENT_LABELS: Record<PositionDepartement, string> = {
