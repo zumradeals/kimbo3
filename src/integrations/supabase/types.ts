@@ -490,6 +490,7 @@ export type Database = {
       }
       bons_livraison: {
         Row: {
+          aal_rejection_reason: string | null
           besoin_id: string
           bl_type: string | null
           cancellation_reason: string | null
@@ -497,6 +498,7 @@ export type Database = {
           cancelled_by: string | null
           created_at: string
           created_by: string
+          daf_rejection_reason: string | null
           delivered_at: string | null
           delivered_by: string | null
           delivery_date: string | null
@@ -511,11 +513,16 @@ export type Database = {
           rejection_reason: string | null
           status: Database["public"]["Enums"]["bl_status"]
           updated_at: string
+          validated_aal_at: string | null
+          validated_aal_by: string | null
           validated_at: string | null
           validated_by: string | null
+          validated_daf_at: string | null
+          validated_daf_by: string | null
           warehouse: string | null
         }
         Insert: {
+          aal_rejection_reason?: string | null
           besoin_id: string
           bl_type?: string | null
           cancellation_reason?: string | null
@@ -523,6 +530,7 @@ export type Database = {
           cancelled_by?: string | null
           created_at?: string
           created_by: string
+          daf_rejection_reason?: string | null
           delivered_at?: string | null
           delivered_by?: string | null
           delivery_date?: string | null
@@ -537,11 +545,16 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["bl_status"]
           updated_at?: string
+          validated_aal_at?: string | null
+          validated_aal_by?: string | null
           validated_at?: string | null
           validated_by?: string | null
+          validated_daf_at?: string | null
+          validated_daf_by?: string | null
           warehouse?: string | null
         }
         Update: {
+          aal_rejection_reason?: string | null
           besoin_id?: string
           bl_type?: string | null
           cancellation_reason?: string | null
@@ -549,6 +562,7 @@ export type Database = {
           cancelled_by?: string | null
           created_at?: string
           created_by?: string
+          daf_rejection_reason?: string | null
           delivered_at?: string | null
           delivered_by?: string | null
           delivery_date?: string | null
@@ -563,8 +577,12 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["bl_status"]
           updated_at?: string
+          validated_aal_at?: string | null
+          validated_aal_by?: string | null
           validated_at?: string | null
           validated_by?: string | null
+          validated_daf_at?: string | null
+          validated_daf_by?: string | null
           warehouse?: string | null
         }
         Relationships: [
@@ -625,8 +643,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bons_livraison_validated_aal_by_fkey"
+            columns: ["validated_aal_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bons_livraison_validated_by_fkey"
             columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_livraison_validated_daf_by_fkey"
+            columns: ["validated_daf_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3119,6 +3151,13 @@ export type Database = {
         | "livree_partiellement"
         | "refusee"
         | "annulee"
+        | "brouillon"
+        | "soumis_aal"
+        | "soumis_daf"
+        | "valide_daf"
+        | "pret_a_livrer"
+        | "refuse_daf"
+        | "cloture"
       da_category:
         | "fournitures"
         | "equipement"
@@ -3352,6 +3391,13 @@ export const Constants = {
         "livree_partiellement",
         "refusee",
         "annulee",
+        "brouillon",
+        "soumis_aal",
+        "soumis_daf",
+        "valide_daf",
+        "pret_a_livrer",
+        "refuse_daf",
+        "cloture",
       ],
       da_category: [
         "fournitures",
