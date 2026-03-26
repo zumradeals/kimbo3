@@ -92,6 +92,11 @@ import RapportsAAL from "./pages/rapports-aal/RapportsAAL";
 // Rapports Opérationnels
 import RapportsOperationnels from "./pages/rapports-operationnels/RapportsOperationnels";
 
+// Module Immobilisations
+import ImmobilisationsList from "./pages/immobilisations/ImmobilisationsList";
+import ImmobilisationCreate from "./pages/immobilisations/ImmobilisationCreate";
+import ImmobilisationDetail from "./pages/immobilisations/ImmobilisationDetail";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -200,6 +205,11 @@ function AppRoutes() {
 
       {/* Quick Actions (Mobile) */}
       <Route path="/actions-rapides" element={<ProtectedRoute><QuickActions /></ProtectedRoute>} />
+
+      {/* Module Immobilisations */}
+      <Route path="/immobilisations" element={<ProtectedRoute><ImmobilisationsList /></ProtectedRoute>} />
+      <Route path="/immobilisations/nouveau" element={<ProtectedRoute><ImmobilisationCreate /></ProtectedRoute>} />
+      <Route path="/immobilisations/:id" element={<ProtectedRoute><ImmobilisationDetail /></ProtectedRoute>} />
       
       {/* Profil et Utilisateurs */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

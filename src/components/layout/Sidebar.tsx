@@ -26,6 +26,7 @@ import {
   Warehouse,
   MessageSquarePlus,
   Zap,
+  Landmark,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -163,6 +164,12 @@ const moduleNavItems: NavItem[] = [
     href: '/caisse',
     icon: Wallet,
     module: 'caisse',
+  },
+  {
+    label: 'Immobilisations',
+    href: '/immobilisations',
+    icon: Landmark,
+    module: 'immobilisations',
   },
   {
     label: 'Rapports AAL',
