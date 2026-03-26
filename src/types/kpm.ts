@@ -686,8 +686,16 @@ export interface StockCategory {
   articles_count?: number;
 }
 
+export type Conditionnement = 'durable' | 'perissable';
+
+export const CONDITIONNEMENT_LABELS: Record<Conditionnement, string> = {
+  durable: 'Durable',
+  perissable: 'Périssable',
+};
+
 export interface ArticleStock {
   id: string;
+  code: string;
   designation: string;
   description: string | null;
   unit: string;
@@ -697,6 +705,10 @@ export interface ArticleStock {
   location: string | null;
   status: StockStatus;
   category_id: string | null;
+  classe_comptable: number | null;
+  nombre_pieces: number | null;
+  conditionnement: Conditionnement | null;
+  prix_reference: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -711,17 +723,50 @@ export interface StockMovement {
   quantity: number;
   quantity_before: number;
   quantity_after: number;
+  prix_unitaire: number | null;
+  montant_total: number | null;
   reference: string | null;
   bl_id: string | null;
   da_id: string | null;
+  note_frais_id: string | null;
   projet_id: string | null;
   observations: string | null;
   created_by: string;
   created_at: string;
   // Relations
-  article_stock?: { id: string; designation: string } | null;
+  article_stock?: { id: string; designation: string; code?: string } | null;
   created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   projet?: Projet | null;
+}
+
+// Interface pour la vue Stock KIMBO calculée
+export interface StockKimboView {
+  id: string;
+  code: string;
+  designation: string;
+  unit: string;
+  classe_comptable: number | null;
+  nombre_pieces: number | null;
+  conditionnement: string | null;
+  category_id: string | null;
+  category_name: string | null;
+  location: string | null;
+  date_premiere_entree: string | null;
+  stock_initial_qty: number;
+  stock_initial_prix: number;
+  stock_initial_montant: number;
+  entrees_qty: number;
+  entrees_prix_unitaire: number;
+  entrees_montant: number;
+  sorties_qty: number;
+  sorties_prix_unitaire: number;
+  sorties_montant: number;
+  stock_final_qty: number;
+  stock_final_prix_unitaire: number;
+  stock_final_montant: number;
+  quantity_available: number;
+  status: StockStatus;
+  created_at: string;
 }
 
 export const STOCK_MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
