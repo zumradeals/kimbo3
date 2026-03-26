@@ -502,11 +502,14 @@ export type Database = {
           delivered_at: string | null
           delivered_by: string | null
           delivery_date: string | null
+          delivery_observations: string | null
+          delivery_signature: string | null
           department_id: string
           entrepot_id: string | null
           id: string
           observations: string | null
           projet_id: string | null
+          receiver_name: string | null
           reference: string
           rejected_at: string | null
           rejected_by: string | null
@@ -534,11 +537,14 @@ export type Database = {
           delivered_at?: string | null
           delivered_by?: string | null
           delivery_date?: string | null
+          delivery_observations?: string | null
+          delivery_signature?: string | null
           department_id: string
           entrepot_id?: string | null
           id?: string
           observations?: string | null
           projet_id?: string | null
+          receiver_name?: string | null
           reference: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -566,11 +572,14 @@ export type Database = {
           delivered_at?: string | null
           delivered_by?: string | null
           delivery_date?: string | null
+          delivery_observations?: string | null
+          delivery_signature?: string | null
           department_id?: string
           entrepot_id?: string | null
           id?: string
           observations?: string | null
           projet_id?: string | null
+          receiver_name?: string | null
           reference?: string
           rejected_at?: string | null
           rejected_by?: string | null
