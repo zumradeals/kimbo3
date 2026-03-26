@@ -116,6 +116,7 @@ export const MODULE_ROUTES: Record<string, string[]> = {
   caisse: ['/caisse'],
   audit: ['/audit'],
   rapports: ['/reports'],
+  immobilisations: ['/immobilisations'],
   rapports_aal: ['/rapports-aal'],
   rapports_operationnels: ['/rapports-operationnels'],
 };
@@ -134,6 +135,7 @@ export const MODULE_LABELS: Record<string, string> = {
   projets: 'Projets',
   notes_frais: 'Notes de frais',
   caisse: 'Caisse',
+  immobilisations: 'Immobilisations',
   audit: 'Journal d\'audit',
   rapports: 'Rapports',
 };

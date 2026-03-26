@@ -1791,6 +1791,198 @@ export type Database = {
         }
         Relationships: []
       }
+      immobilisation_history: {
+        Row: {
+          action: string
+          comment: string | null
+          created_at: string
+          id: string
+          immobilisation_id: string
+          new_values: Json | null
+          old_values: Json | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          immobilisation_id: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          immobilisation_id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "immobilisation_history_immobilisation_id_fkey"
+            columns: ["immobilisation_id"]
+            isOneToOne: false
+            referencedRelation: "immobilisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisation_history_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      immobilisations: {
+        Row: {
+          affecte_a: string | null
+          article_stock_id: string | null
+          category: string | null
+          classe_comptable: number
+          code: string
+          created_at: string
+          created_by: string
+          da_id: string | null
+          date_acquisition: string
+          department_id: string | null
+          description: string | null
+          designation: string
+          devise: string
+          duree_vie_estimee: number | null
+          emplacement: string | null
+          etat: Database["public"]["Enums"]["immobilisation_etat"]
+          id: string
+          mode_acquisition: Database["public"]["Enums"]["immobilisation_mode_acquisition"]
+          numero_serie: string | null
+          status: Database["public"]["Enums"]["immobilisation_status"]
+          stock_movement_id: string | null
+          type: Database["public"]["Enums"]["immobilisation_type"]
+          updated_at: string
+          valeur_acquisition: number
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          affecte_a?: string | null
+          article_stock_id?: string | null
+          category?: string | null
+          classe_comptable?: number
+          code: string
+          created_at?: string
+          created_by: string
+          da_id?: string | null
+          date_acquisition?: string
+          department_id?: string | null
+          description?: string | null
+          designation: string
+          devise?: string
+          duree_vie_estimee?: number | null
+          emplacement?: string | null
+          etat?: Database["public"]["Enums"]["immobilisation_etat"]
+          id?: string
+          mode_acquisition?: Database["public"]["Enums"]["immobilisation_mode_acquisition"]
+          numero_serie?: string | null
+          status?: Database["public"]["Enums"]["immobilisation_status"]
+          stock_movement_id?: string | null
+          type?: Database["public"]["Enums"]["immobilisation_type"]
+          updated_at?: string
+          valeur_acquisition?: number
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          affecte_a?: string | null
+          article_stock_id?: string | null
+          category?: string | null
+          classe_comptable?: number
+          code?: string
+          created_at?: string
+          created_by?: string
+          da_id?: string | null
+          date_acquisition?: string
+          department_id?: string | null
+          description?: string | null
+          designation?: string
+          devise?: string
+          duree_vie_estimee?: number | null
+          emplacement?: string | null
+          etat?: Database["public"]["Enums"]["immobilisation_etat"]
+          id?: string
+          mode_acquisition?: Database["public"]["Enums"]["immobilisation_mode_acquisition"]
+          numero_serie?: string | null
+          status?: Database["public"]["Enums"]["immobilisation_status"]
+          stock_movement_id?: string | null
+          type?: Database["public"]["Enums"]["immobilisation_type"]
+          updated_at?: string
+          valeur_acquisition?: number
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "immobilisations_affecte_a_fkey"
+            columns: ["affecte_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_da_id_fkey"
+            columns: ["da_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_stock_movement_id_fkey"
+            columns: ["stock_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_frais_lignes: {
         Row: {
           created_at: string
@@ -3248,6 +3440,21 @@ export type Database = {
         | "valide_departement"
         | "rejete_departement"
         | "envoye_logistique"
+      immobilisation_etat: "neuf" | "bon" | "use" | "en_panne" | "hors_service"
+      immobilisation_mode_acquisition:
+        | "achat_da"
+        | "sortie_stock"
+        | "don"
+        | "autre"
+      immobilisation_status:
+        | "brouillon"
+        | "validee"
+        | "active"
+        | "en_maintenance"
+        | "sortie"
+        | "reformee"
+        | "cedee"
+      immobilisation_type: "corporel" | "incorporel"
       note_frais_status:
         | "brouillon"
         | "soumise"
@@ -3492,6 +3699,23 @@ export const Constants = {
         "rejete_departement",
         "envoye_logistique",
       ],
+      immobilisation_etat: ["neuf", "bon", "use", "en_panne", "hors_service"],
+      immobilisation_mode_acquisition: [
+        "achat_da",
+        "sortie_stock",
+        "don",
+        "autre",
+      ],
+      immobilisation_status: [
+        "brouillon",
+        "validee",
+        "active",
+        "en_maintenance",
+        "sortie",
+        "reformee",
+        "cedee",
+      ],
+      immobilisation_type: ["corporel", "incorporel"],
       note_frais_status: [
         "brouillon",
         "soumise",
