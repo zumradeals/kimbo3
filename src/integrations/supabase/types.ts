@@ -2239,6 +2239,7 @@ export type Database = {
           fonction: string | null
           id: string
           last_name: string | null
+          matricule: string
           photo_url: string | null
           position_departement: string | null
           status: Database["public"]["Enums"]["user_status"]
@@ -2254,6 +2255,7 @@ export type Database = {
           fonction?: string | null
           id: string
           last_name?: string | null
+          matricule: string
           photo_url?: string | null
           position_departement?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -2269,6 +2271,7 @@ export type Database = {
           fonction?: string | null
           id?: string
           last_name?: string | null
+          matricule?: string
           photo_url?: string | null
           position_departement?: string | null
           status?: Database["public"]["Enums"]["user_status"]
