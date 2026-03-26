@@ -785,6 +785,53 @@ export default function StockList() {
               />
             </div>
 
+            {/* Classe comptable & Conditionnement */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Classe comptable</Label>
+                <Select
+                  value={String(newArticle.classe_comptable)}
+                  onValueChange={(v) => setNewArticle({ ...newArticle, classe_comptable: parseInt(v) })}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[2, 3, 4, 5, 6, 7].map((c) => (
+                      <SelectItem key={c} value={String(c)}>
+                        Classe {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Nombre de pièces</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={newArticle.nombre_pieces}
+                  onChange={(e) => setNewArticle({ ...newArticle, nombre_pieces: parseInt(e.target.value) || 1 })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Conditionnement</Label>
+                <Select
+                  value={newArticle.conditionnement}
+                  onValueChange={(v) => setNewArticle({ ...newArticle, conditionnement: v as 'durable' | 'perissable' })}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="durable">Durable</SelectItem>
+                    <SelectItem value="perissable">Périssable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* Emplacement */}
             <div className="space-y-2">
               <Label htmlFor="location" className="text-sm font-medium">
