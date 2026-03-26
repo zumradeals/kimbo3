@@ -596,7 +596,21 @@ export const MODES_PAIEMENT = [
 
 // ==================== MODULE BON DE LIVRAISON (BL) ====================
 
-export type BLStatus = 'prepare' | 'en_attente_validation' | 'valide' | 'livre' | 'livree_partiellement' | 'refusee' | 'annulee';
+export type BLStatus = 
+  | 'brouillon'
+  | 'prepare'
+  | 'soumis_aal'
+  | 'soumis_daf'
+  | 'valide_daf'
+  | 'pret_a_livrer'
+  | 'livre'
+  | 'livree_partiellement'
+  | 'refuse_daf'
+  | 'en_attente_validation'
+  | 'valide'
+  | 'refusee'
+  | 'annulee'
+  | 'cloture';
 export type BLType = 'fournisseur' | 'interne';
 
 export interface BLArticle {
@@ -631,6 +645,14 @@ export interface BonLivraison {
   rejection_reason: string | null;
   rejected_by: string | null;
   rejected_at: string | null;
+  // AAL validation
+  validated_aal_by?: string | null;
+  validated_aal_at?: string | null;
+  aal_rejection_reason?: string | null;
+  // DAF validation
+  validated_daf_by?: string | null;
+  validated_daf_at?: string | null;
+  daf_rejection_reason?: string | null;
   // Annulation
   cancelled_at?: string | null;
   cancelled_by?: string | null;
@@ -644,6 +666,8 @@ export interface BonLivraison {
   department?: { id: string; name: string } | null;
   created_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   validated_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  validated_aal_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  validated_daf_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   delivered_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   projet?: Projet | null;
@@ -651,13 +675,20 @@ export interface BonLivraison {
 }
 
 export const BL_STATUS_LABELS: Record<BLStatus, string> = {
+  brouillon: 'Brouillon',
   prepare: 'Préparé',
-  en_attente_validation: 'En attente validation DAF',
+  soumis_aal: 'Soumis AAL',
+  soumis_daf: 'Soumis DAF',
+  valide_daf: 'Validé DAF',
+  pret_a_livrer: 'Prêt à livrer',
+  en_attente_validation: 'En attente validation',
   valide: 'Validé',
   livre: 'Livré',
   livree_partiellement: 'Livré partiellement',
+  refuse_daf: 'Refusé DAF',
   refusee: 'Refusé',
-  annulee: 'Annulée',
+  annulee: 'Annulé',
+  cloture: 'Clôturé',
 };
 
 export const BL_TYPE_LABELS: Record<BLType, string> = {

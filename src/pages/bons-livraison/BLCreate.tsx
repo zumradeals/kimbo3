@@ -265,19 +265,21 @@ export default function BLCreate() {
       const { data: refData, error: refError } = await supabase.rpc('generate_bl_reference');
       if (refError) throw refError;
 
+      const blInsertData: any = {
+        reference: refData,
+        besoin_id: besoin.id,
+        department_id: besoin.department_id,
+        created_by: user.id,
+        delivery_date: form.delivery_date || null,
+        warehouse: form.warehouse.trim() || null,
+        observations: form.observations.trim() || null,
+        bl_type: 'interne',
+        entrepot_id: form.entrepot_id,
+        status: 'brouillon',
+      };
       const { data: bl, error: blError } = await supabase
         .from('bons_livraison')
-        .insert({
-          reference: refData,
-          besoin_id: besoin.id,
-          department_id: besoin.department_id,
-          created_by: user.id,
-          delivery_date: form.delivery_date || null,
-          warehouse: form.warehouse.trim() || null,
-          observations: form.observations.trim() || null,
-          bl_type: 'interne',
-          entrepot_id: form.entrepot_id,
-        })
+        .insert(blInsertData)
         .select()
         .single();
 
