@@ -138,7 +138,7 @@ export default function ImmobilisationsList() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Rechercher par code, désignation, N° série..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-9" />
           </div>
-          <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+          <Select value={statusFilter} onValueChange={(v: string) => { setStatusFilter(v as ImmoStatus | 'all'); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Statut" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les statuts</SelectItem>
