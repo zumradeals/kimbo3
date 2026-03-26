@@ -145,6 +145,7 @@ export default function StockDetail() {
   const { toast } = useToast();
 
   const [article, setArticle] = useState<ArticleStock | null>(null);
+  const [kimboData, setKimboData] = useState<any>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [movementFilter, setMovementFilter] = useState<string>('all');
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -183,6 +184,7 @@ export default function StockDetail() {
     if (id) {
       fetchArticle();
       fetchMovements();
+      fetchKimboData();
     }
   }, [id]);
 
