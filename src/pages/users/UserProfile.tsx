@@ -19,6 +19,7 @@ interface UserProfileData {
   fonction: string | null;
   position_departement: string | null;
   statut_utilisateur: string | null;
+  matricule: string | null;
   department: {
     id: string;
     name: string;
@@ -68,6 +69,7 @@ export default function UserProfile() {
             position_departement,
             statut_utilisateur,
             chef_hierarchique_id,
+            matricule,
             department:departments(id, name)
           `)
           .eq('id', id)
@@ -105,6 +107,7 @@ export default function UserProfile() {
           fonction: profileData?.fonction || null,
           position_departement: profileData?.position_departement || null,
           statut_utilisateur: profileData?.statut_utilisateur || null,
+          matricule: (profileData as any)?.matricule || null,
           department: profileData?.department ? {
             id: (profileData.department as any).id,
             name: (profileData.department as any).name,
@@ -209,6 +212,9 @@ export default function UserProfile() {
               </div>
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-foreground">{fullName}</h1>
+                {profile.matricule && (
+                  <p className="font-mono text-sm text-muted-foreground mt-0.5">{profile.matricule}</p>
+                )}
                 {profile.fonction && (
                   <p className="text-lg text-muted-foreground mt-1">{profile.fonction}</p>
                 )}
