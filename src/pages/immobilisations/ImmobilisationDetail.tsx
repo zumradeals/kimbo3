@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEnrichedProfiles } from '@/hooks/useEnrichedProfiles';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle, Wrench, XCircle, UserCheck, History, Building2, Calendar, Hash, Banknote, MapPin, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Wrench, XCircle, UserCheck, History, Hash, Banknote, MapPin, Package } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
   brouillon: 'Brouillon', validee: 'Validée', active: 'Active',
@@ -34,6 +34,13 @@ const ACTION_LABELS: Record<string, string> = {
   affectation: 'Affectation', maintenance: 'Maintenance', sortie: 'Sortie', reforme: 'Réforme',
 };
 
+type ImmoEtat = 'neuf' | 'bon' | 'use' | 'en_panne' | 'hors_service';
+
+function ProfileBadge({ userId, profiles, showMatricule = false }: { userId: string; profiles: ReturnType<typeof useEnrichedProfiles>; showMatricule?: boolean }) {
+  const p = profiles.getProfile(userId);
+  return <UserBadge userId={userId} firstName={p?.first_name} lastName={p?.last_name} matricule={p?.matricule} photoUrl={p?.photo_url} showMatricule={showMatricule} linkToProfile size="sm" />;
+}
+
 export default function ImmobilisationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,7 +48,7 @@ export default function ImmobilisationDetail() {
   const { user, isAdmin, roles } = useAuth();
   const [actionDialog, setActionDialog] = useState<string | null>(null);
   const [actionComment, setActionComment] = useState('');
-  const [newEtat, setNewEtat] = useState('');
+  const [newEtat, setNewEtat] = useState<ImmoEtat>('neuf');
   const [loading, setLoading] = useState(false);
 
   const canManage = isAdmin || roles.some(r => ['aal', 'responsable_logistique', 'agent_logistique', 'daf'].includes(r as string));
@@ -95,7 +102,6 @@ export default function ImmobilisationDetail() {
       const { error } = await supabase.from('immobilisations').update(updateData).eq('id', immo.id);
       if (error) throw error;
 
-      // Log comment if provided
       if (actionComment.trim()) {
         await supabase.from('immobilisation_history').insert({
           immobilisation_id: immo.id,
@@ -136,7 +142,6 @@ export default function ImmobilisationDetail() {
       queryClient.invalidateQueries({ queryKey: ['immobilisation-history', id] });
       setActionDialog(null);
       setActionComment('');
-      setNewEtat('');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -189,7 +194,7 @@ export default function ImmobilisationDetail() {
                   <a.icon className="mr-1.5 h-4 w-4" />{a.label}
                 </Button>
               ))}
-              <Button variant="outline" size="sm" onClick={() => { setNewEtat(immo.etat); setActionDialog('etat'); }}>
+              <Button variant="outline" size="sm" onClick={() => { setNewEtat(immo.etat as ImmoEtat); setActionDialog('etat'); }}>
                 <Wrench className="mr-1.5 h-4 w-4" />Modifier l'état
               </Button>
             </CardContent>
@@ -235,7 +240,7 @@ export default function ImmobilisationDetail() {
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Affecté à</span>
-                {immo.affecte_a ? <UserBadge userId={immo.affecte_a} profiles={profiles} showMatricule /> : <span className="text-muted-foreground">Non affecté</span>}
+                {immo.affecte_a ? <ProfileBadge userId={immo.affecte_a} profiles={profiles} showMatricule /> : <span className="text-muted-foreground">Non affecté</span>}
               </div>
             </CardContent>
           </Card>
@@ -245,11 +250,11 @@ export default function ImmobilisationDetail() {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Créé par</span>
-                <UserBadge userId={immo.created_by} profiles={profiles} showMatricule />
+                <ProfileBadge userId={immo.created_by} profiles={profiles} showMatricule />
               </div>
               <Separator />
               <div className="flex justify-between"><span className="text-muted-foreground">Créé le</span><span>{new Date(immo.created_at).toLocaleDateString('fr-FR')}</span></div>
-              {immo.validated_by && <><Separator /><div className="flex justify-between items-center"><span className="text-muted-foreground">Validé par</span><UserBadge userId={immo.validated_by} profiles={profiles} showMatricule /></div></>}
+              {immo.validated_by && <><Separator /><div className="flex justify-between items-center"><span className="text-muted-foreground">Validé par</span><ProfileBadge userId={immo.validated_by} profiles={profiles} showMatricule /></div></>}
               {immo.validated_at && <><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Validé le</span><span>{new Date(immo.validated_at).toLocaleDateString('fr-FR')}</span></div></>}
             </CardContent>
           </Card>
@@ -279,7 +284,7 @@ export default function ImmobilisationDetail() {
                         <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString('fr-FR')}</span>
                       </div>
                       <div className="mt-1">
-                        <UserBadge userId={h.performed_by} profiles={profiles} showMatricule />
+                        <ProfileBadge userId={h.performed_by} profiles={profiles} showMatricule />
                       </div>
                       {h.comment && <p className="text-sm mt-1 text-muted-foreground italic">"{h.comment}"</p>}
                       {h.new_values && (
@@ -313,13 +318,13 @@ export default function ImmobilisationDetail() {
       </Dialog>
 
       {/* Etat Change Dialog */}
-      <Dialog open={actionDialog === 'etat'} onOpenChange={() => { setActionDialog(null); setNewEtat(''); setActionComment(''); }}>
+      <Dialog open={actionDialog === 'etat'} onOpenChange={() => { setActionDialog(null); setActionComment(''); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Modifier l'état du bien</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Nouvel état</Label>
-              <Select value={newEtat} onValueChange={setNewEtat}>
+              <Select value={newEtat} onValueChange={v => setNewEtat(v as ImmoEtat)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(ETAT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
