@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -194,12 +195,15 @@ export default function StockMovements() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Origine</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead>Article</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
+                      <TableHead className="text-right">P.U.</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
                       <TableHead className="text-right">Avant</TableHead>
                       <TableHead className="text-right">Après</TableHead>
-                      <TableHead>Référence</TableHead>
+                      <TableHead>Projet</TableHead>
                       <TableHead>Par</TableHead>
                     </TableRow>
                   </TableHeader>
