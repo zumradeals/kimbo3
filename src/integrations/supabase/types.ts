@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           category_id: string | null
           classe_comptable: number | null
-          code: string | null
+          code: string
           conditionnement: string | null
           created_at: string
           created_by: string
@@ -42,7 +42,7 @@ export type Database = {
         Insert: {
           category_id?: string | null
           classe_comptable?: number | null
-          code?: string | null
+          code: string
           conditionnement?: string | null
           created_at?: string
           created_by: string
@@ -66,7 +66,7 @@ export type Database = {
         Update: {
           category_id?: string | null
           classe_comptable?: number | null
-          code?: string | null
+          code?: string
           conditionnement?: string | null
           created_at?: string
           created_by?: string
@@ -231,6 +231,13 @@ export type Database = {
             columns: ["article_stock_id"]
             isOneToOne: false
             referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "besoin_lignes_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
             referencedColumns: ["id"]
           },
           {
@@ -463,6 +470,13 @@ export type Database = {
             columns: ["article_stock_id"]
             isOneToOne: false
             referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bl_articles_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
             referencedColumns: ["id"]
           },
           {
@@ -910,6 +924,13 @@ export type Database = {
             columns: ["article_stock_id"]
             isOneToOne: false
             referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "da_articles_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
             referencedColumns: ["id"]
           },
           {
@@ -2605,6 +2626,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_levels_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_levels_entrepot_id_fkey"
             columns: ["entrepot_id"]
             isOneToOne: false
@@ -2677,6 +2705,13 @@ export type Database = {
             columns: ["article_stock_id"]
             isOneToOne: false
             referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
             referencedColumns: ["id"]
           },
           {
@@ -2835,7 +2870,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      stock_kimbo_view: {
+        Row: {
+          category_id: string | null
+          category_name: string | null
+          classe_comptable: number | null
+          code: string | null
+          conditionnement: string | null
+          created_at: string | null
+          date_premiere_entree: string | null
+          designation: string | null
+          entrees_montant: number | null
+          entrees_prix_unitaire: number | null
+          entrees_qty: number | null
+          id: string | null
+          location: string | null
+          nombre_pieces: number | null
+          quantity_available: number | null
+          sorties_montant: number | null
+          sorties_prix_unitaire: number | null
+          sorties_qty: number | null
+          status: Database["public"]["Enums"]["stock_status"] | null
+          stock_final_montant: number | null
+          stock_final_prix_unitaire: number | null
+          stock_final_qty: number | null
+          stock_initial_montant: number | null
+          stock_initial_prix: number | null
+          stock_initial_qty: number | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_stock_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "stock_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       approvisionner_caisse: {
