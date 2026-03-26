@@ -3011,6 +3011,7 @@ export type Database = {
           fonction: string
           id: string
           last_name: string
+          matricule: string
           photo_url: string
         }[]
       }
