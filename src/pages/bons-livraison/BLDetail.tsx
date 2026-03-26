@@ -189,9 +189,15 @@ export default function BLDetail() {
     setIsSaving(true);
     try {
       const updates: any = { status: newStatus, ...extraUpdates };
-      const { error, count } = await supabase.from('bons_livraison').update(updates).eq('id', bl.id).select('id');
+      const { data, error } = await supabase
+        .from('bons_livraison')
+        .update(updates)
+        .eq('id', bl.id)
+        .select('id');
+
       if (error) throw error;
-      if (!count && count !== null) {
+
+      if (!data || data.length === 0) {
         throw new Error('Mise à jour refusée. Vérifiez vos permissions ou le statut actuel du BL.');
       }
       toast({ title: 'Statut mis à jour', description: BL_STATUS_LABELS[newStatus] });
@@ -204,7 +210,26 @@ export default function BLDetail() {
   };
 
   // Submit to AAL
-  const handleSubmitToAAL = () => updateStatus('soumis_aal');
+  const handleSubmitToAAL = async () => {
+    if (!bl) return;
+
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase.rpc('submit_bl_to_aal', { _bl_id: bl.id });
+
+      if (error) throw error;
+      if (!data) {
+        throw new Error('La soumission du BL a échoué.');
+      }
+
+      toast({ title: 'BL soumis', description: 'Le BL a été transmis à l\'AAL pour validation.' });
+      await fetchBL();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // AAL validates → soumis_daf
   const handleAALValidate = () => updateStatus('soumis_daf', {

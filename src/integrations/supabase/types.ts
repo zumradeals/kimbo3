@@ -3074,6 +3074,50 @@ export type Database = {
         Args: { _expression_id: string; _rejection_reason: string }
         Returns: boolean
       }
+      submit_bl_to_aal: {
+        Args: { _bl_id: string }
+        Returns: {
+          aal_rejection_reason: string | null
+          besoin_id: string
+          bl_type: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string
+          daf_rejection_reason: string | null
+          delivered_at: string | null
+          delivered_by: string | null
+          delivery_date: string | null
+          delivery_observations: string | null
+          delivery_signature: string | null
+          department_id: string
+          entrepot_id: string | null
+          id: string
+          observations: string | null
+          projet_id: string | null
+          receiver_name: string | null
+          reference: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["bl_status"]
+          updated_at: string
+          validated_aal_at: string | null
+          validated_aal_by: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validated_daf_at: string | null
+          validated_daf_by: string | null
+          warehouse: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bons_livraison"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_expression_for_validation: {
         Args: { _expression_id: string }
         Returns: boolean
