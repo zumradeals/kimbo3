@@ -57,12 +57,14 @@ export default function Profile() {
     position_departement: string | null;
     statut_utilisateur: string | null;
     chef_hierarchique_id: string | null;
+    matricule: string | null;
   }>({
     photo_url: null,
     fonction: null,
     position_departement: 'membre',
     statut_utilisateur: 'actif',
     chef_hierarchique_id: null,
+    matricule: null,
   });
   
   const [form, setForm] = useState({
@@ -112,6 +114,7 @@ export default function Profile() {
           position_departement: data.position_departement,
           statut_utilisateur: data.statut_utilisateur,
           chef_hierarchique_id: data.chef_hierarchique_id,
+          matricule: (data as any).matricule || null,
         });
         setForm(prev => ({ ...prev, fonction: data.fonction || '' }));
 
