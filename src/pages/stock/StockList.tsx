@@ -871,7 +871,7 @@ export default function StockList() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Note prix</Label>
+                <Label className="text-sm font-medium">Source / Remarque</Label>
                 <Input
                   value={newArticle.prix_reference_note}
                   onChange={(e) => setNewArticle({ ...newArticle, prix_reference_note: e.target.value })}
