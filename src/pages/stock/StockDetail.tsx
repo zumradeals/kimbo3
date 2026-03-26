@@ -58,6 +58,14 @@ import {
   MapPin,
   Calendar,
   Trash2,
+  FileText,
+  Download,
+  Filter,
+  Info,
+  Hash,
+  Layers,
+  BoxIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -138,6 +146,7 @@ export default function StockDetail() {
 
   const [article, setArticle] = useState<ArticleStock | null>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [movementFilter, setMovementFilter] = useState<string>('all');
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
