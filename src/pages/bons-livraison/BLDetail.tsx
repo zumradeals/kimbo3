@@ -496,6 +496,7 @@ export default function BLDetail() {
                   <StatusIcon className="mr-1 h-3 w-3" />
                   {BL_STATUS_LABELS[bl.status]}
                 </Badge>
+                {['livre', 'cloture'].includes(bl.status) && <ReadOnlyBadge />}
               </div>
               <p className="text-muted-foreground">
                 Créé le {format(new Date(bl.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
