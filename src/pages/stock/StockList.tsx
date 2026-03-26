@@ -517,12 +517,20 @@ export default function StockList() {
               {filteredItems.length} article{filteredItems.length !== 1 ? 's' : ''}
               {selectedStock && ` dans ${selectedStock.nom}`}
             </CardTitle>
-            <Link to="/stock/mouvements">
-              <Button variant="outline" size="sm">
-                <Warehouse className="mr-2 h-4 w-4" />
-                Voir les mouvements
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link to="/stock/kimbo">
+                <Button variant="outline" size="sm">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Vue KIMBO
+                </Button>
+              </Link>
+              <Link to="/stock/mouvements">
+                <Button variant="outline" size="sm">
+                  <Warehouse className="mr-2 h-4 w-4" />
+                  Mouvements
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
