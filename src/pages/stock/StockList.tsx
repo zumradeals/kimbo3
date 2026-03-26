@@ -137,6 +137,8 @@ export default function StockList() {
     classe_comptable: 3,
     nombre_pieces: 1,
     conditionnement: 'durable' as 'durable' | 'perissable',
+    prix_reference: null as number | null,
+    prix_reference_note: '',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -248,6 +250,9 @@ export default function StockList() {
         classe_comptable: newArticle.classe_comptable,
         nombre_pieces: newArticle.nombre_pieces,
         conditionnement: newArticle.conditionnement,
+        prix_reference: newArticle.prix_reference,
+        prix_reference_note: newArticle.prix_reference_note || null,
+        prix_reference_updated_at: newArticle.prix_reference ? new Date().toISOString() : null,
         created_by: user?.id,
       }).select('id').single();
 
@@ -287,6 +292,8 @@ export default function StockList() {
       classe_comptable: 3,
       nombre_pieces: 1,
       conditionnement: 'durable',
+      prix_reference: null,
+      prix_reference_note: '',
     });
     setCustomUnit(false);
   };
@@ -846,6 +853,31 @@ export default function StockList() {
                     <SelectItem value="perissable">Périssable</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Prix de référence */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Prix unitaire de référence (FCFA)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={newArticle.prix_reference ?? ''}
+                  onChange={(e) => setNewArticle({ ...newArticle, prix_reference: e.target.value ? Number(e.target.value) : null })}
+                  placeholder="Prix indicatif"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Note prix</Label>
+                <Input
+                  value={newArticle.prix_reference_note}
+                  onChange={(e) => setNewArticle({ ...newArticle, prix_reference_note: e.target.value })}
+                  placeholder="Ex: tarif fournisseur X"
+                  className="h-11"
+                />
               </div>
             </div>
 
