@@ -771,6 +771,26 @@ export default function BLDetail() {
                 </p>
               </div>
             )}
+
+            {/* Receiver & Signature for delivered BLs */}
+            {['livre', 'livree_partiellement', 'cloture'].includes(bl.status) && (bl as any).receiver_name && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm text-muted-foreground">Réceptionné par</p>
+                <p className="font-medium">{(bl as any).receiver_name}</p>
+                {(bl as any).delivery_observations && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Observations livraison</p>
+                    <p className="text-sm">{(bl as any).delivery_observations}</p>
+                  </div>
+                )}
+                {(bl as any).delivery_signature && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Signature de réception</p>
+                    <img src={(bl as any).delivery_signature} alt="Signature" className="h-16 rounded border bg-background p-1" />
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
