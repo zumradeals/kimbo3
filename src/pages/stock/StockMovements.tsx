@@ -77,9 +77,13 @@ export default function StockMovements() {
         .from('stock_movements')
         .select(`
           *,
-          article_stock:articles_stock(id, designation),
+          article_stock:articles_stock(id, designation, code),
           entrepot:entrepots(id, nom, type),
-          created_by_profile:profiles!stock_movements_created_by_fkey(id, first_name, last_name)
+          created_by_profile:profiles!stock_movements_created_by_fkey(id, first_name, last_name),
+          da:demandes_achat(id, reference),
+          bl:bons_livraison(id, reference),
+          note_frais:notes_frais(id, reference),
+          projet:projets(id, nom)
         `)
         .order('created_at', { ascending: false })
         .limit(500);
@@ -190,12 +194,15 @@ export default function StockMovements() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Origine</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead>Article</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
+                      <TableHead className="text-right">P.U.</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
                       <TableHead className="text-right">Avant</TableHead>
                       <TableHead className="text-right">Après</TableHead>
-                      <TableHead>Référence</TableHead>
+                      <TableHead>Projet</TableHead>
                       <TableHead>Par</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -204,7 +211,7 @@ export default function StockMovements() {
                       const TypeIcon = typeIcons[mv.movement_type as StockMovementType];
                       return (
                         <TableRow key={mv.id}>
-                          <TableCell className="whitespace-nowrap">
+                          <TableCell className="whitespace-nowrap text-xs">
                             {format(new Date(mv.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}
                           </TableCell>
                           <TableCell>
@@ -214,32 +221,64 @@ export default function StockMovements() {
                             </Badge>
                           </TableCell>
                           <TableCell>
+                            {mv.da?.reference ? (
+                              <Link to={`/demandes-achat/${mv.da_id}`} className="text-primary hover:underline text-xs font-medium">
+                                DA: {mv.da.reference}
+                              </Link>
+                            ) : mv.bl?.reference ? (
+                              <Link to={`/bons-livraison/${mv.bl_id}`} className="text-primary hover:underline text-xs font-medium">
+                                BL: {mv.bl.reference}
+                              </Link>
+                            ) : mv.note_frais?.reference ? (
+                              <Link to={`/notes-frais/${mv.note_frais_id}`} className="text-primary hover:underline text-xs font-medium">
+                                NDF: {mv.note_frais.reference}
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">{mv.reference || '-'}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {mv.entrepot ? (
                               <div className="flex items-center gap-1">
                                 <Warehouse className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-sm">{mv.entrepot.nom}</span>
+                                <span className="text-xs">{mv.entrepot.nom}</span>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {mv.article_stock?.designation || 'N/A'}
+                          <TableCell className="font-medium text-sm">
+                            <div>{mv.article_stock?.designation || 'N/A'}</div>
+                            {mv.article_stock?.code && (
+                              <span className="text-xs text-muted-foreground">{mv.article_stock.code}</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-mono">
-                            {mv.movement_type === 'sortie' ? '-' : '+'}
-                            {mv.quantity}
+                            <span className={mv.movement_type === 'sortie' ? 'text-destructive' : 'text-success'}>
+                              {mv.movement_type === 'sortie' ? '-' : '+'}
+                              {mv.quantity}
+                            </span>
                           </TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">
+                          <TableCell className="text-right font-mono text-xs">
+                            {mv.prix_unitaire != null ? mv.prix_unitaire.toLocaleString('fr-FR') : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs font-medium">
+                            {mv.montant_total != null ? mv.montant_total.toLocaleString('fr-FR') + ' F' : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-muted-foreground text-xs">
                             {mv.quantity_before}
                           </TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="text-right font-mono text-xs">
                             {mv.quantity_after}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {mv.reference || '-'}
+                          <TableCell className="text-xs">
+                            {mv.projet?.nom ? (
+                              <Link to={`/projets/${mv.projet_id}`} className="text-primary hover:underline">
+                                {mv.projet.nom}
+                              </Link>
+                            ) : '-'}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-xs">
                             {mv.created_by_profile?.first_name} {mv.created_by_profile?.last_name}
                           </TableCell>
                         </TableRow>
