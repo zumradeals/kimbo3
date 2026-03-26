@@ -145,6 +145,7 @@ export default function StockDetail() {
   const { toast } = useToast();
 
   const [article, setArticle] = useState<ArticleStock | null>(null);
+  const [kimboData, setKimboData] = useState<any>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [movementFilter, setMovementFilter] = useState<string>('all');
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -183,6 +184,7 @@ export default function StockDetail() {
     if (id) {
       fetchArticle();
       fetchMovements();
+      fetchKimboData();
     }
   }, [id]);
 
@@ -218,6 +220,19 @@ export default function StockDetail() {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchKimboData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('stock_kimbo_view')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (!error && data) setKimboData(data);
+    } catch (e) {
+      console.error('Error fetching KIMBO data:', e);
     }
   };
 
@@ -569,90 +584,139 @@ export default function StockDetail() {
           </Card>
         )}
 
-        {/* Statistiques */}
-        <div className="grid gap-4 sm:grid-cols-4">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Package className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{article.quantity_available}</p>
-                  <p className="text-xs text-muted-foreground">Disponible</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                  <TrendingDown className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{movements.filter(m => m.movement_type === 'sortie').reduce((sum, m) => sum + m.quantity, 0)}</p>
-                  <p className="text-xs text-muted-foreground">Total sorties</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold truncate">{article.location || 'N/A'}</p>
-                  <p className="text-xs text-muted-foreground">Emplacement</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-                  <TrendingDown className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{article.quantity_min || 0}</p>
-                  <p className="text-xs text-muted-foreground">Seuil alerte</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Prix de référence */}
-        {(article as any).prix_reference && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <span className="text-lg font-bold text-primary">₣</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold">{Math.ceil((article as any).prix_reference as number).toLocaleString('fr-FR')} FCFA</p>
-                    <Badge variant="outline" className="text-xs">Indicatif</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Prix de référence par {article.unit}
-                    {(article as any).prix_reference_note && ` — ${(article as any).prix_reference_note}`}
+        {/* Données KIMBO */}
+        {kimboData ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <Card className="border-primary/20">
+                <CardContent className="pt-4">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Stock Final</p>
+                  <p className="text-2xl font-bold">{kimboData.stock_final_qty ?? 0} <span className="text-sm font-normal text-muted-foreground">{article.unit}</span></p>
+                  <p className="text-xs text-primary font-mono mt-1">
+                    {kimboData.stock_final_montant ? `${Math.ceil(kimboData.stock_final_montant).toLocaleString('fr-FR')} FCFA` : '—'}
                   </p>
-                </div>
-              </div>
-              {(article as any).prix_reference_updated_at && (
-                <p className="text-xs text-muted-foreground">
-                  Màj: {format(new Date((article as any).prix_reference_updated_at), 'dd/MM/yyyy', { locale: fr })}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Stock Initial</p>
+                  <p className="text-2xl font-bold">{kimboData.stock_initial_qty ?? 0} <span className="text-sm font-normal text-muted-foreground">{article.unit}</span></p>
+                  <p className="text-xs text-muted-foreground font-mono mt-1">
+                    {kimboData.stock_initial_montant ? `${Math.ceil(kimboData.stock_initial_montant).toLocaleString('fr-FR')} FCFA` : '—'}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-success/20">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-3.5 w-3.5 text-success" />
+                    <p className="text-xs font-medium text-muted-foreground">Entrées</p>
+                  </div>
+                  <p className="text-2xl font-bold text-success">+{kimboData.entrees_qty ?? 0} <span className="text-sm font-normal text-muted-foreground">{article.unit}</span></p>
+                  <p className="text-xs text-muted-foreground font-mono mt-1">
+                    {kimboData.entrees_prix_unitaire ? `P.U. ${Math.ceil(kimboData.entrees_prix_unitaire).toLocaleString('fr-FR')}` : '—'}
+                    {kimboData.entrees_montant ? ` • ${Math.ceil(kimboData.entrees_montant).toLocaleString('fr-FR')} FCFA` : ''}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-destructive/20">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                    <p className="text-xs font-medium text-muted-foreground">Sorties</p>
+                  </div>
+                  <p className="text-2xl font-bold text-destructive">-{kimboData.sorties_qty ?? 0} <span className="text-sm font-normal text-muted-foreground">{article.unit}</span></p>
+                  <p className="text-xs text-muted-foreground font-mono mt-1">
+                    {kimboData.sorties_prix_unitaire ? `P.U. ${Math.ceil(kimboData.sorties_prix_unitaire).toLocaleString('fr-FR')}` : '—'}
+                    {kimboData.sorties_montant ? ` • ${Math.ceil(kimboData.sorties_montant).toLocaleString('fr-FR')} FCFA` : ''}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Card>
+                <CardContent className="flex items-center gap-3 pt-4">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Emplacement</p>
+                    <p className="text-sm font-medium">{article.location || 'Non défini'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="flex items-center gap-3 pt-4">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Seuil d'alerte</p>
+                    <p className="text-sm font-medium">{article.quantity_min || 0} {article.unit}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              {(article as any).prix_reference && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="flex items-center gap-3 pt-4">
+                    <span className="text-sm font-bold text-primary">₣</span>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Prix de référence</p>
+                      <p className="text-sm font-medium">{Math.ceil((article as any).prix_reference).toLocaleString('fr-FR')} FCFA/{article.unit}</p>
+                      {(article as any).prix_reference_note && (
+                        <p className="text-[10px] text-muted-foreground">{(article as any).prix_reference_note}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <Package className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-2xl font-bold">{article.quantity_available}</p>
+                    <p className="text-xs text-muted-foreground">Disponible</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <TrendingDown className="h-5 w-5 text-warning" />
+                  <div>
+                    <p className="text-2xl font-bold">{movements.filter(m => m.movement_type === 'sortie').reduce((sum, m) => sum + m.quantity, 0)}</p>
+                    <p className="text-xs text-muted-foreground">Total sorties</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-bold truncate">{article.location || 'N/A'}</p>
+                    <p className="text-xs text-muted-foreground">Emplacement</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <TrendingDown className="h-5 w-5 text-destructive" />
+                  <div>
+                    <p className="text-2xl font-bold">{article.quantity_min || 0}</p>
+                    <p className="text-xs text-muted-foreground">Seuil alerte</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         {/* Description */}
         {article.description && (
           <Card>
