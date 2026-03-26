@@ -478,6 +478,34 @@ export default function StockDetail() {
   const StatusIcon = statusIcons[article.status];
   const isLowStock = article.quantity_min && article.quantity_available <= article.quantity_min;
 
+  const filteredMovements = movementFilter === 'all' 
+    ? movements 
+    : movements.filter(m => m.movement_type === movementFilter);
+
+  const handleExportCSV = () => {
+    const headers = ['Date', 'Type', 'Référence', 'Quantité', 'Prix unitaire', 'Montant', 'Avant', 'Après', 'Source', 'Observations'];
+    const rows = filteredMovements.map(m => [
+      format(new Date(m.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
+      STOCK_MOVEMENT_TYPE_LABELS[m.movement_type],
+      m.reference || '',
+      `${m.movement_type === 'sortie' ? '-' : ''}${m.quantity}`,
+      m.prix_unitaire || '',
+      m.montant_total || '',
+      m.quantity_before,
+      m.quantity_after,
+      m.da_id ? 'DA' : m.bl_id ? 'BL' : m.note_frais_id ? 'NDF' : 'Manuel',
+      m.observations || '',
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mouvements-${(article as any).code || article.designation}-${format(new Date(), 'yyyyMMdd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppLayout>
       <div className="mx-auto max-w-4xl space-y-6">
