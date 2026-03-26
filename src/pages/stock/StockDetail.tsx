@@ -223,7 +223,19 @@ export default function StockDetail() {
     }
   };
 
-  const fetchMovements = async () => {
+  const fetchKimboData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('stock_kimbo_view')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (!error && data) setKimboData(data);
+    } catch (e) {
+      console.error('Error fetching KIMBO data:', e);
+    }
+  };
+
     try {
       const { data, error } = await supabase
         .from('stock_movements')
