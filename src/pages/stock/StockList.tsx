@@ -553,13 +553,13 @@ export default function StockList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Code</TableHead>
                       <TableHead>Désignation</TableHead>
                       <TableHead>Catégorie</TableHead>
                       <TableHead className="text-right">Qté disponible</TableHead>
-                      <TableHead className="text-right">Qté réservée</TableHead>
                       <TableHead>Unité</TableHead>
+                      <TableHead>Conditionnement</TableHead>
                       <TableHead className="text-right">Prix réf.</TableHead>
-                      <TableHead>Emplacement</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
@@ -577,8 +577,13 @@ export default function StockList() {
                       const status: StockStatus = qtyDisponible <= 0 ? 'epuise' : (qtyReservee > 0 ? 'reserve' : 'disponible');
                       const StatusIcon = statusIcons[status];
                       
-                      return (
+                        return (
                         <TableRow key={selectedStockId ? item.id : art.id} className={isLow ? 'bg-warning/5' : undefined}>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {art.code || '-'}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <div className="font-medium">{art.designation}</div>
                             {art.description && (
@@ -601,8 +606,12 @@ export default function StockList() {
                               <AlertTriangle className="ml-2 inline h-4 w-4 text-warning" />
                             )}
                           </TableCell>
-                          <TableCell className="text-right font-mono">{qtyReservee}</TableCell>
                           <TableCell>{art.unit}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-xs">
+                              {art.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">
                             {art.prix_reference ? (
                               <div className="flex items-center justify-end gap-1">
@@ -613,7 +622,6 @@ export default function StockList() {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell>{art.location || '-'}</TableCell>
                           <TableCell>
                             <Badge className={statusColors[status]}>
                               <StatusIcon className="mr-1 h-3 w-3" />
