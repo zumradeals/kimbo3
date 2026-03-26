@@ -133,6 +133,9 @@ export default function StockList() {
     quantity_min: 0,
     location: '',
     category_id: null as string | null,
+    classe_comptable: 3,
+    nombre_pieces: 1,
+    conditionnement: 'durable' as 'durable' | 'perissable',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -228,7 +231,12 @@ export default function StockList() {
 
     setIsSaving(true);
     try {
+      // Generate article code via RPC
+      const { data: codeData, error: codeError } = await supabase.rpc('generate_article_code');
+      if (codeError) throw codeError;
+
       const { data: insertedArticle, error } = await supabase.from('articles_stock').insert({
+        code: codeData as string,
         designation: newArticle.designation,
         description: newArticle.description || null,
         unit: newArticle.unit,
@@ -236,6 +244,9 @@ export default function StockList() {
         quantity_min: newArticle.quantity_min || null,
         location: newArticle.location || null,
         category_id: newArticle.category_id,
+        classe_comptable: newArticle.classe_comptable,
+        nombre_pieces: newArticle.nombre_pieces,
+        conditionnement: newArticle.conditionnement,
         created_by: user?.id,
       }).select('id').single();
 
@@ -272,6 +283,9 @@ export default function StockList() {
       quantity_min: 0,
       location: '',
       category_id: null,
+      classe_comptable: 3,
+      nombre_pieces: 1,
+      conditionnement: 'durable',
     });
     setCustomUnit(false);
   };
