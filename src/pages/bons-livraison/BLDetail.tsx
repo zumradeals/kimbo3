@@ -96,6 +96,9 @@ export default function BLDetail() {
   const [rejectSource, setRejectSource] = useState<'aal' | 'daf'>('daf');
   const [deliveryArticles, setDeliveryArticles] = useState<DeliveryFormArticle[]>([]);
   const [isCreatingDA, setIsCreatingDA] = useState(false);
+  const [receiverName, setReceiverName] = useState('');
+  const [deliverySignature, setDeliverySignature] = useState<string | null>(null);
+  const [deliveryObs, setDeliveryObs] = useState('');
 
   const isOperational = roles.some((r) => OPERATIONAL_ROLES.includes(r));
   const isDAF = roles.includes('daf');
