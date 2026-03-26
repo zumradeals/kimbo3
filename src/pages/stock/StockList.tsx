@@ -33,6 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { BarChart3 } from 'lucide-react';
 import { CategorySelector } from '@/components/stock/CategorySelector';
 import { StockSelector } from '@/components/stock/EntrepotSelector';
 import { AddArticleToStockDialog } from '@/components/stock/AddArticleToStockDialog';
@@ -133,6 +134,9 @@ export default function StockList() {
     quantity_min: 0,
     location: '',
     category_id: null as string | null,
+    classe_comptable: 3,
+    nombre_pieces: 1,
+    conditionnement: 'durable' as 'durable' | 'perissable',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -228,7 +232,12 @@ export default function StockList() {
 
     setIsSaving(true);
     try {
+      // Generate article code via RPC
+      const { data: codeData, error: codeError } = await supabase.rpc('generate_article_code');
+      if (codeError) throw codeError;
+
       const { data: insertedArticle, error } = await supabase.from('articles_stock').insert({
+        code: codeData as string,
         designation: newArticle.designation,
         description: newArticle.description || null,
         unit: newArticle.unit,
@@ -236,6 +245,9 @@ export default function StockList() {
         quantity_min: newArticle.quantity_min || null,
         location: newArticle.location || null,
         category_id: newArticle.category_id,
+        classe_comptable: newArticle.classe_comptable,
+        nombre_pieces: newArticle.nombre_pieces,
+        conditionnement: newArticle.conditionnement,
         created_by: user?.id,
       }).select('id').single();
 
@@ -272,6 +284,9 @@ export default function StockList() {
       quantity_min: 0,
       location: '',
       category_id: null,
+      classe_comptable: 3,
+      nombre_pieces: 1,
+      conditionnement: 'durable',
     });
     setCustomUnit(false);
   };
@@ -503,12 +518,20 @@ export default function StockList() {
               {filteredItems.length} article{filteredItems.length !== 1 ? 's' : ''}
               {selectedStock && ` dans ${selectedStock.nom}`}
             </CardTitle>
-            <Link to="/stock/mouvements">
-              <Button variant="outline" size="sm">
-                <Warehouse className="mr-2 h-4 w-4" />
-                Voir les mouvements
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link to="/stock/kimbo">
+                <Button variant="outline" size="sm">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Vue KIMBO
+                </Button>
+              </Link>
+              <Link to="/stock/mouvements">
+                <Button variant="outline" size="sm">
+                  <Warehouse className="mr-2 h-4 w-4" />
+                  Mouvements
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -539,13 +562,13 @@ export default function StockList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Code</TableHead>
                       <TableHead>Désignation</TableHead>
                       <TableHead>Catégorie</TableHead>
                       <TableHead className="text-right">Qté disponible</TableHead>
-                      <TableHead className="text-right">Qté réservée</TableHead>
                       <TableHead>Unité</TableHead>
+                      <TableHead>Conditionnement</TableHead>
                       <TableHead className="text-right">Prix réf.</TableHead>
-                      <TableHead>Emplacement</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
@@ -563,8 +586,13 @@ export default function StockList() {
                       const status: StockStatus = qtyDisponible <= 0 ? 'epuise' : (qtyReservee > 0 ? 'reserve' : 'disponible');
                       const StatusIcon = statusIcons[status];
                       
-                      return (
+                        return (
                         <TableRow key={selectedStockId ? item.id : art.id} className={isLow ? 'bg-warning/5' : undefined}>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {art.code || '-'}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <div className="font-medium">{art.designation}</div>
                             {art.description && (
@@ -587,8 +615,12 @@ export default function StockList() {
                               <AlertTriangle className="ml-2 inline h-4 w-4 text-warning" />
                             )}
                           </TableCell>
-                          <TableCell className="text-right font-mono">{qtyReservee}</TableCell>
                           <TableCell>{art.unit}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-xs">
+                              {art.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">
                             {art.prix_reference ? (
                               <div className="flex items-center justify-end gap-1">
@@ -599,7 +631,6 @@ export default function StockList() {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell>{art.location || '-'}</TableCell>
                           <TableCell>
                             <Badge className={statusColors[status]}>
                               <StatusIcon className="mr-1 h-3 w-3" />
@@ -769,6 +800,53 @@ export default function StockList() {
                 onChange={(v) => setNewArticle({ ...newArticle, category_id: v })}
                 placeholder="Sélectionner une catégorie"
               />
+            </div>
+
+            {/* Classe comptable & Conditionnement */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Classe comptable</Label>
+                <Select
+                  value={String(newArticle.classe_comptable)}
+                  onValueChange={(v) => setNewArticle({ ...newArticle, classe_comptable: parseInt(v) })}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[2, 3, 4, 5, 6, 7].map((c) => (
+                      <SelectItem key={c} value={String(c)}>
+                        Classe {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Nombre de pièces</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={newArticle.nombre_pieces}
+                  onChange={(e) => setNewArticle({ ...newArticle, nombre_pieces: parseInt(e.target.value) || 1 })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Conditionnement</Label>
+                <Select
+                  value={newArticle.conditionnement}
+                  onValueChange={(v) => setNewArticle({ ...newArticle, conditionnement: v as 'durable' | 'perissable' })}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="durable">Durable</SelectItem>
+                    <SelectItem value="perissable">Périssable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Emplacement */}
