@@ -444,7 +444,7 @@ export default function StockStandardTab() {
                   })}
                   {/* Totaux */}
                   <TableRow className="bg-muted/20 font-bold">
-                    <TableCell colSpan={8} className="border-r text-right">TOTAUX</TableCell>
+                    <TableCell colSpan={7} className="border-r text-right">TOTAUX</TableCell>
                     <TableCell colSpan={3} className="text-right border-r bg-muted/10">-</TableCell>
                     <TableCell colSpan={2} className="bg-success/5" />
                     <TableCell className="text-right font-mono text-sm border-r bg-success/5 text-success">{fmt(totals.entrees)} ₣</TableCell>
