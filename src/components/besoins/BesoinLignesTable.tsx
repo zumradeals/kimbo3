@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, AlertTriangle, Package, Link2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Package, Link2, Landmark } from 'lucide-react';
 import {
   BesoinLigne,
   BesoinLigneCategory,
@@ -39,6 +39,7 @@ export interface BesoinLigneInput {
   urgency: BesoinUrgency;
   justification: string;
   article_stock_id?: string | null;
+  destination?: 'stock' | 'immobilisation';
 }
 
 interface BesoinLignesTableProps {
