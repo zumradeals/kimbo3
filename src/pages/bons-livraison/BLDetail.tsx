@@ -331,6 +331,59 @@ export default function BLDetail() {
       }).eq('id', bl.id);
       if (error) throw error;
 
+      // Create draft immobilisations for articles with destination = 'immobilisation'
+      const immoArticles = articles.filter((art) => (art as any).destination === 'immobilisation');
+      if (immoArticles.length > 0) {
+        // Get next reference
+        const { data: lastImmo } = await supabase
+          .from('immobilisations')
+          .select('code')
+          .ilike('code', `IMMO-${new Date().getFullYear()}-%`)
+          .order('code', { ascending: false })
+          .limit(1);
+        
+        let counter = 1;
+        if (lastImmo && lastImmo.length > 0) {
+          const lastNum = parseInt(lastImmo[0].code.split('-').pop() || '0');
+          counter = lastNum + 1;
+        }
+
+        for (const art of immoArticles) {
+          const da = deliveryArticles.find(d => d.id === art.id);
+          const qtyDelivered = da?.quantity_delivered || 0;
+          if (qtyDelivered <= 0) continue;
+          
+          const code = `IMMO-${new Date().getFullYear()}-${String(counter).padStart(6, '0')}`;
+          counter++;
+
+          await supabase.from('immobilisations').insert({
+            code,
+            designation: art.designation,
+            type: 'corporel',
+            classe_comptable: 24,
+            status: 'actif',
+            date_acquisition: new Date().toISOString().split('T')[0],
+            mode_acquisition: 'achat_da',
+            valeur_acquisition: 0,
+            devise: 'XOF',
+            department_id: bl.department_id,
+            etat: 'neuf',
+            duree_vie_mois: 60,
+            mode_amortissement: 'lineaire',
+            created_by: user.id,
+            da_id: (bl as any).besoin_id || null,
+            article_stock_id: art.article_stock_id || null,
+          } as any);
+        }
+
+        if (immoArticles.length > 0) {
+          toast({
+            title: `${immoArticles.length} fiche(s) immobilisation créée(s)`,
+            description: 'Les fiches sont en brouillon — veuillez les compléter (durée de vie, valeur, mode amortissement).',
+          });
+        }
+      }
+
       toast({
         title: isPartial ? 'Livraison partielle' : 'Livraison complète',
         description: 'Le stock a été mis à jour. Le PDF de décharge est en cours de génération...',
