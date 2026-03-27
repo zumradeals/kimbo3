@@ -905,6 +905,9 @@ export default function StockList({ embedded = false }: { embedded?: boolean }) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppLayout>
+    </div>
   );
+
+  if (embedded) return content;
+  return <AppLayout>{content}</AppLayout>;
 }
