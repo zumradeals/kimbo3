@@ -123,7 +123,7 @@ export default function StockStandardTab() {
   const isDAF = hasRole('daf');
   const canManage = isLogistics || isAdmin || isDAF;
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); fetchStocks(); }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -139,6 +139,30 @@ export default function StockStandardTab() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchStocks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('entrepots')
+        .select('id, nom')
+        .eq('is_active', true)
+        .order('nom');
+      if (!error && data) setStocks(data);
+    } catch (e) {
+      console.error('Error fetching stocks:', e);
+    }
+  };
+
+  const openAddToStock = async (stockId: string) => {
+    setSelectedStockId(stockId);
+    // Fetch existing article IDs in this stock
+    const { data } = await supabase
+      .from('stock_levels')
+      .select('article_stock_id')
+      .eq('entrepot_id', stockId);
+    setStockArticleIds((data || []).map((d: any) => d.article_stock_id));
+    setShowAddToStockDialog(true);
   };
 
   const handleAddArticle = async () => {
