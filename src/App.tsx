@@ -52,6 +52,7 @@ import Comptabilite from "./pages/comptabilite/Comptabilite";
 import ComptabiliteDetail from "./pages/comptabilite/ComptabiliteDetail";
 
 // Module Stock
+import StockModule from "./pages/stock/StockModule";
 import StockList from "./pages/stock/StockList";
 import StockMovements from "./pages/stock/StockMovements";
 import StockDetail from "./pages/stock/StockDetail";
@@ -171,7 +172,8 @@ function AppRoutes() {
       <Route path="/comptabilite/:id" element={<ProtectedRoute><ComptabiliteDetail /></ProtectedRoute>} />
       
       {/* Module Stock */}
-      <Route path="/stock" element={<ProtectedRoute><StockList /></ProtectedRoute>} />
+      <Route path="/stock" element={<ProtectedRoute><StockModule /></ProtectedRoute>} />
+      <Route path="/stock/articles" element={<ProtectedRoute><StockList /></ProtectedRoute>} />
       <Route path="/stock/mouvements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
       <Route path="/stock/kimbo" element={<ProtectedRoute><StockKimbo /></ProtectedRoute>} />
       <Route path="/stock/categories" element={<ProtectedRoute><StockCategories /></ProtectedRoute>} />
