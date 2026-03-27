@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { AddArticleToStockDialog } from '@/components/stock/AddArticleToStockDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -97,6 +98,10 @@ export default function StockStandardTab() {
 
   // CRUD state
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddToStockDialog, setShowAddToStockDialog] = useState(false);
+  const [stocks, setStocks] = useState<{ id: string; nom: string }[]>([]);
+  const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
+  const [stockArticleIds, setStockArticleIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [customUnit, setCustomUnit] = useState(false);
   const [newArticle, setNewArticle] = useState({
@@ -118,7 +123,7 @@ export default function StockStandardTab() {
   const isDAF = hasRole('daf');
   const canManage = isLogistics || isAdmin || isDAF;
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); fetchStocks(); }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -134,6 +139,30 @@ export default function StockStandardTab() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchStocks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('entrepots')
+        .select('id, nom')
+        .eq('is_active', true)
+        .order('nom');
+      if (!error && data) setStocks(data);
+    } catch (e) {
+      console.error('Error fetching stocks:', e);
+    }
+  };
+
+  const openAddToStock = async (stockId: string) => {
+    setSelectedStockId(stockId);
+    // Fetch existing article IDs in this stock
+    const { data } = await supabase
+      .from('stock_levels')
+      .select('article_stock_id')
+      .eq('entrepot_id', stockId);
+    setStockArticleIds((data || []).map((d: any) => d.article_stock_id));
+    setShowAddToStockDialog(true);
   };
 
   const handleAddArticle = async () => {
@@ -212,9 +241,21 @@ export default function StockStandardTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header with CRUD button */}
+      {/* Header with CRUD buttons */}
       {canManage && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {stocks.length > 0 && (
+            <Select onValueChange={(stockId) => openAddToStock(stockId)}>
+              <SelectTrigger className="w-auto">
+                <SelectValue placeholder="Affecter un article à un stock..." />
+              </SelectTrigger>
+              <SelectContent>
+                {stocks.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvel article
@@ -657,6 +698,18 @@ export default function StockStandardTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Article to Stock Dialog */}
+      {selectedStockId && (
+        <AddArticleToStockDialog
+          open={showAddToStockDialog}
+          onOpenChange={setShowAddToStockDialog}
+          stockId={selectedStockId}
+          stockName={stocks.find(s => s.id === selectedStockId)?.nom || ''}
+          existingArticleIds={stockArticleIds}
+          onSuccess={() => fetchData()}
+        />
+      )}
     </div>
   );
 }
