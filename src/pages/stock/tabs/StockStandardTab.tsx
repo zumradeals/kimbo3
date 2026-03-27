@@ -1,0 +1,363 @@
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+interface StockRow {
+  id: string;
+  code: string;
+  designation: string;
+  unit: string;
+  classe_comptable: number | null;
+  nombre_pieces: number | null;
+  conditionnement: string | null;
+  category_name: string | null;
+  location: string | null;
+  date_premiere_entree: string | null;
+  stock_initial_qty: number;
+  stock_initial_prix: number;
+  stock_initial_montant: number;
+  entrees_qty: number;
+  entrees_prix_unitaire: number;
+  entrees_montant: number;
+  sorties_qty: number;
+  sorties_prix_unitaire: number;
+  sorties_montant: number;
+  stock_final_qty: number;
+  stock_final_prix_unitaire: number;
+  stock_final_montant: number;
+  seuil_alerte: number;
+  statut_auto: string;
+  quantity_available: number;
+  status: string;
+}
+
+const fmt = (n: number) => Math.ceil(n).toLocaleString('fr-FR');
+
+const statusConfig: Record<string, { label: string; class: string }> = {
+  disponible: { label: 'Disponible', class: 'bg-success/10 text-success border-success/20' },
+  faible: { label: 'Stock faible', class: 'bg-warning/10 text-warning border-warning/20' },
+  rupture: { label: 'Rupture', class: 'bg-destructive/10 text-destructive border-destructive/20' },
+};
+
+export default function StockStandardTab() {
+  const { toast } = useToast();
+  const [data, setData] = useState<StockRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [classeFilter, setClasseFilter] = useState('all');
+  const [condFilter, setCondFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => { fetchData(); }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const { data: rows, error } = await supabase
+        .from('stock_kimbo_view' as any)
+        .select('*')
+        .order('code');
+      if (error) throw error;
+      setData((rows as any) || []);
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    return data.filter((r) => {
+      const matchSearch = !search.trim() ||
+        r.code.toLowerCase().includes(search.toLowerCase()) ||
+        r.designation.toLowerCase().includes(search.toLowerCase());
+      const matchClasse = classeFilter === 'all' || String(r.classe_comptable) === classeFilter;
+      const matchCond = condFilter === 'all' || r.conditionnement === condFilter;
+      const matchStatus = statusFilter === 'all' || r.statut_auto === statusFilter;
+      return matchSearch && matchClasse && matchCond && matchStatus;
+    });
+  }, [data, search, classeFilter, condFilter, statusFilter]);
+
+  const totals = useMemo(() => filtered.reduce((acc, r) => ({
+    entrees: acc.entrees + r.entrees_montant,
+    sorties: acc.sorties + r.sorties_montant,
+    stock: acc.stock + r.stock_final_montant,
+  }), { entrees: 0, sorties: 0, stock: 0 }), [filtered]);
+
+  const stats = useMemo(() => ({
+    total: data.length,
+    disponible: data.filter(r => r.statut_auto === 'disponible').length,
+    faible: data.filter(r => r.statut_auto === 'faible').length,
+    rupture: data.filter(r => r.statut_auto === 'rupture').length,
+  }), [data]);
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <Package className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-sm text-muted-foreground">Articles total</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10">
+              <TrendingUp className="h-6 w-6 text-success" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-success">{fmt(totals.entrees)} ₣</p>
+              <p className="text-sm text-muted-foreground">Total Entrées</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-destructive/10">
+              <TrendingDown className="h-6 w-6 text-destructive" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-destructive">{fmt(totals.sorties)} ₣</p>
+              <p className="text-sm text-muted-foreground">Total Sorties</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10">
+              <AlertTriangle className="h-6 w-6 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.faible + stats.rupture}</p>
+              <p className="text-sm text-muted-foreground">Alertes stock</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtres */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par code ou désignation..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={classeFilter} onValueChange={setClasseFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Classe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes classes</SelectItem>
+                {[2, 3, 4, 5, 6, 7].map((c) => (
+                  <SelectItem key={c} value={String(c)}>Classe {c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={condFilter} onValueChange={setCondFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Conditionnement" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="durable">Durable</SelectItem>
+                <SelectItem value="perissable">Périssable</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous statuts</SelectItem>
+                <SelectItem value="disponible">Disponible</SelectItem>
+                <SelectItem value="faible">Stock faible</SelectItem>
+                <SelectItem value="rupture">Rupture</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" onClick={fetchData}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tableau */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {filtered.length} article{filtered.length !== 1 ? 's' : ''} — Valeur stock : {fmt(totals.stock)} ₣
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-4">Aucun article trouvé</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead rowSpan={2} className="border-r align-middle">Code</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle">Date entrée</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle">Désignation</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle text-center">Cat.</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle text-center">Cl.</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle">Unité</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle text-center">Pcs</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle">Cond.</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-muted/30">STOCK INITIAL</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-success/5">ENTRÉES</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-destructive/5">SORTIES</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-primary/5">STOCK ACTUEL</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle text-center">Seuil</TableHead>
+                    <TableHead rowSpan={2} className="align-middle text-center">Statut</TableHead>
+                    <TableHead rowSpan={2} className="align-middle">Empl.</TableHead>
+                  </TableRow>
+                  <TableRow>
+                    <TableHead className="text-right text-xs bg-muted/30">Qté</TableHead>
+                    <TableHead className="text-right text-xs bg-muted/30">PU</TableHead>
+                    <TableHead className="text-right text-xs border-r bg-muted/30">Montant</TableHead>
+                    <TableHead className="text-right text-xs bg-success/5">Qté</TableHead>
+                    <TableHead className="text-right text-xs bg-success/5">PM</TableHead>
+                    <TableHead className="text-right text-xs border-r bg-success/5">Montant</TableHead>
+                    <TableHead className="text-right text-xs bg-destructive/5">Qté</TableHead>
+                    <TableHead className="text-right text-xs bg-destructive/5">PM</TableHead>
+                    <TableHead className="text-right text-xs border-r bg-destructive/5">Montant</TableHead>
+                    <TableHead className="text-right text-xs bg-primary/5">Qté</TableHead>
+                    <TableHead className="text-right text-xs bg-primary/5">PM</TableHead>
+                    <TableHead className="text-right text-xs border-r bg-primary/5">Montant</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((row) => {
+                    const sc = statusConfig[row.statut_auto] || statusConfig.disponible;
+                    return (
+                      <TableRow key={row.id}>
+                        <TableCell className="border-r">
+                          <Link to={`/stock/${row.id}`}>
+                            <Badge variant="outline" className="font-mono text-xs cursor-pointer hover:bg-accent">
+                              {row.code}
+                            </Badge>
+                          </Link>
+                        </TableCell>
+                        <TableCell className="border-r text-xs whitespace-nowrap">
+                          {row.date_premiere_entree
+                            ? format(new Date(row.date_premiere_entree), 'dd/MM/yyyy', { locale: fr })
+                            : '-'}
+                        </TableCell>
+                        <TableCell className="border-r">
+                          <div className="font-medium text-sm max-w-[180px] truncate">{row.designation}</div>
+                          {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
+                        </TableCell>
+                        <TableCell className="border-r text-center text-xs">{row.category_name || '-'}</TableCell>
+                        <TableCell className="border-r text-center">
+                          <Badge variant="secondary" className="text-xs">{row.classe_comptable || '-'}</Badge>
+                        </TableCell>
+                        <TableCell className="border-r text-xs">{row.unit}</TableCell>
+                        <TableCell className="border-r text-center text-xs">{row.nombre_pieces || 1}</TableCell>
+                        <TableCell className="border-r">
+                          <Badge variant="secondary" className={`text-[10px] ${row.conditionnement === 'perissable' ? 'bg-warning/10 text-warning' : 'bg-muted'}`}>
+                            {row.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}
+                          </Badge>
+                        </TableCell>
+                        {/* Stock initial */}
+                        <TableCell className="text-right font-mono text-xs bg-muted/10">{row.stock_initial_qty}</TableCell>
+                        <TableCell className="text-right font-mono text-xs bg-muted/10">{fmt(row.stock_initial_prix)}</TableCell>
+                        <TableCell className="text-right font-mono text-xs border-r bg-muted/10">{fmt(row.stock_initial_montant)}</TableCell>
+                        {/* Entrées */}
+                        <TableCell className="text-right font-mono text-xs bg-success/5">
+                          <span className={row.entrees_qty > 0 ? 'text-success font-semibold' : ''}>{row.entrees_qty}</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs bg-success/5">{fmt(row.entrees_prix_unitaire)}</TableCell>
+                        <TableCell className="text-right font-mono text-xs border-r bg-success/5">
+                          <span className={row.entrees_montant > 0 ? 'text-success font-semibold' : ''}>{fmt(row.entrees_montant)}</span>
+                        </TableCell>
+                        {/* Sorties */}
+                        <TableCell className="text-right font-mono text-xs bg-destructive/5">
+                          <span className={row.sorties_qty > 0 ? 'text-destructive font-semibold' : ''}>{row.sorties_qty}</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs bg-destructive/5">{fmt(row.sorties_prix_unitaire)}</TableCell>
+                        <TableCell className="text-right font-mono text-xs border-r bg-destructive/5">
+                          <span className={row.sorties_montant > 0 ? 'text-destructive font-semibold' : ''}>{fmt(row.sorties_montant)}</span>
+                        </TableCell>
+                        {/* Stock actuel */}
+                        <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{row.stock_final_qty}</TableCell>
+                        <TableCell className="text-right font-mono text-xs bg-primary/5">{fmt(row.stock_final_prix_unitaire)}</TableCell>
+                        <TableCell className="text-right font-mono text-xs border-r bg-primary/5 font-bold">{fmt(row.stock_final_montant)}</TableCell>
+                        {/* Seuil */}
+                        <TableCell className="border-r text-center text-xs font-mono">{row.seuil_alerte || '-'}</TableCell>
+                        {/* Statut auto */}
+                        <TableCell className="text-center">
+                          <Badge className={`text-[10px] ${sc.class}`}>{sc.label}</Badge>
+                        </TableCell>
+                        {/* Emplacement */}
+                        <TableCell className="text-xs">{row.location || '-'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {/* Totaux */}
+                  <TableRow className="bg-muted/20 font-bold">
+                    <TableCell colSpan={8} className="border-r text-right">TOTAUX</TableCell>
+                    <TableCell colSpan={3} className="text-right border-r bg-muted/10">-</TableCell>
+                    <TableCell colSpan={2} className="bg-success/5" />
+                    <TableCell className="text-right font-mono text-sm border-r bg-success/5 text-success">{fmt(totals.entrees)} ₣</TableCell>
+                    <TableCell colSpan={2} className="bg-destructive/5" />
+                    <TableCell className="text-right font-mono text-sm border-r bg-destructive/5 text-destructive">{fmt(totals.sorties)} ₣</TableCell>
+                    <TableCell colSpan={2} className="bg-primary/5" />
+                    <TableCell className="text-right font-mono text-sm border-r bg-primary/5">{fmt(totals.stock)} ₣</TableCell>
+                    <TableCell colSpan={3} />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Note */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">Tableau 100% dynamique</p>
+            <p>Toutes les valeurs sont calculées à partir des mouvements de stock. Aucune modification directe n'est possible — toute variation passe par le module Mouvements.</p>
+            <p><strong>Stock Actuel</strong> = Entrées cumulées − Sorties cumulées. Le <strong>Statut</strong> est automatique selon le seuil d'alerte.</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
