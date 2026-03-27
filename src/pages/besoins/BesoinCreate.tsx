@@ -240,6 +240,7 @@ export default function BesoinCreate() {
         urgency: l.urgency,
         justification: l.justification.trim() || null,
         article_stock_id: l.article_stock_id || null,
+        destination: (l as any).destination || 'stock',
       }));
 
       const { data: insertedLignes, error: lignesError } = await supabase

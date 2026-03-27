@@ -625,6 +625,7 @@ export interface BLArticle {
   observations: string | null;
   ecart_reason: string | null;
   article_stock_id: string | null;
+  destination: 'stock' | 'immobilisation';
   created_at: string;
 }
 
