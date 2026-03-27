@@ -98,6 +98,10 @@ export default function StockStandardTab() {
 
   // CRUD state
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddToStockDialog, setShowAddToStockDialog] = useState(false);
+  const [stocks, setStocks] = useState<{ id: string; nom: string }[]>([]);
+  const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
+  const [stockArticleIds, setStockArticleIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [customUnit, setCustomUnit] = useState(false);
   const [newArticle, setNewArticle] = useState({
