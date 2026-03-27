@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Building2, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Search, AlertTriangle, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/use-debounce';
 import { PaginationControls } from '@/components/ui/PaginationControls';
@@ -18,31 +18,19 @@ import { ListSkeleton } from '@/components/ui/ListSkeleton';
 type ImmoStatus = 'brouillon' | 'validee' | 'active' | 'en_maintenance' | 'sortie' | 'reformee' | 'cedee';
 
 const STATUS_LABELS: Record<string, string> = {
-  brouillon: 'Brouillon',
-  validee: 'Validée',
-  active: 'Active',
-  en_maintenance: 'En maintenance',
-  sortie: 'Sortie',
-  reformee: 'Réformée',
-  cedee: 'Cédée',
+  brouillon: 'Brouillon', validee: 'Validée', active: 'Active',
+  en_maintenance: 'En maintenance', sortie: 'Sortie', reformee: 'Réformée', cedee: 'Cédée',
 };
-
 const STATUS_COLORS: Record<string, string> = {
-  brouillon: 'bg-muted text-muted-foreground',
-  validee: 'bg-blue-100 text-blue-800',
-  active: 'bg-green-100 text-green-800',
-  en_maintenance: 'bg-yellow-100 text-yellow-800',
-  sortie: 'bg-orange-100 text-orange-800',
-  reformee: 'bg-red-100 text-red-800',
-  cedee: 'bg-purple-100 text-purple-800',
+  brouillon: 'bg-muted text-muted-foreground', validee: 'bg-blue-100 text-blue-800',
+  active: 'bg-green-100 text-green-800', en_maintenance: 'bg-yellow-100 text-yellow-800',
+  sortie: 'bg-orange-100 text-orange-800', reformee: 'bg-red-100 text-red-800', cedee: 'bg-purple-100 text-purple-800',
 };
-
-const ETAT_LABELS: Record<string, string> = {
-  neuf: 'Neuf',
-  bon: 'Bon état',
-  use: 'Usé',
-  en_panne: 'En panne',
-  hors_service: 'Hors service',
+const MODE_AMORT_LABELS: Record<string, string> = {
+  lineaire: 'Linéaire', degressif: 'Dégressif', non_amortissable: 'Non amortissable',
+};
+const TYPE_LABELS: Record<string, string> = {
+  corporel: 'Matériel', incorporel: 'Incorporel',
 };
 
 const PAGE_SIZE = 20;
@@ -52,6 +40,7 @@ export default function ImmobilisationsList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ImmoStatus | 'all'>('all');
   const [page, setPage] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
   const canCreate = isAdmin || roles.some(r => ['aal', 'responsable_logistique', 'agent_logistique', 'daf'].includes(r as string));
@@ -61,12 +50,12 @@ export default function ImmobilisationsList() {
     queryFn: async () => {
       let query = supabase
         .from('immobilisations')
-        .select('*, departments(name), profiles!immobilisations_affecte_a_fkey(first_name, last_name, matricule)', { count: 'exact' })
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
       if (debouncedSearch) {
-        query = query.or(`designation.ilike.%${debouncedSearch}%,code.ilike.%${debouncedSearch}%,numero_serie.ilike.%${debouncedSearch}%`);
+        query = query.or(`designation.ilike.%${debouncedSearch}%,code.ilike.%${debouncedSearch}%,category.ilike.%${debouncedSearch}%`);
       }
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter as ImmoStatus);
@@ -81,7 +70,6 @@ export default function ImmobilisationsList() {
   const items = data?.items || [];
   const totalPages = Math.ceil((data?.count || 0) / PAGE_SIZE);
 
-  // KPIs
   const { data: kpis } = useQuery({
     queryKey: ['immobilisations-kpis'],
     queryFn: async () => {
@@ -136,7 +124,7 @@ export default function ImmobilisationsList() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Rechercher par code, désignation, N° série..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-9" />
+            <Input placeholder="Rechercher par code, désignation, catégorie..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={(v: string) => { setStatusFilter(v as ImmoStatus | 'all'); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Statut" /></SelectTrigger>
@@ -149,40 +137,90 @@ export default function ImmobilisationsList() {
           </Select>
         </div>
 
-        {/* Table */}
+        {/* Table - Modèle DAF */}
         {isLoading ? <ListSkeleton /> : (
-          <Card>
+          <Card className={isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-auto bg-background' : ''}>
+            <CardHeader className="flex flex-row items-center justify-between py-3">
+              <CardTitle className="text-base">Tableau des Immobilisations</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsFullscreen(!isFullscreen)}>
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Désignation</TableHead>
-                    <TableHead className="hidden md:table-cell">Type</TableHead>
-                    <TableHead className="hidden md:table-cell">État</TableHead>
+                    <TableHead>Numéro</TableHead>
+                    <TableHead>Type Immobilisation</TableHead>
+                    <TableHead className="text-right">Coût Acquisition</TableHead>
+                    <TableHead>Date Acquisition</TableHead>
+                    <TableHead className="hidden md:table-cell">Durée de Vie</TableHead>
+                    <TableHead className="hidden md:table-cell">Type Amortissement</TableHead>
+                    <TableHead>Observation</TableHead>
                     <TableHead>Statut</TableHead>
-                    <TableHead className="hidden lg:table-cell">Affecté à</TableHead>
-                    <TableHead className="hidden lg:table-cell">Valeur</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Aucune immobilisation trouvée</TableCell></TableRow>
-                  ) : items.map((item: any) => (
-                    <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => window.location.href = `/immobilisations/${item.id}`}>
-                      <TableCell className="font-mono text-xs font-medium">{item.code}</TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate">{item.designation}</TableCell>
-                      <TableCell className="hidden md:table-cell capitalize">{item.type === 'corporel' ? '🏗️ Corporel' : '💻 Incorporel'}</TableCell>
-                      <TableCell className="hidden md:table-cell">{ETAT_LABELS[item.etat] || item.etat}</TableCell>
-                      <TableCell>
-                        <Badge className={STATUS_COLORS[item.status] || ''}>{STATUS_LABELS[item.status] || item.status}</Badge>
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        Aucune immobilisation trouvée
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {item.profiles ? `${item.profiles.first_name} ${item.profiles.last_name}` : <span className="text-muted-foreground">Non affecté</span>}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell font-mono">{(item.valeur_acquisition || 0).toLocaleString('fr-FR')}</TableCell>
                     </TableRow>
-                  ))}
+                  ) : items.map((item: any) => {
+                    const dureeAnnees = item.duree_vie_estimee ? Math.round(item.duree_vie_estimee / 12) : null;
+                    const modeAmort = item.mode_amortissement || 'lineaire';
+                    const isAmortissable = modeAmort !== 'non_amortissable';
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => window.location.href = `/immobilisations/${item.id}`}
+                      >
+                        <TableCell>
+                          <div>
+                            <span className="font-mono text-xs font-medium">{item.code}</span>
+                            <div className="text-xs text-muted-foreground">Classe {item.classe_comptable}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <span className="font-medium">{item.designation}</span>
+                            <div className="text-xs text-muted-foreground">
+                              {TYPE_LABELS[item.type] || item.type}
+                              {item.category && ` — ${item.category}`}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-medium">
+                          {(item.valeur_acquisition || 0).toLocaleString('fr-FR')}
+                          <div className="text-xs text-muted-foreground">{item.devise}</div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(item.date_acquisition).toLocaleDateString('fr-FR')}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">
+                          {dureeAnnees ? `${dureeAnnees} an${dureeAnnees > 1 ? 's' : ''}` : '—'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant="outline" className="text-xs">
+                            {MODE_AMORT_LABELS[modeAmort] || modeAmort}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isAmortissable ? 'secondary' : 'outline'} className="text-xs">
+                            {isAmortissable ? 'Amortissable' : 'Non amortissable'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={STATUS_COLORS[item.status] || ''}>
+                            {STATUS_LABELS[item.status] || item.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>

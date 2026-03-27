@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useAuth } from '@/hooks/useAuth';
 import { useEnrichedProfiles } from '@/hooks/useEnrichedProfiles';
 import { UserBadge } from '@/components/ui/UserBadge';
+import { AmortissementTable } from '@/components/immobilisations/AmortissementTable';
 import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle, Wrench, XCircle, UserCheck, History, Hash, Banknote, MapPin, Package } from 'lucide-react';
 
@@ -32,6 +33,9 @@ const ETAT_LABELS: Record<string, string> = {
 const ACTION_LABELS: Record<string, string> = {
   creation: 'Création', changement_statut: 'Changement de statut', changement_etat: "Changement d'état",
   affectation: 'Affectation', maintenance: 'Maintenance', sortie: 'Sortie', reforme: 'Réforme',
+};
+const MODE_AMORT_LABELS: Record<string, string> = {
+  lineaire: 'Linéaire', degressif: 'Dégressif', non_amortissable: 'Non amortissable',
 };
 
 type ImmoEtat = 'neuf' | 'bon' | 'use' | 'en_panne' | 'hors_service';
@@ -81,7 +85,6 @@ export default function ImmobilisationDetail() {
     enabled: !!id,
   });
 
-  // Collect profile IDs
   const profileIds = new Set<string>();
   if (immo?.created_by) profileIds.add(immo.created_by);
   if (immo?.validated_by) profileIds.add(immo.validated_by);
@@ -98,30 +101,21 @@ export default function ImmobilisationDetail() {
         updateData.validated_by = user.id;
         updateData.validated_at = new Date().toISOString();
       }
-
       const { error } = await supabase.from('immobilisations').update(updateData).eq('id', immo.id);
       if (error) throw error;
-
       if (actionComment.trim()) {
         await supabase.from('immobilisation_history').insert({
-          immobilisation_id: immo.id,
-          action: 'changement_statut',
-          comment: actionComment.trim(),
-          new_values: { status: newStatus },
+          immobilisation_id: immo.id, action: 'changement_statut',
+          comment: actionComment.trim(), new_values: { status: newStatus },
           performed_by: user.id,
         });
       }
-
       toast.success(`Statut mis à jour : ${STATUS_LABELS[newStatus]}`);
       queryClient.invalidateQueries({ queryKey: ['immobilisation', id] });
       queryClient.invalidateQueries({ queryKey: ['immobilisation-history', id] });
-      setActionDialog(null);
-      setActionComment('');
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
+      setActionDialog(null); setActionComment('');
+    } catch (err: any) { toast.error(err.message); }
+    finally { setLoading(false); }
   };
 
   const handleEtatChange = async () => {
@@ -140,19 +134,14 @@ export default function ImmobilisationDetail() {
       toast.success('État mis à jour');
       queryClient.invalidateQueries({ queryKey: ['immobilisation', id] });
       queryClient.invalidateQueries({ queryKey: ['immobilisation-history', id] });
-      setActionDialog(null);
-      setActionComment('');
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
+      setActionDialog(null); setActionComment('');
+    } catch (err: any) { toast.error(err.message); }
+    finally { setLoading(false); }
   };
 
   if (isLoading) {
     return <AppLayout><div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div></AppLayout>;
   }
-
   if (!immo) {
     return <AppLayout><div className="text-center py-20"><h2 className="text-xl font-bold">Immobilisation introuvable</h2><Button className="mt-4" onClick={() => navigate('/immobilisations')}>Retour à la liste</Button></div></AppLayout>;
   }
@@ -167,6 +156,9 @@ export default function ImmobilisationDetail() {
     nextActions.push({ label: 'Réformer', status: 'reformee', icon: XCircle, variant: 'destructive' });
     nextActions.push({ label: 'Céder', status: 'cedee', icon: UserCheck, variant: 'outline' });
   }
+
+  const dureeVieAnnees = immo.duree_vie_estimee ? Math.round(immo.duree_vie_estimee / 12) : 0;
+  const modeAmort = (immo as any).mode_amortissement || 'lineaire';
 
   return (
     <AppLayout>
@@ -215,18 +207,30 @@ export default function ImmobilisationDetail() {
               {immo.numero_serie && <><Separator /><div className="flex justify-between"><span className="text-muted-foreground">N° série</span><span className="font-mono">{immo.numero_serie}</span></div></>}
               <Separator />
               <div className="flex justify-between"><span className="text-muted-foreground">État</span><Badge variant="outline">{ETAT_LABELS[immo.etat]}</Badge></div>
-              {immo.duree_vie_estimee && <><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Durée de vie</span><span>{immo.duree_vie_estimee} mois ({Math.round(immo.duree_vie_estimee / 12)} ans)</span></div></>}
+              {dureeVieAnnees > 0 && <><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Durée de vie</span><span>{dureeVieAnnees} an{dureeVieAnnees > 1 ? 's' : ''}</span></div></>}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Banknote className="h-4 w-4" />Acquisition</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Banknote className="h-4 w-4" />Acquisition & Amortissement</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{new Date(immo.date_acquisition).toLocaleDateString('fr-FR')}</span></div>
               <Separator />
-              <div className="flex justify-between"><span className="text-muted-foreground">Mode</span><span className="capitalize">{immo.mode_acquisition?.replace('_', ' ')}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Mode acquisition</span><span className="capitalize">{immo.mode_acquisition?.replace('_', ' ')}</span></div>
               <Separator />
               <div className="flex justify-between"><span className="text-muted-foreground">Valeur</span><span className="font-bold text-base">{(immo.valeur_acquisition || 0).toLocaleString('fr-FR')} {immo.devise}</span></div>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Mode amortissement</span>
+                <Badge variant="outline">{MODE_AMORT_LABELS[modeAmort] || modeAmort}</Badge>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Observation</span>
+                <Badge variant={modeAmort !== 'non_amortissable' ? 'secondary' : 'outline'}>
+                  {modeAmort !== 'non_amortissable' ? 'Amortissable' : 'Non amortissable'}
+                </Badge>
+              </div>
               {immo.da_id && <><Separator /><div className="flex justify-between"><span className="text-muted-foreground">DA source</span><Link to={`/demandes-achat/${immo.da_id}`} className="text-primary hover:underline">Voir la DA</Link></div></>}
               {immo.article_stock_id && <><Separator /><div className="flex justify-between"><span className="text-muted-foreground">Article stock</span><Link to={`/stock/${immo.article_stock_id}`} className="text-primary hover:underline">Voir l'article</Link></div></>}
             </CardContent>
@@ -267,6 +271,17 @@ export default function ImmobilisationDetail() {
             <CardContent><p className="text-sm whitespace-pre-wrap">{immo.description}</p></CardContent>
           </Card>
         )}
+
+        {/* Tableau d'amortissement */}
+        <AmortissementTable
+          valeurAcquisition={immo.valeur_acquisition || 0}
+          dureeVieAnnees={dureeVieAnnees}
+          dateAcquisition={immo.date_acquisition}
+          dateDebutExercice={(immo as any).date_debut_exercice || undefined}
+          moisAcquisition={(immo as any).mois_acquisition || undefined}
+          mode={modeAmort}
+          devise={immo.devise}
+        />
 
         {/* History */}
         <Card>

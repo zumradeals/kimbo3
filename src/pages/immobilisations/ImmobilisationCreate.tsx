@@ -12,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ArrowLeft, Save } from 'lucide-react';
+import { AmortissementTable } from '@/components/immobilisations/AmortissementTable';
+
+const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
 export default function ImmobilisationCreate() {
   const navigate = useNavigate();
@@ -31,11 +34,14 @@ export default function ImmobilisationCreate() {
     emplacement: '',
     department_id: '',
     etat: 'neuf' as string,
-    duree_vie_estimee: undefined as number | undefined,
+    duree_vie_annees: undefined as number | undefined,
     numero_serie: '',
     affecte_a: '',
     da_id: '',
     article_stock_id: '',
+    mode_amortissement: 'lineaire' as 'lineaire' | 'degressif' | 'non_amortissable',
+    date_debut_exercice: '',
+    mois_acquisition: '' as string,
   });
 
   const { data: departments } = useQuery({
@@ -61,6 +67,8 @@ export default function ImmobilisationCreate() {
 
     setLoading(true);
     try {
+      const dureeVieMois = form.duree_vie_annees ? form.duree_vie_annees * 12 : null;
+
       const insertData: any = {
         designation: form.designation.trim(),
         description: form.description.trim() || null,
@@ -74,13 +82,16 @@ export default function ImmobilisationCreate() {
         emplacement: form.emplacement.trim() || null,
         department_id: form.department_id || null,
         etat: form.etat,
-        duree_vie_estimee: form.duree_vie_estimee || null,
+        duree_vie_estimee: dureeVieMois,
         numero_serie: form.numero_serie.trim() || null,
         affecte_a: form.affecte_a || null,
         da_id: form.da_id || null,
         article_stock_id: form.article_stock_id || null,
         created_by: user.id,
-        code: '', // trigger will generate
+        code: '',
+        mode_amortissement: form.mode_amortissement,
+        date_debut_exercice: form.date_debut_exercice || null,
+        mois_acquisition: form.mois_acquisition || null,
       };
 
       const { data, error } = await supabase.from('immobilisations').insert(insertData).select('id').single();
@@ -155,9 +166,9 @@ export default function ImmobilisationCreate() {
             </CardContent>
           </Card>
 
-          {/* Acquisition */}
+          {/* Acquisition & Amortissement */}
           <Card>
-            <CardHeader><CardTitle className="text-base">Acquisition</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Acquisition & Amortissement</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -183,12 +194,56 @@ export default function ImmobilisationCreate() {
                   <Input type="number" min={0} value={form.valeur_acquisition} onChange={e => update('valeur_acquisition', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div>
-                  <Label>Durée de vie estimée (mois)</Label>
-                  <Input type="number" min={1} value={form.duree_vie_estimee || ''} onChange={e => update('duree_vie_estimee', parseInt(e.target.value) || undefined)} placeholder="Ex: 60" />
+                  <Label>Durée de vie (années)</Label>
+                  <Input type="number" min={1} max={100} value={form.duree_vie_annees || ''} onChange={e => update('duree_vie_annees', parseInt(e.target.value) || undefined)} placeholder="Ex: 5" />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Mode d'amortissement *</Label>
+                  <Select value={form.mode_amortissement} onValueChange={v => update('mode_amortissement', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lineaire">📉 Linéaire</SelectItem>
+                      <SelectItem value="degressif">📊 Dégressif</SelectItem>
+                      <SelectItem value="non_amortissable">🚫 Non amortissable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.mode_amortissement === 'lineaire' && (
+                  <div>
+                    <Label>Date début exercice</Label>
+                    <Input type="date" value={form.date_debut_exercice} onChange={e => update('date_debut_exercice', e.target.value)} />
+                    <p className="text-xs text-muted-foreground mt-1">Pour le calcul du prorata temporis</p>
+                  </div>
+                )}
+                {form.mode_amortissement === 'degressif' && (
+                  <div>
+                    <Label>Mois d'acquisition</Label>
+                    <Select value={form.mois_acquisition} onValueChange={v => update('mois_acquisition', v)}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                      <SelectContent>
+                        {MOIS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Preview amortissement */}
+          {form.mode_amortissement !== 'non_amortissable' && form.valeur_acquisition > 0 && form.duree_vie_annees && (
+            <AmortissementTable
+              valeurAcquisition={form.valeur_acquisition}
+              dureeVieAnnees={form.duree_vie_annees}
+              dateAcquisition={form.date_acquisition}
+              dateDebutExercice={form.date_debut_exercice || undefined}
+              moisAcquisition={form.mois_acquisition || undefined}
+              mode={form.mode_amortissement}
+              devise={form.devise}
+            />
+          )}
 
           {/* Localisation & Affectation */}
           <Card>
