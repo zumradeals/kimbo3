@@ -125,6 +125,7 @@ export function BesoinEditLogistique({ besoinId, besoin, onUpdate, isLocked }: B
               urgency: ligne.urgency,
               justification: ligne.justification || null,
               article_stock_id: ligne.article_stock_id || null,
+              destination: (ligne as any).destination || 'stock',
             })
             .eq('id', ligne.id);
           if (updateError) throw updateError;

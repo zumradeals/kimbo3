@@ -42,6 +42,7 @@ interface LigneInput {
   urgency: BesoinUrgency;
   justification: string;
   article_stock_id?: string | null;
+  destination?: 'stock' | 'immobilisation';
 }
 
 interface AttachmentInput {
@@ -80,6 +81,7 @@ export default function BesoinCreate() {
       urgency: 'normale',
       justification: '',
       article_stock_id: null,
+      destination: 'stock',
     },
   ]);
 
