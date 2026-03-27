@@ -172,7 +172,7 @@ export default function StockCUMPTab() {
             <Calculator className="h-5 w-5 text-primary mt-0.5 shrink-0" />
             <div className="text-sm text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">Tableau CUMP — Coût Unitaire Moyen Pondéré</p>
-              <p>Ce tableau recalcule le CUMP en temps réel pour chaque mouvement. Aucun champ n'est modifiable — tout est dérivé automatiquement des mouvements de stock.</p>
+              <p>Le CUMP est recalculé <strong>uniquement lors des entrées</strong> : CUMP = (Valeur stock + Valeur entrée) / (Qté stock + Qté entrée). Les sorties utilisent le CUMP existant sans le modifier. Précision : 4 décimales.</p>
             </div>
           </div>
         </CardContent>
