@@ -174,6 +174,9 @@ export default function StockDetail() {
     category_id: null as string | null,
     prix_reference: null as number | null,
     prix_reference_note: '',
+    classe_comptable: 3,
+    nombre_pieces: 1,
+    conditionnement: 'durable' as 'durable' | 'perissable',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -213,6 +216,9 @@ export default function StockDetail() {
         category_id: data.category_id || null,
         prix_reference: (data as any).prix_reference || null,
         prix_reference_note: (data as any).prix_reference_note || '',
+        classe_comptable: (data as any).classe_comptable || 3,
+        nombre_pieces: (data as any).nombre_pieces || 1,
+        conditionnement: (data as any).conditionnement || 'durable',
       });
       // Check if unit is custom
       setCustomUnit(!STOCK_UNITS.find(u => u.value === data.unit));
