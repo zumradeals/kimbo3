@@ -145,6 +145,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
               <TableHead className="w-[80px]">Qté</TableHead>
               <TableHead className="w-[100px]">Unité</TableHead>
               <TableHead className="w-[120px]">Urgence</TableHead>
+              <TableHead className="w-[120px]">Destination</TableHead>
               <TableHead>Justification</TableHead>
             </TableRow>
           </TableHeader>
@@ -172,6 +173,11 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
                   <Badge className={urgencyColors[ligne.urgency]}>
                     {ligne.urgency === 'critique' && <AlertTriangle className="mr-1 h-3 w-3" />}
                     {BESOIN_URGENCY_LABELS[ligne.urgency].split(' ')[0]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={ligne.destination === 'immobilisation' ? 'default' : 'secondary'} className={ligne.destination === 'immobilisation' ? 'bg-amber-600 text-white' : ''}>
+                    {ligne.destination === 'immobilisation' ? '🏗️ Immobilisation' : '📦 Stock'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
