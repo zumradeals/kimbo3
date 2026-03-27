@@ -126,6 +126,13 @@ export default function StockStandardTab() {
 
   useEffect(() => { fetchData(); fetchStocks(); }, []);
 
+  // Escape key exits fullscreen
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    if (isFullscreen) window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isFullscreen]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
