@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CategorySelector } from '@/components/stock/CategorySelector';
 import { LOGISTICS_ROLES } from '@/types/kpm';
 import {
-  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus,
+  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus, Maximize2, Minimize2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -95,6 +95,7 @@ export default function StockStandardTab() {
   const [classeFilter, setClasseFilter] = useState('all');
   const [condFilter, setCondFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // CRUD state
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -364,11 +365,20 @@ export default function StockStandardTab() {
       </Card>
 
       {/* Tableau */}
-      <Card>
-        <CardHeader>
+      <Card className={isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-auto' : ''}>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">
             {filtered.length} article{filtered.length !== 1 ? 's' : ''} — Valeur stock : {fmt(totals.stock)} ₣
           </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="shrink-0"
+          >
+            {isFullscreen ? <Minimize2 className="mr-2 h-4 w-4" /> : <Maximize2 className="mr-2 h-4 w-4" />}
+            {isFullscreen ? 'Réduire' : 'Plein écran'}
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
