@@ -293,6 +293,7 @@ export default function BLCreate() {
         observations: a.observations.trim() || null,
         article_stock_id: a.article_stock_id || null,
         quantity_ordered: parseFloat(a.quantity),
+        destination: (a as any).destination || 'stock',
       }));
 
       const { error: artError } = await supabase.from('bl_articles').insert(articlesToInsert);
