@@ -130,6 +130,7 @@ export default function BLCreate() {
             observations: ligne.justification || '',
             article_stock_id: ligne.article_stock_id || null,
             stock_available: available,
+            destination: (ligne as any).destination || 'stock',
           };
         });
         setArticles(articlesFromLignes);
