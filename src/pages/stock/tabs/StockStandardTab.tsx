@@ -1,19 +1,27 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import {
-  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { CategorySelector } from '@/components/stock/CategorySelector';
+import { LOGISTICS_ROLES } from '@/types/kpm';
+import {
+  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -55,7 +63,30 @@ const statusConfig: Record<string, { label: string; class: string }> = {
   rupture: { label: 'Rupture', class: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
+const STOCK_UNITS = [
+  { value: 'unité', label: 'Unité' },
+  { value: 'pièce', label: 'Pièce' },
+  { value: 'kg', label: 'Kilogramme (kg)' },
+  { value: 'g', label: 'Gramme (g)' },
+  { value: 't', label: 'Tonne (t)' },
+  { value: 'm', label: 'Mètre (m)' },
+  { value: 'cm', label: 'Centimètre (cm)' },
+  { value: 'm²', label: 'Mètre carré (m²)' },
+  { value: 'm³', label: 'Mètre cube (m³)' },
+  { value: 'L', label: 'Litre (L)' },
+  { value: 'mL', label: 'Millilitre (mL)' },
+  { value: 'boîte', label: 'Boîte' },
+  { value: 'carton', label: 'Carton' },
+  { value: 'palette', label: 'Palette' },
+  { value: 'rouleau', label: 'Rouleau' },
+  { value: 'sac', label: 'Sac' },
+  { value: 'bidon', label: 'Bidon' },
+  { value: 'paquet', label: 'Paquet' },
+  { value: 'lot', label: 'Lot' },
+];
+
 export default function StockStandardTab() {
+  const { user, roles, isAdmin, hasRole } = useAuth();
   const { toast } = useToast();
   const [data, setData] = useState<StockRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +94,29 @@ export default function StockStandardTab() {
   const [classeFilter, setClasseFilter] = useState('all');
   const [condFilter, setCondFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // CRUD state
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [customUnit, setCustomUnit] = useState(false);
+  const [newArticle, setNewArticle] = useState({
+    designation: '',
+    description: '',
+    unit: 'unité',
+    quantity_available: 0,
+    quantity_min: 0,
+    location: '',
+    category_id: null as string | null,
+    classe_comptable: 3,
+    nombre_pieces: 1,
+    conditionnement: 'durable' as 'durable' | 'perissable',
+    prix_reference: null as number | null,
+    prix_reference_note: '',
+  });
+
+  const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
+  const isDAF = hasRole('daf');
+  const canManage = isLogistics || isAdmin || isDAF;
 
   useEffect(() => { fetchData(); }, []);
 
@@ -80,6 +134,55 @@ export default function StockStandardTab() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAddArticle = async () => {
+    if (!newArticle.designation.trim()) {
+      toast({ title: 'Erreur', description: 'La désignation est requise.', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { data: codeData, error: codeError } = await supabase.rpc('generate_article_code');
+      if (codeError) throw codeError;
+
+      const { error } = await supabase.from('articles_stock').insert({
+        code: codeData as string,
+        designation: newArticle.designation,
+        description: newArticle.description || null,
+        unit: newArticle.unit,
+        quantity_available: newArticle.quantity_available,
+        quantity_min: newArticle.quantity_min || null,
+        location: newArticle.location || null,
+        category_id: newArticle.category_id,
+        classe_comptable: newArticle.classe_comptable,
+        nombre_pieces: newArticle.nombre_pieces,
+        conditionnement: newArticle.conditionnement,
+        prix_reference: newArticle.prix_reference,
+        prix_reference_note: newArticle.prix_reference_note || null,
+        prix_reference_updated_at: newArticle.prix_reference ? new Date().toISOString() : null,
+        created_by: user?.id,
+      });
+      if (error) throw error;
+
+      toast({ title: 'Succès', description: 'Article créé avec succès.' });
+      setShowAddDialog(false);
+      resetForm();
+      fetchData();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setNewArticle({
+      designation: '', description: '', unit: 'unité', quantity_available: 0,
+      quantity_min: 0, location: '', category_id: null, classe_comptable: 3,
+      nombre_pieces: 1, conditionnement: 'durable', prix_reference: null, prix_reference_note: '',
+    });
+    setCustomUnit(false);
   };
 
   const filtered = useMemo(() => {
@@ -109,6 +212,16 @@ export default function StockStandardTab() {
 
   return (
     <div className="space-y-6">
+      {/* Header with CRUD button */}
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvel article
+          </Button>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -358,6 +471,192 @@ export default function StockStandardTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog Nouvel Article */}
+      <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter un article au stock</DialogTitle>
+            <DialogDescription>
+              Créez un nouvel article dans l'inventaire avec sa quantité initiale.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 py-4 max-h-[60vh] overflow-y-auto">
+            {/* Désignation */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Désignation <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                value={newArticle.designation}
+                onChange={(e) => setNewArticle({ ...newArticle, designation: e.target.value })}
+                placeholder="Ex: Câble électrique 2.5mm²"
+                className="h-11"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Description</Label>
+              <Textarea
+                value={newArticle.description}
+                onChange={(e) => setNewArticle({ ...newArticle, description: e.target.value })}
+                placeholder="Caractéristiques, références, spécifications..."
+                rows={3}
+              />
+            </div>
+
+            {/* Unité */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Unité de mesure <span className="text-destructive">*</span>
+              </Label>
+              {!customUnit ? (
+                <div className="flex gap-2">
+                  <Select
+                    value={STOCK_UNITS.find(u => u.value === newArticle.unit) ? newArticle.unit : ''}
+                    onValueChange={(v) => setNewArticle({ ...newArticle, unit: v })}
+                  >
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="Sélectionner une unité" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STOCK_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" onClick={() => { setCustomUnit(true); setNewArticle({ ...newArticle, unit: '' }); }} className="h-11">
+                    Autre
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={newArticle.unit}
+                    onChange={(e) => setNewArticle({ ...newArticle, unit: e.target.value })}
+                    placeholder="Entrer une unité personnalisée"
+                    className="h-11 flex-1"
+                  />
+                  <Button type="button" variant="outline" onClick={() => { setCustomUnit(false); setNewArticle({ ...newArticle, unit: 'unité' }); }} className="h-11">
+                    Liste
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Quantités */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Quantité initiale <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number" min={0} step="0.01"
+                  value={newArticle.quantity_available}
+                  onChange={(e) => setNewArticle({ ...newArticle, quantity_available: Number(e.target.value) })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Seuil d'alerte</Label>
+                <Input
+                  type="number" min={0} step="0.01"
+                  value={newArticle.quantity_min}
+                  onChange={(e) => setNewArticle({ ...newArticle, quantity_min: Number(e.target.value) })}
+                  className="h-11"
+                />
+              </div>
+            </div>
+
+            {/* Catégorie */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Catégorie</Label>
+              <CategorySelector
+                value={newArticle.category_id}
+                onChange={(v) => setNewArticle({ ...newArticle, category_id: v })}
+                placeholder="Sélectionner une catégorie"
+              />
+            </div>
+
+            {/* Classe comptable & Conditionnement */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Classe comptable</Label>
+                <Select value={String(newArticle.classe_comptable)} onValueChange={(v) => setNewArticle({ ...newArticle, classe_comptable: parseInt(v) })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[2, 3, 4, 5, 6, 7].map((c) => (
+                      <SelectItem key={c} value={String(c)}>Classe {c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Nombre de pièces</Label>
+                <Input
+                  type="number" min={1}
+                  value={newArticle.nombre_pieces}
+                  onChange={(e) => setNewArticle({ ...newArticle, nombre_pieces: parseInt(e.target.value) || 1 })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Conditionnement</Label>
+                <Select value={newArticle.conditionnement} onValueChange={(v) => setNewArticle({ ...newArticle, conditionnement: v as 'durable' | 'perissable' })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="durable">Durable</SelectItem>
+                    <SelectItem value="perissable">Périssable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Prix de référence */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Prix unitaire de référence (FCFA)</Label>
+                <Input
+                  type="number" min={0} step="0.01"
+                  value={newArticle.prix_reference ?? ''}
+                  onChange={(e) => setNewArticle({ ...newArticle, prix_reference: e.target.value ? Number(e.target.value) : null })}
+                  placeholder="Prix indicatif"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Source / Remarque</Label>
+                <Input
+                  value={newArticle.prix_reference_note}
+                  onChange={(e) => setNewArticle({ ...newArticle, prix_reference_note: e.target.value })}
+                  placeholder="Ex: tarif fournisseur X"
+                  className="h-11"
+                />
+              </div>
+            </div>
+
+            {/* Emplacement */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Emplacement</Label>
+              <Input
+                value={newArticle.location}
+                onChange={(e) => setNewArticle({ ...newArticle, location: e.target.value })}
+                placeholder="Ex: Entrepôt A - Rayon 3 - Étagère B"
+                className="h-11"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddArticle} disabled={isSaving || !newArticle.designation.trim() || !newArticle.unit.trim()}>
+              {isSaving ? 'Enregistrement...' : 'Créer l\'article'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
