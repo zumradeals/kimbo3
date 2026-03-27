@@ -147,8 +147,15 @@ export default function ImmobilisationCreate() {
                   <Select value={form.classe_comptable.toString()} onValueChange={v => update('classe_comptable', parseInt(v))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2">Classe 2 - Immobilisations</SelectItem>
-                      <SelectItem value="3">Classe 3 - Stocks</SelectItem>
+                      <SelectItem value="21">21 - Immobilisations incorporelles</SelectItem>
+                      <SelectItem value="22">22 - Terrains</SelectItem>
+                      <SelectItem value="23">23 - Bâtiments</SelectItem>
+                      <SelectItem value="24">24 - Matériel & Outillage</SelectItem>
+                      <SelectItem value="25">25 - Matériel de transport</SelectItem>
+                      <SelectItem value="26">26 - Matériel informatique</SelectItem>
+                      <SelectItem value="27">27 - Matériel bureautique</SelectItem>
+                      <SelectItem value="28">28 - Agencements & Installations</SelectItem>
+                      <SelectItem value="29">29 - Autres immobilisations</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
