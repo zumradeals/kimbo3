@@ -525,7 +525,7 @@ export default function StockStandardTab() {
           <div className="text-sm text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">Tableau 100% dynamique</p>
             <p>Toutes les valeurs sont calculées à partir des mouvements de stock. Aucune modification directe n'est possible — toute variation passe par le module Mouvements.</p>
-            <p><strong>Stock Actuel</strong> = Entrées cumulées − Sorties cumulées. Le <strong>Statut</strong> est automatique selon le seuil d'alerte.</p>
+            <p><strong>Stock Final</strong> = Entrées cumulées − Sorties cumulées. Le <strong>Statut</strong> est automatique selon le seuil d'alerte.</p>
           </div>
         </CardContent>
       </Card>
