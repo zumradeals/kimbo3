@@ -347,7 +347,7 @@ export default function StockStandardTab() {
                     <TableHead rowSpan={2} className="border-r align-middle">Code</TableHead>
                     <TableHead rowSpan={2} className="border-r align-middle">Date entrée</TableHead>
                     <TableHead rowSpan={2} className="border-r align-middle">Désignation</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle text-center">Cat.</TableHead>
+                    
                     <TableHead rowSpan={2} className="border-r align-middle text-center">Cl.</TableHead>
                     <TableHead rowSpan={2} className="border-r align-middle">Unité</TableHead>
                     <TableHead rowSpan={2} className="border-r align-middle text-center">Pcs</TableHead>
@@ -396,7 +396,7 @@ export default function StockStandardTab() {
                           <div className="font-medium text-sm max-w-[180px] truncate">{row.designation}</div>
                           {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
                         </TableCell>
-                        <TableCell className="border-r text-center text-xs">{row.category_name || '-'}</TableCell>
+                        
                         <TableCell className="border-r text-center">
                           <Badge variant="secondary" className="text-xs">{row.classe_comptable || '-'}</Badge>
                         </TableCell>
