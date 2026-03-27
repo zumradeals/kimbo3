@@ -85,6 +85,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
       urgency: 'normale',
       justification: '',
       article_stock_id: null,
+      destination: 'stock',
     };
     onChange([...lignes, newLigne]);
   };
@@ -94,11 +95,12 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
       id: `temp-${crypto.randomUUID()}`,
       designation: article.designation,
       category: 'materiel',
-      unit: article.unit, // Utilise l'unité de l'article stock
+      unit: article.unit,
       quantity: 1,
       urgency: 'normale',
       justification: '',
       article_stock_id: article.id,
+      destination: 'stock',
     };
     onChange([...lignes, newLigne]);
   };
