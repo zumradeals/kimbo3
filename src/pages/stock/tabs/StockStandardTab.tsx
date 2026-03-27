@@ -241,9 +241,21 @@ export default function StockStandardTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header with CRUD button */}
+      {/* Header with CRUD buttons */}
       {canManage && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {stocks.length > 0 && (
+            <Select onValueChange={(stockId) => openAddToStock(stockId)}>
+              <SelectTrigger className="w-auto">
+                <SelectValue placeholder="Affecter un article à un stock..." />
+              </SelectTrigger>
+              <SelectContent>
+                {stocks.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvel article
