@@ -238,6 +238,7 @@ export default function StockCUMPTab() {
                     <TableHead className="text-right bg-primary/5">Stock après</TableHead>
                     <TableHead className="text-right bg-primary/5 font-bold">CUMP</TableHead>
                     <TableHead className="text-right bg-primary/5 font-bold">Valeur Stock</TableHead>
+                    <TableHead>Anomalie</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
