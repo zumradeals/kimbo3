@@ -107,7 +107,7 @@ interface SelectedStock {
   nom: string;
 }
 
-export default function StockList() {
+export default function StockList({ embedded = false }: { embedded?: boolean }) {
   const { user, roles, isAdmin, hasRole } = useAuth();
   const { toast } = useToast();
 
@@ -358,8 +358,8 @@ export default function StockList() {
     };
   }, [selectedStockId, stockLevels, articles]);
 
-  return (
-    <AppLayout>
+  const content = (
+    <div className="space-y-6">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -905,6 +905,9 @@ export default function StockList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppLayout>
+    </div>
   );
+
+  if (embedded) return content;
+  return <AppLayout>{content}</AppLayout>;
 }
