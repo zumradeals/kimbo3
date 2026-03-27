@@ -174,6 +174,9 @@ export default function StockDetail() {
     category_id: null as string | null,
     prix_reference: null as number | null,
     prix_reference_note: '',
+    classe_comptable: 3,
+    nombre_pieces: 1,
+    conditionnement: 'durable' as 'durable' | 'perissable',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -213,6 +216,9 @@ export default function StockDetail() {
         category_id: data.category_id || null,
         prix_reference: (data as any).prix_reference || null,
         prix_reference_note: (data as any).prix_reference_note || '',
+        classe_comptable: (data as any).classe_comptable || 3,
+        nombre_pieces: (data as any).nombre_pieces || 1,
+        conditionnement: (data as any).conditionnement || 'durable',
       });
       // Check if unit is custom
       setCustomUnit(!STOCK_UNITS.find(u => u.value === data.unit));
@@ -393,6 +399,9 @@ export default function StockDetail() {
           category_id: editForm.category_id || null,
           prix_reference: editForm.prix_reference || null,
           prix_reference_note: editForm.prix_reference_note || null,
+          classe_comptable: editForm.classe_comptable,
+          nombre_pieces: editForm.nombre_pieces,
+          conditionnement: editForm.conditionnement,
         })
         .eq('id', article.id);
 
@@ -1175,7 +1184,40 @@ export default function StockDetail() {
               />
             </div>
 
-            {/* Prix de référence */}
+            {/* Classe comptable, Nombre de pièces, Conditionnement */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Classe comptable</Label>
+                <Select value={String(editForm.classe_comptable)} onValueChange={(v) => setEditForm({ ...editForm, classe_comptable: parseInt(v) })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[2, 3, 4, 5, 6, 7].map((c) => (
+                      <SelectItem key={c} value={String(c)}>Classe {c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Nombre de pièces</Label>
+                <Input
+                  type="number" min={1}
+                  value={editForm.nombre_pieces}
+                  onChange={(e) => setEditForm({ ...editForm, nombre_pieces: parseInt(e.target.value) || 1 })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Conditionnement</Label>
+                <Select value={editForm.conditionnement} onValueChange={(v) => setEditForm({ ...editForm, conditionnement: v as 'durable' | 'perissable' })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="durable">Durable</SelectItem>
+                    <SelectItem value="perissable">Périssable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
               <div className="flex items-center gap-2">
                 <Label className="text-sm font-medium">Prix de référence (optionnel)</Label>
