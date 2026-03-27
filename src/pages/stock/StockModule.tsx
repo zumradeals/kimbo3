@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, ArrowUpDown, Calculator, List } from 'lucide-react';
+import { Package, ArrowUpDown, Calculator } from 'lucide-react';
 import StockStandardTab from './tabs/StockStandardTab';
 import StockMouvementsTab from './tabs/StockMouvementsTab';
 import StockCUMPTab from './tabs/StockCUMPTab';
-import StockList from './StockList';
 
 export default function StockModule() {
   const [activeTab, setActiveTab] = useState('standard');
@@ -23,16 +22,11 @@ export default function StockModule() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="standard" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Vue KIMBO</span>
+              <span className="hidden sm:inline">Stock</span>
               <span className="sm:hidden">Stock</span>
-            </TabsTrigger>
-            <TabsTrigger value="articles" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              <span className="hidden sm:inline">Articles</span>
-              <span className="sm:hidden">Art.</span>
             </TabsTrigger>
             <TabsTrigger value="mouvements" className="flex items-center gap-2">
               <ArrowUpDown className="h-4 w-4" />
@@ -47,9 +41,6 @@ export default function StockModule() {
 
           <TabsContent value="standard">
             <StockStandardTab />
-          </TabsContent>
-          <TabsContent value="articles">
-            <StockList embedded />
           </TabsContent>
           <TabsContent value="mouvements">
             <StockMouvementsTab />
