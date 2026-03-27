@@ -35,7 +35,8 @@ interface CUMPRow {
   rn: number;
 }
 
-const fmt = (n: number) => Math.ceil(Math.abs(n)).toLocaleString('fr-FR');
+const fmtInt = (n: number) => Math.ceil(Math.abs(n)).toLocaleString('fr-FR');
+const fmtCump = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
 export default function StockCUMPTab() {
   const { toast } = useToast();
