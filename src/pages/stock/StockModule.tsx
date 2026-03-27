@@ -1,23 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, ArrowUpDown, Calculator, List } from 'lucide-react';
 import StockStandardTab from './tabs/StockStandardTab';
 import StockMouvementsTab from './tabs/StockMouvementsTab';
 import StockCUMPTab from './tabs/StockCUMPTab';
+import StockList from './StockList';
 
 export default function StockModule() {
   const [activeTab, setActiveTab] = useState('standard');
-  const navigate = useNavigate();
-
-  const handleTabChange = (value: string) => {
-    if (value === 'articles') {
-      navigate('/stock/articles');
-      return;
-    }
-    setActiveTab(value);
-  };
 
   return (
     <AppLayout>
@@ -31,7 +22,7 @@ export default function StockModule() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="standard" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
@@ -56,6 +47,9 @@ export default function StockModule() {
 
           <TabsContent value="standard">
             <StockStandardTab />
+          </TabsContent>
+          <TabsContent value="articles">
+            <StockList embedded />
           </TabsContent>
           <TabsContent value="mouvements">
             <StockMouvementsTab />
