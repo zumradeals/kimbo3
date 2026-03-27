@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, AlertTriangle, Package, Link2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Package, Link2, Landmark } from 'lucide-react';
 import {
   BesoinLigne,
   BesoinLigneCategory,
@@ -39,6 +39,7 @@ export interface BesoinLigneInput {
   urgency: BesoinUrgency;
   justification: string;
   article_stock_id?: string | null;
+  destination?: 'stock' | 'immobilisation';
 }
 
 interface BesoinLignesTableProps {
@@ -84,6 +85,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
       urgency: 'normale',
       justification: '',
       article_stock_id: null,
+      destination: 'stock',
     };
     onChange([...lignes, newLigne]);
   };
@@ -93,11 +95,12 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
       id: `temp-${crypto.randomUUID()}`,
       designation: article.designation,
       category: 'materiel',
-      unit: article.unit, // Utilise l'unité de l'article stock
+      unit: article.unit,
       quantity: 1,
       urgency: 'normale',
       justification: '',
       article_stock_id: article.id,
+      destination: 'stock',
     };
     onChange([...lignes, newLigne]);
   };
@@ -142,6 +145,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
               <TableHead className="w-[80px]">Qté</TableHead>
               <TableHead className="w-[100px]">Unité</TableHead>
               <TableHead className="w-[120px]">Urgence</TableHead>
+              <TableHead className="w-[120px]">Destination</TableHead>
               <TableHead>Justification</TableHead>
             </TableRow>
           </TableHeader>
@@ -171,6 +175,11 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
                     {BESOIN_URGENCY_LABELS[ligne.urgency].split(' ')[0]}
                   </Badge>
                 </TableCell>
+                <TableCell>
+                  <Badge variant={ligne.destination === 'immobilisation' ? 'default' : 'secondary'} className={ligne.destination === 'immobilisation' ? 'bg-amber-600 text-white' : ''}>
+                    {ligne.destination === 'immobilisation' ? '🏗️ Immobilisation' : '📦 Stock'}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {ligne.justification || '-'}
                 </TableCell>
@@ -193,6 +202,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
               <TableHead className="w-[80px]">Qté *</TableHead>
               <TableHead className="w-[110px]">Unité *</TableHead>
               <TableHead className="w-[130px]">Urgence *</TableHead>
+              <TableHead className="w-[140px]">Destination</TableHead>
               <TableHead className="min-w-[180px]">Justification</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -299,6 +309,20 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
                             {BESOIN_URGENCY_LABELS[urg].split(' ')[0]}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={ligne.destination || 'stock'}
+                      onValueChange={(v) => updateLigne(ligne.id, 'destination', v)}
+                    >
+                      <SelectTrigger className={`w-full ${ligne.destination === 'immobilisation' ? 'border-amber-500' : ''}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="stock">📦 Stock</SelectItem>
+                        <SelectItem value="immobilisation">🏗️ Immobilisation</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>

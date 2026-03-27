@@ -1561,6 +1561,7 @@ export default function DADetail() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Désignation</TableHead>
+                      <TableHead className="text-center">Destination</TableHead>
                       <TableHead className="text-center">Qté</TableHead>
                       <TableHead>Fournisseur</TableHead>
                       <TableHead className="text-right">Prix unitaire</TableHead>
@@ -1574,6 +1575,11 @@ export default function DADetail() {
                       return (
                         <TableRow key={art.id}>
                           <TableCell className="font-medium">{art.designation}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={(art as any).destination === 'immobilisation' ? 'default' : 'secondary'} className={(art as any).destination === 'immobilisation' ? 'bg-amber-600 text-white text-[10px]' : 'text-[10px]'}>
+                              {(art as any).destination === 'immobilisation' ? '🏗️ Immo.' : '📦 Stock'}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-center">{art.quantity} {art.unit}</TableCell>
                           <TableCell>
                             {selectedPrice ? (selectedPrice.fournisseur as Fournisseur)?.name || 'N/A' : '-'}
@@ -1588,7 +1594,7 @@ export default function DADetail() {
                       );
                     })}
                     <TableRow className="border-t-2 bg-muted/30">
-                      <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+                      <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
                       <TableCell className="text-right font-bold text-success">
                         {da.total_amount?.toLocaleString()} {da.currency}
                       </TableCell>
