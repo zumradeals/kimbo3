@@ -831,6 +831,7 @@ export default function BLDetail() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Désignation</TableHead>
+                    <TableHead className="text-center">Destination</TableHead>
                     <TableHead className="text-right">Commandé</TableHead>
                     <TableHead className="text-right">Livré</TableHead>
                     <TableHead>Unité</TableHead>
@@ -845,6 +846,11 @@ export default function BLDetail() {
                     return (
                       <TableRow key={art.id} className={hasEcart ? 'bg-warning/5' : undefined}>
                         <TableCell className="font-medium">{art.designation}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={(art as any).destination === 'immobilisation' ? 'default' : 'secondary'} className={(art as any).destination === 'immobilisation' ? 'bg-amber-600 text-white text-[10px]' : 'text-[10px]'}>
+                            {(art as any).destination === 'immobilisation' ? '🏗️ Immo.' : '📦 Stock'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right font-mono">{ordered}</TableCell>
                         <TableCell className="text-right font-mono">{delivered > 0 ? delivered : '-'}{hasEcart && <AlertTriangle className="ml-2 inline h-4 w-4 text-warning" />}</TableCell>
                         <TableCell>{art.unit}</TableCell>
