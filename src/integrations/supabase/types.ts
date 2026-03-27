@@ -195,6 +195,7 @@ export type Database = {
           category: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at: string
           designation: string
+          destination: Database["public"]["Enums"]["article_destination"]
           id: string
           justification: string | null
           quantity: number
@@ -207,6 +208,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at?: string
           designation: string
+          destination?: Database["public"]["Enums"]["article_destination"]
           id?: string
           justification?: string | null
           quantity?: number
@@ -219,6 +221,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at?: string
           designation?: string
+          destination?: Database["public"]["Enums"]["article_destination"]
           id?: string
           justification?: string | null
           quantity?: number
@@ -430,6 +433,7 @@ export type Database = {
           bl_id: string
           created_at: string
           designation: string
+          destination: Database["public"]["Enums"]["article_destination"]
           ecart_reason: string | null
           id: string
           observations: string | null
@@ -443,6 +447,7 @@ export type Database = {
           bl_id: string
           created_at?: string
           designation: string
+          destination?: Database["public"]["Enums"]["article_destination"]
           ecart_reason?: string | null
           id?: string
           observations?: string | null
@@ -456,6 +461,7 @@ export type Database = {
           bl_id?: string
           created_at?: string
           designation?: string
+          destination?: Database["public"]["Enums"]["article_destination"]
           ecart_reason?: string | null
           id?: string
           observations?: string | null
@@ -934,6 +940,7 @@ export type Database = {
           created_at: string
           da_id: string
           designation: string
+          destination: Database["public"]["Enums"]["article_destination"]
           id: string
           observations: string | null
           quantity: number
@@ -944,6 +951,7 @@ export type Database = {
           created_at?: string
           da_id: string
           designation: string
+          destination?: Database["public"]["Enums"]["article_destination"]
           id?: string
           observations?: string | null
           quantity: number
@@ -954,6 +962,7 @@ export type Database = {
           created_at?: string
           da_id?: string
           designation?: string
+          destination?: Database["public"]["Enums"]["article_destination"]
           id?: string
           observations?: string | null
           quantity?: number
@@ -3449,6 +3458,7 @@ export type Database = {
         | "employe"
         | "lecture_seule"
         | "aal"
+      article_destination: "stock" | "immobilisation"
       besoin_category:
         | "materiel"
         | "service"
@@ -3701,6 +3711,7 @@ export const Constants = {
         "lecture_seule",
         "aal",
       ],
+      article_destination: ["stock", "immobilisation"],
       besoin_category: [
         "materiel",
         "service",
