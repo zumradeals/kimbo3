@@ -1971,6 +1971,13 @@ export type Database = {
             foreignKeyName: "immobilisations_stock_movement_id_fkey"
             columns: ["stock_movement_id"]
             isOneToOne: false
+            referencedRelation: "stock_cump_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "immobilisations_stock_movement_id_fkey"
+            columns: ["stock_movement_id"]
+            isOneToOne: false
             referencedRelation: "stock_movements"
             referencedColumns: ["id"]
           },
@@ -3106,6 +3113,67 @@ export type Database = {
       }
     }
     Views: {
+      stock_cump_view: {
+        Row: {
+          article_code: string | null
+          article_designation: string | null
+          article_stock_id: string | null
+          article_unit: string | null
+          bl_id: string | null
+          created_by: string | null
+          da_id: string | null
+          date_mouvement: string | null
+          id: string | null
+          montant_total: number | null
+          movement_type:
+            | Database["public"]["Enums"]["stock_movement_type"]
+            | null
+          prix_unitaire: number | null
+          quantity: number | null
+          quantity_after: number | null
+          quantity_before: number | null
+          reference: string | null
+          rn: number | null
+          valeur_mouvement: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "articles_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_article_stock_id_fkey"
+            columns: ["article_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_kimbo_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_bl_id_fkey"
+            columns: ["bl_id"]
+            isOneToOne: false
+            referencedRelation: "bons_livraison"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_da_id_fkey"
+            columns: ["da_id"]
+            isOneToOne: false
+            referencedRelation: "demandes_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_kimbo_view: {
         Row: {
           category_id: string | null
@@ -3123,10 +3191,12 @@ export type Database = {
           location: string | null
           nombre_pieces: number | null
           quantity_available: number | null
+          seuil_alerte: number | null
           sorties_montant: number | null
           sorties_prix_unitaire: number | null
           sorties_qty: number | null
           status: Database["public"]["Enums"]["stock_status"] | null
+          statut_auto: string | null
           stock_final_montant: number | null
           stock_final_prix_unitaire: number | null
           stock_final_qty: number | null

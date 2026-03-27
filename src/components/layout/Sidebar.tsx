@@ -139,10 +139,9 @@ const moduleNavItems: NavItem[] = [
     icon: Package,
     module: 'stock',
     children: [
-      { label: 'Articles', href: '/stock', icon: Package },
-      { label: 'Vue KIMBO', href: '/stock/kimbo', icon: BarChart3 },
-      { label: 'Mouvements', href: '/stock/mouvements', icon: Warehouse },
-      { label: 'Stocks', href: '/stocks', icon: Warehouse },
+      { label: 'Module Stock', href: '/stock', icon: Package },
+      { label: 'Gestion articles', href: '/stock/articles', icon: Package },
+      { label: 'Stocks / Entrepôts', href: '/stocks', icon: Warehouse },
       { label: 'Catégories', href: '/stock/categories', icon: FolderKanban },
     ],
   },
