@@ -87,59 +87,78 @@ export default function StockCUMPTab() {
   }, [data, articleFilter, search]);
 
   // CUMP calculation: running weighted average per article
+  // RULE: CUMP recalculated ONLY on entries. Exits use existing CUMP.
   const cumpData = useMemo(() => {
-    const state: Record<string, { qty: number; value: number }> = {};
+    const state: Record<string, { qty: number; value: number; cump: number }> = {};
     
     return filtered.map((row) => {
       const key = row.article_stock_id;
-      if (!state[key]) state[key] = { qty: 0, value: 0 };
+      if (!state[key]) state[key] = { qty: 0, value: 0, cump: 0 };
       const s = state[key];
 
       const stockAvant = s.qty;
       const valeurAvant = s.value;
+      const cumpAvant = s.cump;
       let entreeQty = 0, entreeMontant = 0, sortieQty = 0, sortieMontant = 0;
+      let anomalie = '';
 
       if (row.movement_type === 'entree') {
         entreeQty = row.quantity;
         entreeMontant = row.montant_total || (row.quantity * (row.prix_unitaire || 0));
-        s.qty += entreeQty;
-        s.value += entreeMontant;
+        // CUMP formula: (previous_value + entry_value) / (previous_qty + entry_qty)
+        const newQty = s.qty + entreeQty;
+        const newValue = s.value + entreeMontant;
+        s.qty = newQty;
+        s.value = newValue;
+        // If stock was 0, CUMP = entry unit price
+        s.cump = newQty > 0 ? newValue / newQty : 0;
       } else if (row.movement_type === 'sortie') {
         sortieQty = row.quantity;
-        const currentCump = s.qty > 0 ? s.value / s.qty : 0;
-        sortieMontant = sortieQty * currentCump;
+        if (sortieQty > s.qty) {
+          anomalie = `⚠ Sortie (${sortieQty}) > Stock (${s.qty})`;
+        }
+        // Exit uses EXISTING CUMP — no recalculation
+        sortieMontant = sortieQty * s.cump;
         s.qty -= sortieQty;
         s.value -= sortieMontant;
-        if (s.qty < 0) { s.qty = 0; s.value = 0; }
+        if (s.qty <= 0) { s.qty = 0; s.value = 0; }
+        // CUMP stays unchanged on exit
       } else if (row.movement_type === 'ajustement') {
         if (row.quantity_after > row.quantity_before) {
+          // Adjustment UP = treated as entry (recalculates CUMP only if value provided)
           entreeQty = row.quantity;
           entreeMontant = row.montant_total || 0;
-          s.qty += entreeQty;
-          s.value += entreeMontant;
+          const newQty = s.qty + entreeQty;
+          const newValue = s.value + entreeMontant;
+          s.qty = newQty;
+          s.value = newValue;
+          if (entreeMontant > 0 && newQty > 0) {
+            s.cump = newValue / newQty;
+          }
+          // If no value provided, CUMP unchanged (qty-only adjustment)
         } else {
+          // Adjustment DOWN = treated as exit (CUMP unchanged)
           sortieQty = row.quantity;
-          const currentCump = s.qty > 0 ? s.value / s.qty : 0;
-          sortieMontant = sortieQty * currentCump;
+          sortieMontant = sortieQty * s.cump;
           s.qty -= sortieQty;
           s.value -= sortieMontant;
-          if (s.qty < 0) { s.qty = 0; s.value = 0; }
+          if (s.qty <= 0) { s.qty = 0; s.value = 0; }
         }
       }
-
-      const cump = s.qty > 0 ? s.value / s.qty : 0;
 
       return {
         ...row,
         stock_avant: stockAvant,
         valeur_avant: valeurAvant,
+        cump_avant: cumpAvant,
         entree_qty: entreeQty,
         entree_montant: entreeMontant,
         sortie_qty: sortieQty,
         sortie_montant: sortieMontant,
         stock_apres: s.qty,
-        cump,
+        cump: s.cump,
         valeur_stock: s.value,
+        anomalie,
       };
     });
   }, [filtered]);
@@ -240,17 +259,20 @@ export default function StockCUMPTab() {
                         {row.entree_qty > 0 ? <span className="text-success font-semibold">+{row.entree_qty}</span> : '-'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs bg-success/5">
-                        {row.entree_montant > 0 ? <span className="text-success">{fmt(row.entree_montant)}</span> : '-'}
+                        {row.entree_montant > 0 ? <span className="text-success">{fmtInt(row.entree_montant)}</span> : '-'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs bg-destructive/5">
                         {row.sortie_qty > 0 ? <span className="text-destructive">-{row.sortie_qty}</span> : '-'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs bg-destructive/5">
-                        {row.sortie_montant > 0 ? <span className="text-destructive">{fmt(row.sortie_montant)}</span> : '-'}
+                        {row.sortie_montant > 0 ? <span className="text-destructive">{fmtInt(row.sortie_montant)}</span> : '-'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{Math.round(row.stock_apres)}</TableCell>
-                      <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{fmt(row.cump)}</TableCell>
-                      <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{fmt(row.valeur_stock)} ₣</TableCell>
+                      <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{fmtCump(row.cump)}</TableCell>
+                      <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{fmtInt(row.valeur_stock)} ₣</TableCell>
+                      {row.anomalie && (
+                        <TableCell className="text-xs text-destructive font-medium">{row.anomalie}</TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
