@@ -1594,7 +1594,7 @@ export default function DADetail() {
                       );
                     })}
                     <TableRow className="border-t-2 bg-muted/30">
-                      <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+                      <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
                       <TableCell className="text-right font-bold text-success">
                         {da.total_amount?.toLocaleString()} {da.currency}
                       </TableCell>
