@@ -698,6 +698,18 @@ export default function StockStandardTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Article to Stock Dialog */}
+      {selectedStockId && (
+        <AddArticleToStockDialog
+          open={showAddToStockDialog}
+          onOpenChange={setShowAddToStockDialog}
+          stockId={selectedStockId}
+          stockName={stocks.find(s => s.id === selectedStockId)?.nom || ''}
+          existingArticleIds={stockArticleIds}
+          onSuccess={() => fetchData()}
+        />
+      )}
     </div>
   );
 }
