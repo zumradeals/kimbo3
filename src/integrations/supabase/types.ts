@@ -1850,6 +1850,7 @@ export type Database = {
           created_by: string
           da_id: string | null
           date_acquisition: string
+          date_debut_exercice: string | null
           department_id: string | null
           description: string | null
           designation: string
@@ -1859,6 +1860,8 @@ export type Database = {
           etat: Database["public"]["Enums"]["immobilisation_etat"]
           id: string
           mode_acquisition: Database["public"]["Enums"]["immobilisation_mode_acquisition"]
+          mode_amortissement: string
+          mois_acquisition: string | null
           numero_serie: string | null
           status: Database["public"]["Enums"]["immobilisation_status"]
           stock_movement_id: string | null
@@ -1878,6 +1881,7 @@ export type Database = {
           created_by: string
           da_id?: string | null
           date_acquisition?: string
+          date_debut_exercice?: string | null
           department_id?: string | null
           description?: string | null
           designation: string
@@ -1887,6 +1891,8 @@ export type Database = {
           etat?: Database["public"]["Enums"]["immobilisation_etat"]
           id?: string
           mode_acquisition?: Database["public"]["Enums"]["immobilisation_mode_acquisition"]
+          mode_amortissement?: string
+          mois_acquisition?: string | null
           numero_serie?: string | null
           status?: Database["public"]["Enums"]["immobilisation_status"]
           stock_movement_id?: string | null
@@ -1906,6 +1912,7 @@ export type Database = {
           created_by?: string
           da_id?: string | null
           date_acquisition?: string
+          date_debut_exercice?: string | null
           department_id?: string | null
           description?: string | null
           designation?: string
@@ -1915,6 +1922,8 @@ export type Database = {
           etat?: Database["public"]["Enums"]["immobilisation_etat"]
           id?: string
           mode_acquisition?: Database["public"]["Enums"]["immobilisation_mode_acquisition"]
+          mode_amortissement?: string
+          mois_acquisition?: string | null
           numero_serie?: string | null
           status?: Database["public"]["Enums"]["immobilisation_status"]
           stock_movement_id?: string | null
