@@ -413,8 +413,8 @@ export default function StockStandardTab() {
                     <TableHead colSpan={3} className="text-center border-r bg-muted/30">STOCK INITIAL</TableHead>
                     <TableHead colSpan={3} className="text-center border-r bg-success/5">ENTRÉES</TableHead>
                     <TableHead colSpan={3} className="text-center border-r bg-destructive/5">SORTIES</TableHead>
-                    <TableHead colSpan={3} className="text-center border-r bg-primary/5">STOCK ACTUEL</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle text-center">Seuil</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-primary/5">STOCK FINAL</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-middle text-center">Seuil d'alerte</TableHead>
                     <TableHead rowSpan={2} className="align-middle text-center">Statut</TableHead>
                     <TableHead rowSpan={2} className="align-middle">Empl.</TableHead>
                   </TableRow>
@@ -485,7 +485,7 @@ export default function StockStandardTab() {
                         <TableCell className="text-right font-mono text-xs border-r bg-destructive/5">
                           <span className={row.sorties_montant > 0 ? 'text-destructive font-semibold' : ''}>{fmt(row.sorties_montant)}</span>
                         </TableCell>
-                        {/* Stock actuel */}
+                        {/* Stock final */}
                         <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{row.stock_final_qty}</TableCell>
                         <TableCell className="text-right font-mono text-xs bg-primary/5">{fmt(row.stock_final_prix_unitaire)}</TableCell>
                         <TableCell className="text-right font-mono text-xs border-r bg-primary/5 font-bold">{fmt(row.stock_final_montant)}</TableCell>
@@ -525,7 +525,7 @@ export default function StockStandardTab() {
           <div className="text-sm text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">Tableau 100% dynamique</p>
             <p>Toutes les valeurs sont calculées à partir des mouvements de stock. Aucune modification directe n'est possible — toute variation passe par le module Mouvements.</p>
-            <p><strong>Stock Actuel</strong> = Entrées cumulées − Sorties cumulées. Le <strong>Statut</strong> est automatique selon le seuil d'alerte.</p>
+            <p><strong>Stock Final</strong> = Entrées cumulées − Sorties cumulées. Le <strong>Statut</strong> est automatique selon le seuil d'alerte.</p>
           </div>
         </CardContent>
       </Card>
