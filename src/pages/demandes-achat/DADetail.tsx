@@ -1729,13 +1729,13 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* Bannière si validée financièrement */}
+        {/* Bannière si approuvée par la DAF */}
         {da.status === 'validee_finance' && (
           <Card className="border-success bg-success/10">
             <CardContent className="flex items-center gap-3 py-4">
               <ShieldCheck className="h-6 w-6 text-success" />
               <div>
-                <p className="font-bold text-success">Validée financièrement</p>
+                <p className="font-bold text-success">Approuvée par la DAF</p>
                 <p className="text-sm text-foreground">
                   Cette DA est autorisée et transmise à la Comptabilité.
                   {da.finance_decision_comment && ` — ${da.finance_decision_comment}`}
