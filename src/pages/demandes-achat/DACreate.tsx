@@ -455,7 +455,7 @@ export default function DACreate() {
                     </Button>
                   )}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-5">
                   <div className="sm:col-span-2">
                     <Label>Désignation *</Label>
                     <Input
@@ -481,6 +481,25 @@ export default function DACreate() {
                       value={article.unit}
                       onChange={(e) => updateArticle(index, 'unit', e.target.value)}
                     />
+                  </div>
+                  <div>
+                    <Label>Destination</Label>
+                    <Select
+                      value={article.destination}
+                      onValueChange={(v) => {
+                        const updated = [...articles];
+                        updated[index] = { ...updated[index], destination: v as 'stock' | 'immobilisation' };
+                        setArticles(updated);
+                      }}
+                    >
+                      <SelectTrigger className={article.destination === 'immobilisation' ? 'border-amber-500' : ''}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="stock">📦 Stock</SelectItem>
+                        <SelectItem value="immobilisation">🏗️ Immobilisation</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

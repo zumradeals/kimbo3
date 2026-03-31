@@ -303,20 +303,6 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={ligne.destination || 'stock'}
-                      onValueChange={(v) => updateLigne(ligne.id, 'destination', v)}
-                    >
-                      <SelectTrigger className={`w-full ${ligne.destination === 'immobilisation' ? 'border-amber-500' : ''}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="stock">📦 Stock</SelectItem>
-                        <SelectItem value="immobilisation">🏗️ Immobilisation</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
                     <Textarea
                       placeholder={needsJustification ? 'Obligatoire si urgent/critique' : 'Optionnel'}
                       value={ligne.justification}
