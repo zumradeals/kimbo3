@@ -1391,7 +1391,7 @@ export default function DADetail() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-medium text-foreground">DA chiffrée: {da.total_amount?.toLocaleString()} {da.currency}</p>
-                  <p className="text-sm text-muted-foreground">Soumettez à validation financière (DAF/DG).</p>
+                  <p className="text-sm text-muted-foreground">Soumettez pour approbation DAF/DG.</p>
                 </div>
                 <Button onClick={handleSubmitToValidation} disabled={isSaving}>
                   <FileCheck className="mr-2 h-4 w-4" />
