@@ -243,7 +243,7 @@ export function buildTimelineFromDocument(
     events.push({
       id: 'validated_finance',
       action: 'validated',
-      actionLabel: 'Validé financièrement',
+      actionLabel: 'Approuvé par la DAF',
       timestamp: doc.validated_finance_at,
       user: validator ? {
         id: validator.id,

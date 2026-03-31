@@ -243,11 +243,11 @@ export function DATimeline({ da }: DATimelineProps) {
     });
   }
 
-  // 6b. Validation financière
+  // 6b. Approbation DAF
   if (da.validated_finance_at && ['validee_finance', 'payee', 'rejetee_comptabilite'].includes(da.status)) {
     events.push({
       id: 'validated_finance',
-      action: 'Validée financièrement',
+      action: 'Approuvée par la DAF',
       date: da.validated_finance_at,
       actor: {
         profile: da.validated_finance_by_profile,

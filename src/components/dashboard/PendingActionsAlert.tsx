@@ -82,7 +82,7 @@ export function PendingActionsAlert() {
             icon: <CreditCard className="h-5 w-5" />,
             link: '/demandes-achat?status=soumise_validation',
             color: 'bg-primary/15 border-primary/30 text-primary',
-            description: 'Demandes d\'achat en attente de validation financière',
+            description: 'Demandes d\'achat en attente d\'approbation DAF',
           });
         })
       );

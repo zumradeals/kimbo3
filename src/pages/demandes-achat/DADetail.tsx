@@ -828,7 +828,7 @@ export default function DADetail() {
     }
   };
 
-  // === VALIDATION FINANCIÈRE ===
+  // === APPROBATION DAF ===
   const SEUIL_DG = 10_000_000; // 10 millions XOF
 
   const handleValidateFinance = async () => {

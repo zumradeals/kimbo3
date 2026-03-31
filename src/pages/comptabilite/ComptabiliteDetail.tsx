@@ -825,7 +825,7 @@ export default function ComptabiliteDetail() {
                 <Badge variant="outline">{DA_CATEGORY_LABELS[da.category]}</Badge>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Validée financièrement le</p>
+                <p className="text-sm text-muted-foreground">Approuvée par la DAF le</p>
                 <p className="font-medium">
                   {da.validated_finance_at 
                     ? format(new Date(da.validated_finance_at), 'dd MMMM yyyy à HH:mm', { locale: fr })
