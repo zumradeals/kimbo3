@@ -849,7 +849,7 @@ export default function DADetail() {
         .eq('id', da.id);
       if (error) throw error;
       toast({ 
-        title: needsDG ? 'DA validée DAF — En attente DG' : 'DA validée financièrement',
+        title: needsDG ? 'DA validée DAF — En attente DG' : 'DA approuvée par la DAF',
         description: needsDG 
           ? `Montant > ${SEUIL_DG.toLocaleString()} XOF : validation DG requise.`
           : 'La Comptabilité a été notifiée.',
