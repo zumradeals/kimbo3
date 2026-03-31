@@ -941,7 +941,7 @@ export default function DADetail() {
     }
   };
 
-  // === EXPORT PDF VALIDATION FINANCIÈRE DAF ===
+  // === EXPORT PDF APPROBATION DAF ===
   const handleExportDAFValidation = () => {
     if (!da) return;
     
