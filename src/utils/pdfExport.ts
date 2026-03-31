@@ -1545,7 +1545,7 @@ function drawDottedLine(doc: jsPDF, startX: number, y: number, endX: number): vo
   }
 }
 
-// ===================== FICHE VALIDATION FINANCIÈRE DAF =====================
+// ===================== FICHE APPROBATION DAF =====================
 export interface DAFValidationExportData {
   reference: string;
   department: string;
