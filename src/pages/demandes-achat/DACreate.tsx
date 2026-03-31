@@ -131,7 +131,7 @@ export default function DACreate() {
   };
 
   const addArticle = () => {
-    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null }]);
+    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null, destination: 'stock' }]);
   };
 
   const removeArticle = (index: number) => {
