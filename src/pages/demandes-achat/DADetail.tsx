@@ -1315,7 +1315,7 @@ export default function DADetail() {
               <div>
                 <p className="font-medium text-foreground">Document en cours de qualification</p>
                 <p className="text-sm text-muted-foreground">
-                  Cette DA n'est pas encore validée financièrement. Les prix sont en cours d'analyse.
+                  Cette DA n'est pas encore approuvée par la DAF. Les prix sont en cours d'analyse.
                 </p>
               </div>
             </CardContent>
