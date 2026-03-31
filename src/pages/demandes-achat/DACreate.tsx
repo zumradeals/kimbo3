@@ -199,7 +199,7 @@ export default function DACreate() {
         unit: a.unit,
         observations: a.observations.trim() || null,
         article_stock_id: a.article_stock_id || null,
-        destination: (a as any).destination || 'stock',
+        destination: a.destination,
       }));
 
       const { error: artError } = await supabase.from('da_articles').insert(articlesToInsert);
