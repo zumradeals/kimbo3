@@ -84,7 +84,6 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
       urgency: 'normale',
       justification: '',
       article_stock_id: null,
-      destination: 'stock',
     };
     onChange([...lignes, newLigne]);
   };
@@ -99,7 +98,6 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
       urgency: 'normale',
       justification: '',
       article_stock_id: article.id,
-      destination: 'stock',
     };
     onChange([...lignes, newLigne]);
   };
