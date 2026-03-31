@@ -1618,7 +1618,7 @@ export default function DADetail() {
                   disabled={isSaving}
                 >
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  Valider financièrement
+                  Approuver (DAF)
                 </Button>
                 <Button 
                   variant="outline" 
