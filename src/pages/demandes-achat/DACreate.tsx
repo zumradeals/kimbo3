@@ -27,6 +27,7 @@ interface ArticleForm {
   unit: string;
   observations: string;
   article_stock_id?: string | null;
+  destination: 'stock' | 'immobilisation';
 }
 
 export default function DACreate() {
@@ -109,12 +110,12 @@ export default function DACreate() {
           unit: ligne.unit,
           observations: ligne.justification || '',
           article_stock_id: ligne.article_stock_id || null,
+          destination: ((ligne as any).destination as 'stock' | 'immobilisation') || 'stock',
         }));
         setArticles(articlesFromLignes);
         setLignesLoaded(true);
       } else if (!lignesLoaded) {
-        // Fallback: create one empty article if no lignes
-        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null }]);
+        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null, destination: 'stock' }]);
         setLignesLoaded(true);
       }
     } catch (error: any) {
@@ -130,7 +131,7 @@ export default function DACreate() {
   };
 
   const addArticle = () => {
-    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null }]);
+    setArticles((prev) => [...prev, { designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null, destination: 'stock' }]);
   };
 
   const removeArticle = (index: number) => {
@@ -141,7 +142,7 @@ export default function DACreate() {
 
   const updateArticle = (index: number, field: keyof ArticleForm, value: string) => {
     const updated = [...articles];
-    updated[index][field] = value;
+    (updated[index] as any)[field] = value;
     setArticles(updated);
   };
 
@@ -198,7 +199,7 @@ export default function DACreate() {
         unit: a.unit,
         observations: a.observations.trim() || null,
         article_stock_id: a.article_stock_id || null,
-        destination: (a as any).destination || 'stock',
+        destination: a.destination,
       }));
 
       const { error: artError } = await supabase.from('da_articles').insert(articlesToInsert);
@@ -454,7 +455,7 @@ export default function DACreate() {
                     </Button>
                   )}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-5">
                   <div className="sm:col-span-2">
                     <Label>Désignation *</Label>
                     <Input
@@ -480,6 +481,25 @@ export default function DACreate() {
                       value={article.unit}
                       onChange={(e) => updateArticle(index, 'unit', e.target.value)}
                     />
+                  </div>
+                  <div>
+                    <Label>Destination</Label>
+                    <Select
+                      value={article.destination}
+                      onValueChange={(v) => {
+                        const updated = [...articles];
+                        updated[index] = { ...updated[index], destination: v as 'stock' | 'immobilisation' };
+                        setArticles(updated);
+                      }}
+                    >
+                      <SelectTrigger className={article.destination === 'immobilisation' ? 'border-amber-500' : ''}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="stock">📦 Stock</SelectItem>
+                        <SelectItem value="immobilisation">🏗️ Immobilisation</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

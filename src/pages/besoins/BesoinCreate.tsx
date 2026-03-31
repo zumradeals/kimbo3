@@ -42,7 +42,6 @@ interface LigneInput {
   urgency: BesoinUrgency;
   justification: string;
   article_stock_id?: string | null;
-  destination?: 'stock' | 'immobilisation';
 }
 
 interface AttachmentInput {
@@ -81,7 +80,6 @@ export default function BesoinCreate() {
       urgency: 'normale',
       justification: '',
       article_stock_id: null,
-      destination: 'stock',
     },
   ]);
 
@@ -242,7 +240,6 @@ export default function BesoinCreate() {
         urgency: l.urgency,
         justification: l.justification.trim() || null,
         article_stock_id: l.article_stock_id || null,
-        destination: (l as any).destination || 'stock',
       }));
 
       const { data: insertedLignes, error: lignesError } = await supabase
