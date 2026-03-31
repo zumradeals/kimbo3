@@ -80,7 +80,6 @@ export default function BesoinCreate() {
       urgency: 'normale',
       justification: '',
       article_stock_id: null,
-      destination: 'stock',
     },
   ]);
 
