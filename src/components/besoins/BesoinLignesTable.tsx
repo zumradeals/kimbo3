@@ -171,11 +171,6 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
                     {BESOIN_URGENCY_LABELS[ligne.urgency].split(' ')[0]}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  <Badge variant={ligne.destination === 'immobilisation' ? 'default' : 'secondary'} className={ligne.destination === 'immobilisation' ? 'bg-amber-600 text-white' : ''}>
-                    {ligne.destination === 'immobilisation' ? '🏗️ Immobilisation' : '📦 Stock'}
-                  </Badge>
-                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {ligne.justification || '-'}
                 </TableCell>
