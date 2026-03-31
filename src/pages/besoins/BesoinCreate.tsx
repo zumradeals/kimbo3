@@ -42,7 +42,6 @@ interface LigneInput {
   urgency: BesoinUrgency;
   justification: string;
   article_stock_id?: string | null;
-  destination?: 'stock' | 'immobilisation';
 }
 
 interface AttachmentInput {
