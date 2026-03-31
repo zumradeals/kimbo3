@@ -981,7 +981,7 @@ export default function DADetail() {
       besoinId: (da.besoin as { id: string })?.id || undefined,
     });
 
-    toast({ title: 'PDF exporté', description: 'Fiche de validation financière téléchargée.' });
+    toast({ title: 'PDF exporté', description: 'Fiche d\'approbation DAF téléchargée.' });
   };
 
   // DAF request revision → also goes to retour_aal
