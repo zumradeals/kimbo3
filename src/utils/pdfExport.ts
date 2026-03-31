@@ -1545,7 +1545,7 @@ function drawDottedLine(doc: jsPDF, startX: number, y: number, endX: number): vo
   }
 }
 
-// ===================== FICHE VALIDATION FINANCIÈRE DAF =====================
+// ===================== FICHE APPROBATION DAF =====================
 export interface DAFValidationExportData {
   reference: string;
   department: string;
@@ -1596,7 +1596,7 @@ export const exportDAFValidationToPDF = async (data: DAFValidationExportData): P
   doc.setFontSize(14);
   doc.setTextColor(...COLORS.marron);
   doc.setFont('helvetica', 'bold');
-  doc.text('FICHE DE VALIDATION FINANCIÈRE', pageWidth - margin, y + 6, { align: 'right' });
+  doc.text('FICHE D\'APPROBATION DAF', pageWidth - margin, y + 6, { align: 'right' });
 
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.textSecondary);

@@ -78,11 +78,11 @@ export function PendingActionsAlert() {
       queries.push(
         safeCount('demandes_achat', 'soumise_validation').then(count => {
           if (count > 0) pendingActions.push({
-            id: 'daf-validation', label: 'DA à valider (Finance)', count,
+            id: 'daf-validation', label: 'DA à approuver (DAF)', count,
             icon: <CreditCard className="h-5 w-5" />,
             link: '/demandes-achat?status=soumise_validation',
             color: 'bg-primary/15 border-primary/30 text-primary',
-            description: 'Demandes d\'achat en attente de validation financière',
+            description: 'Demandes d\'achat en attente d\'approbation DAF',
           });
         })
       );

@@ -539,7 +539,7 @@ export const DA_STATUS_LABELS: Record<DAStatus, string> = {
   rejetee_aal: 'Rejetée (AAL)',
   soumise_validation: 'En attente validation DAF',
   en_attente_dg: 'En attente validation DG',
-  validee_finance: 'Validée financièrement',
+  validee_finance: 'Approuvée par la DAF',
   refusee_finance: 'Refusée (DAF/DG)',
   en_revision_achats: 'En révision Achats',
   rejetee: 'Rejetée',

@@ -698,7 +698,7 @@ export default function DADetail() {
         .update(updateData)
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour validation financière.' });
+      toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour approbation DAF.' });
       setShowAALValidateDialog(false);
       setAALComment('');
       setAALSelectedProjetId(null);
@@ -828,7 +828,7 @@ export default function DADetail() {
     }
   };
 
-  // === VALIDATION FINANCIÈRE ===
+  // === APPROBATION DAF ===
   const SEUIL_DG = 10_000_000; // 10 millions XOF
 
   const handleValidateFinance = async () => {
@@ -849,7 +849,7 @@ export default function DADetail() {
         .eq('id', da.id);
       if (error) throw error;
       toast({ 
-        title: needsDG ? 'DA validée DAF — En attente DG' : 'DA validée financièrement',
+        title: needsDG ? 'DA validée DAF — En attente DG' : 'DA approuvée par la DAF',
         description: needsDG 
           ? `Montant > ${SEUIL_DG.toLocaleString()} XOF : validation DG requise.`
           : 'La Comptabilité a été notifiée.',
@@ -941,7 +941,7 @@ export default function DADetail() {
     }
   };
 
-  // === EXPORT PDF VALIDATION FINANCIÈRE DAF ===
+  // === EXPORT PDF APPROBATION DAF ===
   const handleExportDAFValidation = () => {
     if (!da) return;
     
@@ -981,7 +981,7 @@ export default function DADetail() {
       besoinId: (da.besoin as { id: string })?.id || undefined,
     });
 
-    toast({ title: 'PDF exporté', description: 'Fiche de validation financière téléchargée.' });
+    toast({ title: 'PDF exporté', description: 'Fiche d\'approbation DAF téléchargée.' });
   };
 
   // DAF request revision → also goes to retour_aal
@@ -1315,7 +1315,7 @@ export default function DADetail() {
               <div>
                 <p className="font-medium text-foreground">Document en cours de qualification</p>
                 <p className="text-sm text-muted-foreground">
-                  Cette DA n'est pas encore validée financièrement. Les prix sont en cours d'analyse.
+                  Cette DA n'est pas encore approuvée par la DAF. Les prix sont en cours d'analyse.
                 </p>
               </div>
             </CardContent>
@@ -1391,7 +1391,7 @@ export default function DADetail() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-medium text-foreground">DA chiffrée: {da.total_amount?.toLocaleString()} {da.currency}</p>
-                  <p className="text-sm text-muted-foreground">Soumettez à validation financière (DAF/DG).</p>
+                  <p className="text-sm text-muted-foreground">Soumettez pour approbation DAF/DG.</p>
                 </div>
                 <Button onClick={handleSubmitToValidation} disabled={isSaving}>
                   <FileCheck className="mr-2 h-4 w-4" />
@@ -1525,7 +1525,7 @@ export default function DADetail() {
               <div className="flex items-center gap-3">
                 <ShieldCheck className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="text-lg font-bold text-foreground">Validation Financière Requise</p>
+                  <p className="text-lg font-bold text-foreground">Approbation DAF Requise</p>
                   <p className="text-sm text-muted-foreground">
                     Cette décision engage la responsabilité financière de l'entreprise.
                   </p>
@@ -1618,7 +1618,7 @@ export default function DADetail() {
                   disabled={isSaving}
                 >
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  Valider financièrement
+                  Approuver (DAF)
                 </Button>
                 <Button 
                   variant="outline" 
@@ -1729,13 +1729,13 @@ export default function DADetail() {
           </Card>
         )}
 
-        {/* Bannière si validée financièrement */}
+        {/* Bannière si approuvée par la DAF */}
         {da.status === 'validee_finance' && (
           <Card className="border-success bg-success/10">
             <CardContent className="flex items-center gap-3 py-4">
               <ShieldCheck className="h-6 w-6 text-success" />
               <div>
-                <p className="font-bold text-success">Validée financièrement</p>
+                <p className="font-bold text-success">Approuvée par la DAF</p>
                 <p className="text-sm text-foreground">
                   Cette DA est autorisée et transmise à la Comptabilité.
                   {da.finance_decision_comment && ` — ${da.finance_decision_comment}`}
@@ -2281,7 +2281,7 @@ export default function DADetail() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-success" />
-              Valider financièrement cette DA ?
+              Approuver cette DA (DAF) ?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Cette décision engage la responsabilité financière de l'entreprise. 
