@@ -1525,7 +1525,7 @@ export default function DADetail() {
               <div className="flex items-center gap-3">
                 <ShieldCheck className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="text-lg font-bold text-foreground">Validation Financière Requise</p>
+                  <p className="text-lg font-bold text-foreground">Approbation DAF Requise</p>
                   <p className="text-sm text-muted-foreground">
                     Cette décision engage la responsabilité financière de l'entreprise.
                   </p>
