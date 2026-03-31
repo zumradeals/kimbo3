@@ -110,12 +110,12 @@ export default function DACreate() {
           unit: ligne.unit,
           observations: ligne.justification || '',
           article_stock_id: ligne.article_stock_id || null,
+          destination: ((ligne as any).destination as 'stock' | 'immobilisation') || 'stock',
         }));
         setArticles(articlesFromLignes);
         setLignesLoaded(true);
       } else if (!lignesLoaded) {
-        // Fallback: create one empty article if no lignes
-        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null }]);
+        setArticles([{ designation: '', quantity: '1', unit: 'unité', observations: '', article_stock_id: null, destination: 'stock' }]);
         setLignesLoaded(true);
       }
     } catch (error: any) {
