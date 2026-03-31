@@ -223,7 +223,7 @@ export function buildTimelineFromDocument(
     events.push({
       id: 'submitted_validation',
       action: 'submitted',
-      actionLabel: 'Soumis pour validation financière',
+      actionLabel: 'Soumis pour approbation DAF',
       timestamp: doc.submitted_validation_at,
       user: submitter ? {
         id: submitter.id,
