@@ -142,7 +142,7 @@ export default function DACreate() {
 
   const updateArticle = (index: number, field: keyof ArticleForm, value: string) => {
     const updated = [...articles];
-    updated[index][field] = value;
+    (updated[index] as any)[field] = value;
     setArticles(updated);
   };
 
