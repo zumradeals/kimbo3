@@ -698,7 +698,7 @@ export default function DADetail() {
         .update(updateData)
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour validation financière.' });
+      toast({ title: 'DA validée et transmise au DAF', description: 'La DA a été envoyée pour approbation DAF.' });
       setShowAALValidateDialog(false);
       setAALComment('');
       setAALSelectedProjetId(null);
