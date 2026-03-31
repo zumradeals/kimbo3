@@ -142,7 +142,6 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
               <TableHead className="w-[80px]">Qté</TableHead>
               <TableHead className="w-[100px]">Unité</TableHead>
               <TableHead className="w-[120px]">Urgence</TableHead>
-              <TableHead className="w-[120px]">Destination</TableHead>
               <TableHead>Justification</TableHead>
             </TableRow>
           </TableHeader>
