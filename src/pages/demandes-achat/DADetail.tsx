@@ -2281,7 +2281,7 @@ export default function DADetail() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-success" />
-              Valider financièrement cette DA ?
+              Approuver cette DA (DAF) ?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Cette décision engage la responsabilité financière de l'entreprise. 
