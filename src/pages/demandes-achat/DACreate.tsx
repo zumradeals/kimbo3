@@ -27,6 +27,7 @@ interface ArticleForm {
   unit: string;
   observations: string;
   article_stock_id?: string | null;
+  destination: 'stock' | 'immobilisation';
 }
 
 export default function DACreate() {
