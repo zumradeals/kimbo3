@@ -466,8 +466,12 @@ export default function StockStandardTab() {
                             : '-'}
                         </TableCell>
                         <TableCell className="border-r">
-                          <div className="font-medium text-sm max-w-[180px] truncate">{row.designation}</div>
-                          {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
+                          <div className="font-medium text-sm max-w-[200px] truncate">{row.designation}</div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
+                            {row.marque && <Badge variant="outline" className="text-[10px] px-1">{row.marque}</Badge>}
+                            {row.variante && <span className="text-[10px] text-muted-foreground italic">{row.variante}</span>}
+                          </div>
                         </TableCell>
                         
                         <TableCell className="border-r text-center">
