@@ -181,6 +181,8 @@ export default function StockMouvementsTab() {
                     <TableHead>Source</TableHead>
                     <TableHead>Document lié</TableHead>
                     <TableHead>Stock</TableHead>
+                    <TableHead>Bénéficiaire</TableHead>
+                    <TableHead>Destination</TableHead>
                     <TableHead>Utilisateur (Matricule)</TableHead>
                   </TableRow>
                 </TableHeader>
