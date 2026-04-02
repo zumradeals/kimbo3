@@ -373,7 +373,7 @@ export default function StockDetail() {
       });
       
       setShowAdjustDialog(false);
-      setAdjustForm({ type: 'ajustement', quantity: 0, observations: '' });
+      setAdjustForm({ type: 'ajustement', quantity: 0, observations: '', beneficiaire: '', destination_detail: '' });
       fetchArticle();
       fetchMovements();
     } catch (error: any) {
