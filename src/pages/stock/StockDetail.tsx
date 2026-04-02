@@ -223,6 +223,10 @@ export default function StockDetail() {
         classe_comptable: (data as any).classe_comptable || 3,
         nombre_pieces: (data as any).nombre_pieces || 1,
         conditionnement: (data as any).conditionnement || 'durable',
+        code_barre: (data as any).code_barre || '',
+        variante: (data as any).variante || '',
+        marque: (data as any).marque || '',
+        etat: (data as any).etat || 'bon',
       });
       // Check if unit is custom
       setCustomUnit(!STOCK_UNITS.find(u => u.value === data.unit));
