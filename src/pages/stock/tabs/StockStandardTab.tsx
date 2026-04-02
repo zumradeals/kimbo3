@@ -713,7 +713,49 @@ export default function StockStandardTab() {
               </div>
             </div>
 
-            {/* Emplacement */}
+            {/* Marque, Variante, Code-barre, État */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Marque</Label>
+                <Input
+                  value={newArticle.marque}
+                  onChange={(e) => setNewArticle({ ...newArticle, marque: e.target.value })}
+                  placeholder="Ex: HP, ASUS, BIC..."
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Variante / Couleur</Label>
+                <Input
+                  value={newArticle.variante}
+                  onChange={(e) => setNewArticle({ ...newArticle, variante: e.target.value })}
+                  placeholder="Ex: Bleu, Senteur lavande..."
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Code-barre</Label>
+                <Input
+                  value={newArticle.code_barre}
+                  onChange={(e) => setNewArticle({ ...newArticle, code_barre: e.target.value })}
+                  placeholder="Scanner ou saisir le code-barre"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">État</Label>
+                <Select value={newArticle.etat} onValueChange={(v) => setNewArticle({ ...newArticle, etat: v })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bon">Bon état</SelectItem>
+                    <SelectItem value="defectueux">Défectueux</SelectItem>
+                    <SelectItem value="hors_service">Hors service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Emplacement</Label>
               <Input
