@@ -410,6 +410,10 @@ export default function StockDetail() {
           classe_comptable: editForm.classe_comptable,
           nombre_pieces: editForm.nombre_pieces,
           conditionnement: editForm.conditionnement,
+          code_barre: editForm.code_barre || null,
+          variante: editForm.variante || null,
+          marque: editForm.marque || null,
+          etat: editForm.etat,
         })
         .eq('id', article.id);
 
