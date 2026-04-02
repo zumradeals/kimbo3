@@ -122,6 +122,10 @@ export default function StockStandardTab() {
     conditionnement: 'durable' as 'durable' | 'perissable',
     prix_reference: null as number | null,
     prix_reference_note: '',
+    code_barre: '',
+    variante: '',
+    marque: '',
+    etat: 'bon' as string,
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
