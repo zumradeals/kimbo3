@@ -230,6 +230,7 @@ export default function StockStandardTab() {
       designation: '', description: '', unit: 'unité', quantity_available: 0,
       quantity_min: 0, location: '', category_id: null, classe_comptable: 3,
       nombre_pieces: 1, conditionnement: 'durable', prix_reference: null, prix_reference_note: '',
+      code_barre: '', variante: '', marque: '', etat: 'bon',
     });
     setCustomUnit(false);
   };
