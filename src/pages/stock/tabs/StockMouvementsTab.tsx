@@ -181,6 +181,8 @@ export default function StockMouvementsTab() {
                     <TableHead>Source</TableHead>
                     <TableHead>Document lié</TableHead>
                     <TableHead>Stock</TableHead>
+                    <TableHead>Bénéficiaire</TableHead>
+                    <TableHead>Destination</TableHead>
                     <TableHead>Utilisateur (Matricule)</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -252,6 +254,12 @@ export default function StockMouvementsTab() {
                               <span className="text-xs">{mv.entrepot.nom}</span>
                             </div>
                           ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {mv.beneficiaire || '-'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {mv.destination_detail || '-'}
                         </TableCell>
                         <TableCell>
                           {mv.profile ? (

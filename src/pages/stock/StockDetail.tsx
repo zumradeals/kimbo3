@@ -161,6 +161,8 @@ export default function StockDetail() {
     type: 'ajustement' as StockMovementType,
     quantity: 0,
     observations: '',
+    beneficiaire: '',
+    destination_detail: '',
   });
 
   // Edit form - now includes quantity_available, category_id, and reference price
@@ -177,6 +179,10 @@ export default function StockDetail() {
     classe_comptable: 3,
     nombre_pieces: 1,
     conditionnement: 'durable' as 'durable' | 'perissable',
+    code_barre: '',
+    variante: '',
+    marque: '',
+    etat: 'bon',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -219,6 +225,10 @@ export default function StockDetail() {
         classe_comptable: (data as any).classe_comptable || 3,
         nombre_pieces: (data as any).nombre_pieces || 1,
         conditionnement: (data as any).conditionnement || 'durable',
+        code_barre: (data as any).code_barre || '',
+        variante: (data as any).variante || '',
+        marque: (data as any).marque || '',
+        etat: (data as any).etat || 'bon',
       });
       // Check if unit is custom
       setCustomUnit(!STOCK_UNITS.find(u => u.value === data.unit));
@@ -343,6 +353,8 @@ export default function StockDetail() {
         observations: adjustForm.observations || null,
         created_by: user?.id,
         reference: `ADJ-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${article.id.slice(0, 8).toUpperCase()}`,
+        beneficiaire: adjustForm.beneficiaire || null,
+        destination_detail: adjustForm.destination_detail || null,
       });
 
       if (movementError) throw movementError;
@@ -361,7 +373,7 @@ export default function StockDetail() {
       });
       
       setShowAdjustDialog(false);
-      setAdjustForm({ type: 'ajustement', quantity: 0, observations: '' });
+      setAdjustForm({ type: 'ajustement', quantity: 0, observations: '', beneficiaire: '', destination_detail: '' });
       fetchArticle();
       fetchMovements();
     } catch (error: any) {
@@ -402,6 +414,10 @@ export default function StockDetail() {
           classe_comptable: editForm.classe_comptable,
           nombre_pieces: editForm.nombre_pieces,
           conditionnement: editForm.conditionnement,
+          code_barre: editForm.code_barre || null,
+          variante: editForm.variante || null,
+          marque: editForm.marque || null,
+          etat: editForm.etat,
         })
         .eq('id', article.id);
 
@@ -790,6 +806,42 @@ export default function StockDetail() {
                   <p className="font-semibold">{format(new Date(article.created_at), 'dd/MM/yyyy', { locale: fr })}</p>
                 </div>
               </div>
+              {(article as any).marque && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <span className="text-sm font-bold text-muted-foreground">M</span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Marque</p>
+                    <p className="font-semibold">{(article as any).marque}</p>
+                  </div>
+                </div>
+              )}
+              {(article as any).variante && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <span className="text-sm font-bold text-muted-foreground">V</span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Variante / Couleur</p>
+                    <p className="font-semibold">{(article as any).variante}</p>
+                  </div>
+                </div>
+              )}
+              {(article as any).code_barre && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Code-barre</p>
+                    <p className="font-mono font-semibold">{(article as any).code_barre}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <span className="text-sm font-bold text-muted-foreground">É</span>
+                <div>
+                  <p className="text-xs text-muted-foreground">État</p>
+                  <Badge variant={(article as any).etat === 'bon' ? 'default' : 'destructive'} className="text-xs">
+                    {(article as any).etat === 'bon' ? 'Bon état' : (article as any).etat === 'defectueux' ? 'Défectueux' : 'Hors service'}
+                  </Badge>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1020,6 +1072,26 @@ export default function StockDetail() {
                 </p>
               )}
             </div>
+            {adjustForm.type === 'sortie' && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Bénéficiaire</Label>
+                  <Input
+                    value={adjustForm.beneficiaire}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, beneficiaire: e.target.value })}
+                    placeholder="Nom du récepteur..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Destination</Label>
+                  <Input
+                    value={adjustForm.destination_detail}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, destination_detail: e.target.value })}
+                    placeholder="Bureau, site, projet..."
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Observations</Label>
               <Textarea
@@ -1244,6 +1316,50 @@ export default function StockDetail() {
                     className="h-11"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Marque, Variante, Code-barre, État */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Marque</Label>
+                <Input
+                  value={editForm.marque}
+                  onChange={(e) => setEditForm({ ...editForm, marque: e.target.value })}
+                  placeholder="Ex: HP, ASUS, BIC..."
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Variante / Couleur</Label>
+                <Input
+                  value={editForm.variante}
+                  onChange={(e) => setEditForm({ ...editForm, variante: e.target.value })}
+                  placeholder="Ex: Bleu, Senteur lavande..."
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Code-barre</Label>
+                <Input
+                  value={editForm.code_barre}
+                  onChange={(e) => setEditForm({ ...editForm, code_barre: e.target.value })}
+                  placeholder="Scanner ou saisir"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">État</Label>
+                <Select value={editForm.etat} onValueChange={(v) => setEditForm({ ...editForm, etat: v })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bon">Bon état</SelectItem>
+                    <SelectItem value="defectueux">Défectueux</SelectItem>
+                    <SelectItem value="hors_service">Hors service</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

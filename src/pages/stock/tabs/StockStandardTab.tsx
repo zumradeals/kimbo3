@@ -54,6 +54,10 @@ interface StockRow {
   statut_auto: string;
   quantity_available: number;
   status: string;
+  code_barre: string | null;
+  variante: string | null;
+  marque: string | null;
+  etat: string | null;
 }
 
 const fmt = (n: number) => Math.ceil(n).toLocaleString('fr-FR');
@@ -118,6 +122,10 @@ export default function StockStandardTab() {
     conditionnement: 'durable' as 'durable' | 'perissable',
     prix_reference: null as number | null,
     prix_reference_note: '',
+    code_barre: '',
+    variante: '',
+    marque: '',
+    etat: 'bon' as string,
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
@@ -199,6 +207,10 @@ export default function StockStandardTab() {
         prix_reference_note: newArticle.prix_reference_note || null,
         prix_reference_updated_at: newArticle.prix_reference ? new Date().toISOString() : null,
         created_by: user?.id,
+        code_barre: newArticle.code_barre || null,
+        variante: newArticle.variante || null,
+        marque: newArticle.marque || null,
+        etat: newArticle.etat,
       });
       if (error) throw error;
 
@@ -218,6 +230,7 @@ export default function StockStandardTab() {
       designation: '', description: '', unit: 'unité', quantity_available: 0,
       quantity_min: 0, location: '', category_id: null, classe_comptable: 3,
       nombre_pieces: 1, conditionnement: 'durable', prix_reference: null, prix_reference_note: '',
+      code_barre: '', variante: '', marque: '', etat: 'bon',
     });
     setCustomUnit(false);
   };
@@ -226,7 +239,9 @@ export default function StockStandardTab() {
     return data.filter((r) => {
       const matchSearch = !search.trim() ||
         r.code.toLowerCase().includes(search.toLowerCase()) ||
-        r.designation.toLowerCase().includes(search.toLowerCase());
+        r.designation.toLowerCase().includes(search.toLowerCase()) ||
+        (r.marque || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.variante || '').toLowerCase().includes(search.toLowerCase());
       const matchClasse = classeFilter === 'all' || String(r.classe_comptable) === classeFilter;
       const matchCond = condFilter === 'all' || r.conditionnement === condFilter;
       const matchStatus = statusFilter === 'all' || r.statut_auto === statusFilter;
@@ -451,8 +466,12 @@ export default function StockStandardTab() {
                             : '-'}
                         </TableCell>
                         <TableCell className="border-r">
-                          <div className="font-medium text-sm max-w-[180px] truncate">{row.designation}</div>
-                          {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
+                          <div className="font-medium text-sm max-w-[200px] truncate">{row.designation}</div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
+                            {row.marque && <Badge variant="outline" className="text-[10px] px-1">{row.marque}</Badge>}
+                            {row.variante && <span className="text-[10px] text-muted-foreground italic">{row.variante}</span>}
+                          </div>
                         </TableCell>
                         
                         <TableCell className="border-r text-center">
@@ -694,7 +713,49 @@ export default function StockStandardTab() {
               </div>
             </div>
 
-            {/* Emplacement */}
+            {/* Marque, Variante, Code-barre, État */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Marque</Label>
+                <Input
+                  value={newArticle.marque}
+                  onChange={(e) => setNewArticle({ ...newArticle, marque: e.target.value })}
+                  placeholder="Ex: HP, ASUS, BIC..."
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Variante / Couleur</Label>
+                <Input
+                  value={newArticle.variante}
+                  onChange={(e) => setNewArticle({ ...newArticle, variante: e.target.value })}
+                  placeholder="Ex: Bleu, Senteur lavande..."
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Code-barre</Label>
+                <Input
+                  value={newArticle.code_barre}
+                  onChange={(e) => setNewArticle({ ...newArticle, code_barre: e.target.value })}
+                  placeholder="Scanner ou saisir le code-barre"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">État</Label>
+                <Select value={newArticle.etat} onValueChange={(v) => setNewArticle({ ...newArticle, etat: v })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bon">Bon état</SelectItem>
+                    <SelectItem value="defectueux">Défectueux</SelectItem>
+                    <SelectItem value="hors_service">Hors service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Emplacement</Label>
               <Input
