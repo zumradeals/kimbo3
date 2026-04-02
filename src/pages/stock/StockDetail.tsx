@@ -802,6 +802,42 @@ export default function StockDetail() {
                   <p className="font-semibold">{format(new Date(article.created_at), 'dd/MM/yyyy', { locale: fr })}</p>
                 </div>
               </div>
+              {(article as any).marque && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <span className="text-sm font-bold text-muted-foreground">M</span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Marque</p>
+                    <p className="font-semibold">{(article as any).marque}</p>
+                  </div>
+                </div>
+              )}
+              {(article as any).variante && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <span className="text-sm font-bold text-muted-foreground">V</span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Variante / Couleur</p>
+                    <p className="font-semibold">{(article as any).variante}</p>
+                  </div>
+                </div>
+              )}
+              {(article as any).code_barre && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Code-barre</p>
+                    <p className="font-mono font-semibold">{(article as any).code_barre}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <span className="text-sm font-bold text-muted-foreground">É</span>
+                <div>
+                  <p className="text-xs text-muted-foreground">État</p>
+                  <Badge variant={(article as any).etat === 'bon' ? 'default' : 'destructive'} className="text-xs">
+                    {(article as any).etat === 'bon' ? 'Bon état' : (article as any).etat === 'defectueux' ? 'Défectueux' : 'Hors service'}
+                  </Badge>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
