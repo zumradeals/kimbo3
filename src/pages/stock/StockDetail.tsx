@@ -177,6 +177,10 @@ export default function StockDetail() {
     classe_comptable: 3,
     nombre_pieces: 1,
     conditionnement: 'durable' as 'durable' | 'perissable',
+    code_barre: '',
+    variante: '',
+    marque: '',
+    etat: 'bon',
   });
 
   const isLogistics = roles.some((r) => LOGISTICS_ROLES.includes(r));
