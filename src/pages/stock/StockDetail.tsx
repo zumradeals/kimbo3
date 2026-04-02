@@ -161,6 +161,8 @@ export default function StockDetail() {
     type: 'ajustement' as StockMovementType,
     quantity: 0,
     observations: '',
+    beneficiaire: '',
+    destination_detail: '',
   });
 
   // Edit form - now includes quantity_available, category_id, and reference price
