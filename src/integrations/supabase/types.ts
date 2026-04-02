@@ -19,6 +19,7 @@ export type Database = {
           category_id: string | null
           classe_comptable: number | null
           code: string
+          code_barre: string | null
           conditionnement: string | null
           created_at: string
           created_by: string
@@ -26,8 +27,10 @@ export type Database = {
           designation: string
           devise: string | null
           entrepot_id: string | null
+          etat: string
           id: string
           location: string | null
+          marque: string | null
           nombre_pieces: number | null
           prix_reference: number | null
           prix_reference_note: string | null
@@ -38,11 +41,13 @@ export type Database = {
           status: Database["public"]["Enums"]["stock_status"]
           unit: string
           updated_at: string
+          variante: string | null
         }
         Insert: {
           category_id?: string | null
           classe_comptable?: number | null
           code: string
+          code_barre?: string | null
           conditionnement?: string | null
           created_at?: string
           created_by: string
@@ -50,8 +55,10 @@ export type Database = {
           designation: string
           devise?: string | null
           entrepot_id?: string | null
+          etat?: string
           id?: string
           location?: string | null
+          marque?: string | null
           nombre_pieces?: number | null
           prix_reference?: number | null
           prix_reference_note?: string | null
@@ -62,11 +69,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["stock_status"]
           unit?: string
           updated_at?: string
+          variante?: string | null
         }
         Update: {
           category_id?: string | null
           classe_comptable?: number | null
           code?: string
+          code_barre?: string | null
           conditionnement?: string | null
           created_at?: string
           created_by?: string
@@ -74,8 +83,10 @@ export type Database = {
           designation?: string
           devise?: string | null
           entrepot_id?: string | null
+          etat?: string
           id?: string
           location?: string | null
+          marque?: string | null
           nombre_pieces?: number | null
           prix_reference?: number | null
           prix_reference_note?: string | null
@@ -86,6 +97,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["stock_status"]
           unit?: string
           updated_at?: string
+          variante?: string | null
         }
         Relationships: [
           {
@@ -2905,10 +2917,12 @@ export type Database = {
       stock_movements: {
         Row: {
           article_stock_id: string
+          beneficiaire: string | null
           bl_id: string | null
           created_at: string
           created_by: string
           da_id: string | null
+          destination_detail: string | null
           entrepot_id: string | null
           id: string
           montant_total: number | null
@@ -2924,10 +2938,12 @@ export type Database = {
         }
         Insert: {
           article_stock_id: string
+          beneficiaire?: string | null
           bl_id?: string | null
           created_at?: string
           created_by: string
           da_id?: string | null
+          destination_detail?: string | null
           entrepot_id?: string | null
           id?: string
           montant_total?: number | null
@@ -2943,10 +2959,12 @@ export type Database = {
         }
         Update: {
           article_stock_id?: string
+          beneficiaire?: string | null
           bl_id?: string | null
           created_at?: string
           created_by?: string
           da_id?: string | null
+          destination_detail?: string | null
           entrepot_id?: string | null
           id?: string
           montant_total?: number | null
@@ -3198,6 +3216,7 @@ export type Database = {
           category_name: string | null
           classe_comptable: number | null
           code: string | null
+          code_barre: string | null
           conditionnement: string | null
           created_at: string | null
           date_premiere_entree: string | null
@@ -3205,8 +3224,10 @@ export type Database = {
           entrees_montant: number | null
           entrees_prix_unitaire: number | null
           entrees_qty: number | null
+          etat: string | null
           id: string | null
           location: string | null
+          marque: string | null
           nombre_pieces: number | null
           quantity_available: number | null
           seuil_alerte: number | null
@@ -3222,6 +3243,7 @@ export type Database = {
           stock_initial_prix: number | null
           stock_initial_qty: number | null
           unit: string | null
+          variante: string | null
         }
         Relationships: [
           {
