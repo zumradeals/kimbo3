@@ -54,6 +54,10 @@ interface StockRow {
   statut_auto: string;
   quantity_available: number;
   status: string;
+  code_barre: string | null;
+  variante: string | null;
+  marque: string | null;
+  etat: string | null;
 }
 
 const fmt = (n: number) => Math.ceil(n).toLocaleString('fr-FR');
