@@ -3216,6 +3216,7 @@ export type Database = {
           category_name: string | null
           classe_comptable: number | null
           code: string | null
+          code_barre: string | null
           conditionnement: string | null
           created_at: string | null
           date_premiere_entree: string | null
@@ -3223,8 +3224,10 @@ export type Database = {
           entrees_montant: number | null
           entrees_prix_unitaire: number | null
           entrees_qty: number | null
+          etat: string | null
           id: string | null
           location: string | null
+          marque: string | null
           nombre_pieces: number | null
           quantity_available: number | null
           seuil_alerte: number | null
@@ -3240,6 +3243,7 @@ export type Database = {
           stock_initial_prix: number | null
           stock_initial_qty: number | null
           unit: string | null
+          variante: string | null
         }
         Relationships: [
           {
