@@ -207,6 +207,10 @@ export default function StockStandardTab() {
         prix_reference_note: newArticle.prix_reference_note || null,
         prix_reference_updated_at: newArticle.prix_reference ? new Date().toISOString() : null,
         created_by: user?.id,
+        code_barre: newArticle.code_barre || null,
+        variante: newArticle.variante || null,
+        marque: newArticle.marque || null,
+        etat: newArticle.etat,
       });
       if (error) throw error;
 
