@@ -255,6 +255,12 @@ export default function StockMouvementsTab() {
                             </div>
                           ) : '-'}
                         </TableCell>
+                        <TableCell className="text-xs">
+                          {mv.beneficiaire || '-'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {mv.destination_detail || '-'}
+                        </TableCell>
                         <TableCell>
                           {mv.profile ? (
                             <UserBadge
