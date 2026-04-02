@@ -353,6 +353,8 @@ export default function StockDetail() {
         observations: adjustForm.observations || null,
         created_by: user?.id,
         reference: `ADJ-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${article.id.slice(0, 8).toUpperCase()}`,
+        beneficiaire: adjustForm.beneficiaire || null,
+        destination_detail: adjustForm.destination_detail || null,
       });
 
       if (movementError) throw movementError;
