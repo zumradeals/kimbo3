@@ -239,7 +239,9 @@ export default function StockStandardTab() {
     return data.filter((r) => {
       const matchSearch = !search.trim() ||
         r.code.toLowerCase().includes(search.toLowerCase()) ||
-        r.designation.toLowerCase().includes(search.toLowerCase());
+        r.designation.toLowerCase().includes(search.toLowerCase()) ||
+        (r.marque || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.variante || '').toLowerCase().includes(search.toLowerCase());
       const matchClasse = classeFilter === 'all' || String(r.classe_comptable) === classeFilter;
       const matchCond = condFilter === 'all' || r.conditionnement === condFilter;
       const matchStatus = statusFilter === 'all' || r.statut_auto === statusFilter;
