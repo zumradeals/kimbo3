@@ -1294,6 +1294,50 @@ export default function StockDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Marque, Variante, Code-barre, État */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Marque</Label>
+                <Input
+                  value={editForm.marque}
+                  onChange={(e) => setEditForm({ ...editForm, marque: e.target.value })}
+                  placeholder="Ex: HP, ASUS, BIC..."
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Variante / Couleur</Label>
+                <Input
+                  value={editForm.variante}
+                  onChange={(e) => setEditForm({ ...editForm, variante: e.target.value })}
+                  placeholder="Ex: Bleu, Senteur lavande..."
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Code-barre</Label>
+                <Input
+                  value={editForm.code_barre}
+                  onChange={(e) => setEditForm({ ...editForm, code_barre: e.target.value })}
+                  placeholder="Scanner ou saisir"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">État</Label>
+                <Select value={editForm.etat} onValueChange={(v) => setEditForm({ ...editForm, etat: v })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bon">Bon état</SelectItem>
+                    <SelectItem value="defectueux">Défectueux</SelectItem>
+                    <SelectItem value="hors_service">Hors service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
