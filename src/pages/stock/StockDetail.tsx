@@ -1072,6 +1072,26 @@ export default function StockDetail() {
                 </p>
               )}
             </div>
+            {adjustForm.type === 'sortie' && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Bénéficiaire</Label>
+                  <Input
+                    value={adjustForm.beneficiaire}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, beneficiaire: e.target.value })}
+                    placeholder="Nom du récepteur..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Destination</Label>
+                  <Input
+                    value={adjustForm.destination_detail}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, destination_detail: e.target.value })}
+                    placeholder="Bureau, site, projet..."
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Observations</Label>
               <Textarea
