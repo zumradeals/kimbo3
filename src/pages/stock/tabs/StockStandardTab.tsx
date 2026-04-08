@@ -516,44 +516,33 @@ export default function StockStandardTab() {
                                       {row.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}
                                     </Badge>
                                   </TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-muted/10">{row.stock_initial_qty}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-muted/10">{fmt(row.stock_initial_prix)}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs border-r bg-muted/10">{fmt(row.stock_initial_montant)}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-success/5">
+                                  <TableCell className="text-right font-mono text-xs bg-muted/10 border-r">{row.stock_initial_qty}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-success/5 border-r">
                                     <span className={row.entrees_qty > 0 ? 'text-success font-semibold' : ''}>{row.entrees_qty}</span>
                                   </TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-success/5">{fmt(row.entrees_prix_unitaire)}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs border-r bg-success/5">
-                                    <span className={row.entrees_montant > 0 ? 'text-success font-semibold' : ''}>{fmt(row.entrees_montant)}</span>
-                                  </TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-destructive/5">
+                                  <TableCell className="text-right font-mono text-xs bg-destructive/5 border-r">
                                     <span className={row.sorties_qty > 0 ? 'text-destructive font-semibold' : ''}>{row.sorties_qty}</span>
                                   </TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-destructive/5">{fmt(row.sorties_prix_unitaire)}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs border-r bg-destructive/5">
-                                    <span className={row.sorties_montant > 0 ? 'text-destructive font-semibold' : ''}>{fmt(row.sorties_montant)}</span>
-                                  </TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{row.stock_final_qty}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs bg-primary/5">{fmt(row.stock_final_prix_unitaire)}</TableCell>
-                                  <TableCell className="text-right font-mono text-xs border-r bg-primary/5 font-bold">{fmt(row.stock_final_montant)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold border-r">{row.stock_final_qty}</TableCell>
                                   <TableCell className="border-r text-center text-xs font-mono">{row.seuil_alerte || '-'}</TableCell>
                                   <TableCell className="text-center">
                                     <Badge className={`text-[10px] ${sc.class}`}>{sc.label}</Badge>
                                   </TableCell>
                                   <TableCell className="text-xs">{row.location || '-'}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs border-r bg-accent/10">{fmt(row.entrees_prix_unitaire)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-accent/10 font-semibold">{fmt(row.entrees_montant)}</TableCell>
                                 </TableRow>
                               );
                             })}
                             <TableRow className="bg-muted/20 font-semibold">
                               <TableCell colSpan={7} className="border-r text-right text-xs">Sous-total {categoryName}</TableCell>
-                              <TableCell colSpan={3} className="text-right border-r bg-muted/10 text-xs">-</TableCell>
-                              <TableCell colSpan={2} className="bg-success/5" />
-                              <TableCell className="text-right font-mono text-xs border-r bg-success/5 text-success">{fmt(group.totalEntrees)} ₣</TableCell>
-                              <TableCell colSpan={2} className="bg-destructive/5" />
-                              <TableCell className="text-right font-mono text-xs border-r bg-destructive/5 text-destructive">{fmt(group.totalSorties)} ₣</TableCell>
-                              <TableCell colSpan={2} className="bg-primary/5" />
-                              <TableCell className="text-right font-mono text-xs border-r bg-primary/5">{fmt(group.totalStock)} ₣</TableCell>
+                              <TableCell className="text-right border-r bg-muted/10 text-xs">-</TableCell>
+                              <TableCell className="text-right font-mono text-xs border-r bg-success/5 text-success">-</TableCell>
+                              <TableCell className="text-right font-mono text-xs border-r bg-destructive/5 text-destructive">-</TableCell>
+                              <TableCell className="text-right font-mono text-xs border-r bg-primary/5">-</TableCell>
                               <TableCell colSpan={3} />
+                              <TableCell className="text-right font-mono text-xs border-r bg-accent/10">-</TableCell>
+                              <TableCell className="text-right font-mono text-xs bg-accent/10 font-bold">{fmt(group.totalEntrees)} ₣</TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
