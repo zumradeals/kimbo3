@@ -582,7 +582,7 @@ export default function StockStandardTab() {
               <span className="text-sm font-mono font-bold">Stock : {fmt(totals.stock)} ₣</span>
             </div>
             </>
-          )
+          )}
         </CardContent>
       </Card>
 
