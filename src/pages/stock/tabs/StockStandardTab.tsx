@@ -18,11 +18,14 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { CategorySelector } from '@/components/stock/CategorySelector';
 import { LOGISTICS_ROLES } from '@/types/kpm';
 import {
-  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus, Maximize2, Minimize2,
+  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus, Maximize2, Minimize2, FolderOpen,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -262,6 +265,27 @@ export default function StockStandardTab() {
     rupture: data.filter(r => r.statut_auto === 'rupture').length,
   }), [data]);
 
+  // Group filtered articles by category
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<string, { articles: StockRow[]; totalEntrees: number; totalSorties: number; totalStock: number }> = {};
+    filtered.forEach((row) => {
+      const catName = row.category_name || 'Sans catégorie';
+      if (!groups[catName]) {
+        groups[catName] = { articles: [], totalEntrees: 0, totalSorties: 0, totalStock: 0 };
+      }
+      groups[catName].articles.push(row);
+      groups[catName].totalEntrees += row.entrees_montant;
+      groups[catName].totalSorties += row.sorties_montant;
+      groups[catName].totalStock += row.stock_final_montant;
+    });
+    // Sort category names alphabetically, "Sans catégorie" last
+    return Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'Sans catégorie') return 1;
+      if (b === 'Sans catégorie') return -1;
+      return a.localeCompare(b, 'fr');
+    });
+  }, [filtered]);
+
   return (
     <div className="space-y-6">
       {/* Header with CRUD buttons */}
@@ -413,127 +437,151 @@ export default function StockStandardTab() {
               <p className="mt-4">Aucun article trouvé</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead rowSpan={2} className="border-r align-middle">Code</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle">Date entrée</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle">Désignation</TableHead>
-                    
-                    <TableHead rowSpan={2} className="border-r align-middle text-center">Cl.</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle">Unité</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle text-center">Pcs</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle">Cond.</TableHead>
-                    <TableHead colSpan={3} className="text-center border-r bg-muted/30">STOCK INITIAL</TableHead>
-                    <TableHead colSpan={3} className="text-center border-r bg-success/5">ENTRÉES</TableHead>
-                    <TableHead colSpan={3} className="text-center border-r bg-destructive/5">SORTIES</TableHead>
-                    <TableHead colSpan={3} className="text-center border-r bg-primary/5">STOCK FINAL</TableHead>
-                    <TableHead rowSpan={2} className="border-r align-middle text-center">Seuil d'alerte</TableHead>
-                    <TableHead rowSpan={2} className="align-middle text-center">Statut</TableHead>
-                    <TableHead rowSpan={2} className="align-middle">Empl.</TableHead>
-                  </TableRow>
-                  <TableRow>
-                    <TableHead className="text-right text-xs bg-muted/30">Qté</TableHead>
-                    <TableHead className="text-right text-xs bg-muted/30">PU</TableHead>
-                    <TableHead className="text-right text-xs border-r bg-muted/30">Montant</TableHead>
-                    <TableHead className="text-right text-xs bg-success/5">Qté</TableHead>
-                    <TableHead className="text-right text-xs bg-success/5">PM</TableHead>
-                    <TableHead className="text-right text-xs border-r bg-success/5">Montant</TableHead>
-                    <TableHead className="text-right text-xs bg-destructive/5">Qté</TableHead>
-                    <TableHead className="text-right text-xs bg-destructive/5">PM</TableHead>
-                    <TableHead className="text-right text-xs border-r bg-destructive/5">Montant</TableHead>
-                    <TableHead className="text-right text-xs bg-primary/5">Qté</TableHead>
-                    <TableHead className="text-right text-xs bg-primary/5">PM</TableHead>
-                    <TableHead className="text-right text-xs border-r bg-primary/5">Montant</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((row) => {
-                    const sc = statusConfig[row.statut_auto] || statusConfig.disponible;
-                    return (
-                      <TableRow key={row.id}>
-                        <TableCell className="border-r">
-                          <Link to={`/stock/${row.id}`}>
-                            <Badge variant="outline" className="font-mono text-xs cursor-pointer hover:bg-accent">
-                              {row.code}
-                            </Badge>
-                          </Link>
-                        </TableCell>
-                        <TableCell className="border-r text-xs whitespace-nowrap">
-                          {row.date_premiere_entree
-                            ? format(new Date(row.date_premiere_entree), 'dd/MM/yyyy', { locale: fr })
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="border-r">
-                          <div className="font-medium text-sm max-w-[200px] truncate">{row.designation}</div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {row.category_name && <span className="text-xs text-muted-foreground">{row.category_name}</span>}
-                            {row.marque && <Badge variant="outline" className="text-[10px] px-1">{row.marque}</Badge>}
-                            {row.variante && <span className="text-[10px] text-muted-foreground italic">{row.variante}</span>}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell className="border-r text-center">
-                          <Badge variant="secondary" className="text-xs">{row.classe_comptable || '-'}</Badge>
-                        </TableCell>
-                        <TableCell className="border-r text-xs">{row.unit}</TableCell>
-                        <TableCell className="border-r text-center text-xs">{row.nombre_pieces || 1}</TableCell>
-                        <TableCell className="border-r">
-                          <Badge variant="secondary" className={`text-[10px] ${row.conditionnement === 'perissable' ? 'bg-warning/10 text-warning' : 'bg-muted'}`}>
-                            {row.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}
+            <>
+            <Accordion type="multiple" defaultValue={groupedByCategory.map(([name]) => name)} className="space-y-2">
+              {groupedByCategory.map(([categoryName, group]) => {
+                const alertCount = group.articles.filter(r => r.statut_auto === 'faible' || r.statut_auto === 'rupture').length;
+                return (
+                  <AccordionItem key={categoryName} value={categoryName} className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30">
+                      <div className="flex items-center gap-3 flex-1">
+                        <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+                        <span className="font-semibold text-sm">{categoryName}</span>
+                        <Badge variant="secondary" className="text-xs">{group.articles.length} article{group.articles.length > 1 ? 's' : ''}</Badge>
+                        {alertCount > 0 && (
+                          <Badge className="text-[10px] bg-warning/10 text-warning border-warning/20">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {alertCount} alerte{alertCount > 1 ? 's' : ''}
                           </Badge>
-                        </TableCell>
-                        {/* Stock initial */}
-                        <TableCell className="text-right font-mono text-xs bg-muted/10">{row.stock_initial_qty}</TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-muted/10">{fmt(row.stock_initial_prix)}</TableCell>
-                        <TableCell className="text-right font-mono text-xs border-r bg-muted/10">{fmt(row.stock_initial_montant)}</TableCell>
-                        {/* Entrées */}
-                        <TableCell className="text-right font-mono text-xs bg-success/5">
-                          <span className={row.entrees_qty > 0 ? 'text-success font-semibold' : ''}>{row.entrees_qty}</span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-success/5">{fmt(row.entrees_prix_unitaire)}</TableCell>
-                        <TableCell className="text-right font-mono text-xs border-r bg-success/5">
-                          <span className={row.entrees_montant > 0 ? 'text-success font-semibold' : ''}>{fmt(row.entrees_montant)}</span>
-                        </TableCell>
-                        {/* Sorties */}
-                        <TableCell className="text-right font-mono text-xs bg-destructive/5">
-                          <span className={row.sorties_qty > 0 ? 'text-destructive font-semibold' : ''}>{row.sorties_qty}</span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-destructive/5">{fmt(row.sorties_prix_unitaire)}</TableCell>
-                        <TableCell className="text-right font-mono text-xs border-r bg-destructive/5">
-                          <span className={row.sorties_montant > 0 ? 'text-destructive font-semibold' : ''}>{fmt(row.sorties_montant)}</span>
-                        </TableCell>
-                        {/* Stock final */}
-                        <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{row.stock_final_qty}</TableCell>
-                        <TableCell className="text-right font-mono text-xs bg-primary/5">{fmt(row.stock_final_prix_unitaire)}</TableCell>
-                        <TableCell className="text-right font-mono text-xs border-r bg-primary/5 font-bold">{fmt(row.stock_final_montant)}</TableCell>
-                        {/* Seuil */}
-                        <TableCell className="border-r text-center text-xs font-mono">{row.seuil_alerte || '-'}</TableCell>
-                        {/* Statut auto */}
-                        <TableCell className="text-center">
-                          <Badge className={`text-[10px] ${sc.class}`}>{sc.label}</Badge>
-                        </TableCell>
-                        {/* Emplacement */}
-                        <TableCell className="text-xs">{row.location || '-'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {/* Totaux */}
-                  <TableRow className="bg-muted/20 font-bold">
-                    <TableCell colSpan={7} className="border-r text-right">TOTAUX</TableCell>
-                    <TableCell colSpan={3} className="text-right border-r bg-muted/10">-</TableCell>
-                    <TableCell colSpan={2} className="bg-success/5" />
-                    <TableCell className="text-right font-mono text-sm border-r bg-success/5 text-success">{fmt(totals.entrees)} ₣</TableCell>
-                    <TableCell colSpan={2} className="bg-destructive/5" />
-                    <TableCell className="text-right font-mono text-sm border-r bg-destructive/5 text-destructive">{fmt(totals.sorties)} ₣</TableCell>
-                    <TableCell colSpan={2} className="bg-primary/5" />
-                    <TableCell className="text-right font-mono text-sm border-r bg-primary/5">{fmt(totals.stock)} ₣</TableCell>
-                    <TableCell colSpan={3} />
-                  </TableRow>
-                </TableBody>
-              </Table>
+                        )}
+                        <span className="ml-auto text-xs text-muted-foreground font-normal mr-4">
+                          Valeur : {fmt(group.totalStock)} ₣
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead rowSpan={2} className="border-r align-middle">Code</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle">Date entrée</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle">Désignation</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle text-center">Cl.</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle">Unité</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle text-center">Pcs</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle">Cond.</TableHead>
+                              <TableHead colSpan={3} className="text-center border-r bg-muted/30">STOCK INITIAL</TableHead>
+                              <TableHead colSpan={3} className="text-center border-r bg-success/5">ENTRÉES</TableHead>
+                              <TableHead colSpan={3} className="text-center border-r bg-destructive/5">SORTIES</TableHead>
+                              <TableHead colSpan={3} className="text-center border-r bg-primary/5">STOCK FINAL</TableHead>
+                              <TableHead rowSpan={2} className="border-r align-middle text-center">Seuil d'alerte</TableHead>
+                              <TableHead rowSpan={2} className="align-middle text-center">Statut</TableHead>
+                              <TableHead rowSpan={2} className="align-middle">Empl.</TableHead>
+                            </TableRow>
+                            <TableRow>
+                              <TableHead className="text-right text-xs bg-muted/30">Qté</TableHead>
+                              <TableHead className="text-right text-xs bg-muted/30">PU</TableHead>
+                              <TableHead className="text-right text-xs border-r bg-muted/30">Montant</TableHead>
+                              <TableHead className="text-right text-xs bg-success/5">Qté</TableHead>
+                              <TableHead className="text-right text-xs bg-success/5">PM</TableHead>
+                              <TableHead className="text-right text-xs border-r bg-success/5">Montant</TableHead>
+                              <TableHead className="text-right text-xs bg-destructive/5">Qté</TableHead>
+                              <TableHead className="text-right text-xs bg-destructive/5">PM</TableHead>
+                              <TableHead className="text-right text-xs border-r bg-destructive/5">Montant</TableHead>
+                              <TableHead className="text-right text-xs bg-primary/5">Qté</TableHead>
+                              <TableHead className="text-right text-xs bg-primary/5">PM</TableHead>
+                              <TableHead className="text-right text-xs border-r bg-primary/5">Montant</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.articles.map((row) => {
+                              const sc = statusConfig[row.statut_auto] || statusConfig.disponible;
+                              return (
+                                <TableRow key={row.id}>
+                                  <TableCell className="border-r">
+                                    <Link to={`/stock/${row.id}`}>
+                                      <Badge variant="outline" className="font-mono text-xs cursor-pointer hover:bg-accent">
+                                        {row.code}
+                                      </Badge>
+                                    </Link>
+                                  </TableCell>
+                                  <TableCell className="border-r text-xs whitespace-nowrap">
+                                    {row.date_premiere_entree
+                                      ? format(new Date(row.date_premiere_entree), 'dd/MM/yyyy', { locale: fr })
+                                      : '-'}
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <div className="font-medium text-sm max-w-[200px] truncate">{row.designation}</div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {row.marque && <Badge variant="outline" className="text-[10px] px-1">{row.marque}</Badge>}
+                                      {row.variante && <span className="text-[10px] text-muted-foreground italic">{row.variante}</span>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="border-r text-center">
+                                    <Badge variant="secondary" className="text-xs">{row.classe_comptable || '-'}</Badge>
+                                  </TableCell>
+                                  <TableCell className="border-r text-xs">{row.unit}</TableCell>
+                                  <TableCell className="border-r text-center text-xs">{row.nombre_pieces || 1}</TableCell>
+                                  <TableCell className="border-r">
+                                    <Badge variant="secondary" className={`text-[10px] ${row.conditionnement === 'perissable' ? 'bg-warning/10 text-warning' : 'bg-muted'}`}>
+                                      {row.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-muted/10">{row.stock_initial_qty}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-muted/10">{fmt(row.stock_initial_prix)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs border-r bg-muted/10">{fmt(row.stock_initial_montant)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-success/5">
+                                    <span className={row.entrees_qty > 0 ? 'text-success font-semibold' : ''}>{row.entrees_qty}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-success/5">{fmt(row.entrees_prix_unitaire)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs border-r bg-success/5">
+                                    <span className={row.entrees_montant > 0 ? 'text-success font-semibold' : ''}>{fmt(row.entrees_montant)}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-destructive/5">
+                                    <span className={row.sorties_qty > 0 ? 'text-destructive font-semibold' : ''}>{row.sorties_qty}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-destructive/5">{fmt(row.sorties_prix_unitaire)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs border-r bg-destructive/5">
+                                    <span className={row.sorties_montant > 0 ? 'text-destructive font-semibold' : ''}>{fmt(row.sorties_montant)}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{row.stock_final_qty}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs bg-primary/5">{fmt(row.stock_final_prix_unitaire)}</TableCell>
+                                  <TableCell className="text-right font-mono text-xs border-r bg-primary/5 font-bold">{fmt(row.stock_final_montant)}</TableCell>
+                                  <TableCell className="border-r text-center text-xs font-mono">{row.seuil_alerte || '-'}</TableCell>
+                                  <TableCell className="text-center">
+                                    <Badge className={`text-[10px] ${sc.class}`}>{sc.label}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs">{row.location || '-'}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                            <TableRow className="bg-muted/20 font-semibold">
+                              <TableCell colSpan={7} className="border-r text-right text-xs">Sous-total {categoryName}</TableCell>
+                              <TableCell colSpan={3} className="text-right border-r bg-muted/10 text-xs">-</TableCell>
+                              <TableCell colSpan={2} className="bg-success/5" />
+                              <TableCell className="text-right font-mono text-xs border-r bg-success/5 text-success">{fmt(group.totalEntrees)} ₣</TableCell>
+                              <TableCell colSpan={2} className="bg-destructive/5" />
+                              <TableCell className="text-right font-mono text-xs border-r bg-destructive/5 text-destructive">{fmt(group.totalSorties)} ₣</TableCell>
+                              <TableCell colSpan={2} className="bg-primary/5" />
+                              <TableCell className="text-right font-mono text-xs border-r bg-primary/5">{fmt(group.totalStock)} ₣</TableCell>
+                              <TableCell colSpan={3} />
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+            <div className="mt-4 flex items-center justify-end gap-6 rounded-lg bg-muted/30 px-4 py-3">
+              <span className="text-sm font-semibold">TOTAL GÉNÉRAL :</span>
+              <span className="text-sm font-mono text-success font-semibold">Entrées : {fmt(totals.entrees)} ₣</span>
+              <span className="text-sm font-mono text-destructive font-semibold">Sorties : {fmt(totals.sorties)} ₣</span>
+              <span className="text-sm font-mono font-bold">Stock : {fmt(totals.stock)} ₣</span>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
