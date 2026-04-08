@@ -265,6 +265,27 @@ export default function StockStandardTab() {
     rupture: data.filter(r => r.statut_auto === 'rupture').length,
   }), [data]);
 
+  // Group filtered articles by category
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<string, { articles: StockRow[]; totalEntrees: number; totalSorties: number; totalStock: number }> = {};
+    filtered.forEach((row) => {
+      const catName = row.category_name || 'Sans catégorie';
+      if (!groups[catName]) {
+        groups[catName] = { articles: [], totalEntrees: 0, totalSorties: 0, totalStock: 0 };
+      }
+      groups[catName].articles.push(row);
+      groups[catName].totalEntrees += row.entrees_montant;
+      groups[catName].totalSorties += row.sorties_montant;
+      groups[catName].totalStock += row.stock_final_montant;
+    });
+    // Sort category names alphabetically, "Sans catégorie" last
+    return Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'Sans catégorie') return 1;
+      if (b === 'Sans catégorie') return -1;
+      return a.localeCompare(b, 'fr');
+    });
+  }, [filtered]);
+
   return (
     <div className="space-y-6">
       {/* Header with CRUD buttons */}
