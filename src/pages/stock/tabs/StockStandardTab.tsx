@@ -437,6 +437,7 @@ export default function StockStandardTab() {
               <p className="mt-4">Aucun article trouvé</p>
             </div>
           ) : (
+            <>
             <Accordion type="multiple" defaultValue={groupedByCategory.map(([name]) => name)} className="space-y-2">
               {groupedByCategory.map(([categoryName, group]) => {
                 const alertCount = group.articles.filter(r => r.statut_auto === 'faible' || r.statut_auto === 'rupture').length;
@@ -555,7 +556,6 @@ export default function StockStandardTab() {
                                 </TableRow>
                               );
                             })}
-                            {/* Sous-total catégorie */}
                             <TableRow className="bg-muted/20 font-semibold">
                               <TableCell colSpan={7} className="border-r text-right text-xs">Sous-total {categoryName}</TableCell>
                               <TableCell colSpan={3} className="text-right border-r bg-muted/10 text-xs">-</TableCell>
@@ -575,14 +575,14 @@ export default function StockStandardTab() {
                 );
               })}
             </Accordion>
-            {/* Total général */}
             <div className="mt-4 flex items-center justify-end gap-6 rounded-lg bg-muted/30 px-4 py-3">
               <span className="text-sm font-semibold">TOTAL GÉNÉRAL :</span>
               <span className="text-sm font-mono text-success font-semibold">Entrées : {fmt(totals.entrees)} ₣</span>
               <span className="text-sm font-mono text-destructive font-semibold">Sorties : {fmt(totals.sorties)} ₣</span>
               <span className="text-sm font-mono font-bold">Stock : {fmt(totals.stock)} ₣</span>
             </div>
-          )}
+            </>
+          )
         </CardContent>
       </Card>
 
