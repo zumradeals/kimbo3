@@ -18,11 +18,14 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { CategorySelector } from '@/components/stock/CategorySelector';
 import { LOGISTICS_ROLES } from '@/types/kpm';
 import {
-  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus, Maximize2, Minimize2,
+  Search, Package, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Plus, Maximize2, Minimize2, FolderOpen,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
