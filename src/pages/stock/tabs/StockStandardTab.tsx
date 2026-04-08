@@ -471,27 +471,15 @@ export default function StockStandardTab() {
                               <TableHead rowSpan={2} className="border-r align-middle">Unité</TableHead>
                               <TableHead rowSpan={2} className="border-r align-middle text-center">Pcs</TableHead>
                               <TableHead rowSpan={2} className="border-r align-middle">Cond.</TableHead>
-                              <TableHead colSpan={3} className="text-center border-r bg-muted/30">STOCK INITIAL</TableHead>
-                              <TableHead colSpan={3} className="text-center border-r bg-success/5">ENTRÉES</TableHead>
-                              <TableHead colSpan={3} className="text-center border-r bg-destructive/5">SORTIES</TableHead>
-                              <TableHead colSpan={3} className="text-center border-r bg-primary/5">STOCK FINAL</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle text-center">Seuil d'alerte</TableHead>
-                              <TableHead rowSpan={2} className="align-middle text-center">Statut</TableHead>
-                              <TableHead rowSpan={2} className="align-middle">Empl.</TableHead>
-                            </TableRow>
-                            <TableRow>
-                              <TableHead className="text-right text-xs bg-muted/30">Qté</TableHead>
-                              <TableHead className="text-right text-xs bg-muted/30">PU</TableHead>
-                              <TableHead className="text-right text-xs border-r bg-muted/30">Montant</TableHead>
-                              <TableHead className="text-right text-xs bg-success/5">Qté</TableHead>
-                              <TableHead className="text-right text-xs bg-success/5">PM</TableHead>
-                              <TableHead className="text-right text-xs border-r bg-success/5">Montant</TableHead>
-                              <TableHead className="text-right text-xs bg-destructive/5">Qté</TableHead>
-                              <TableHead className="text-right text-xs bg-destructive/5">PM</TableHead>
-                              <TableHead className="text-right text-xs border-r bg-destructive/5">Montant</TableHead>
-                              <TableHead className="text-right text-xs bg-primary/5">Qté</TableHead>
-                              <TableHead className="text-right text-xs bg-primary/5">PM</TableHead>
-                              <TableHead className="text-right text-xs border-r bg-primary/5">Montant</TableHead>
+                              <TableHead className="text-center border-r bg-muted/30">Stock Initial</TableHead>
+                              <TableHead className="text-center border-r bg-success/5">Entrées</TableHead>
+                              <TableHead className="text-center border-r bg-destructive/5">Sorties</TableHead>
+                              <TableHead className="text-center border-r bg-primary/5">Stock Final</TableHead>
+                              <TableHead rowSpan={1} className="border-r align-middle text-center">Seuil d'alerte</TableHead>
+                              <TableHead rowSpan={1} className="align-middle text-center">Statut</TableHead>
+                              <TableHead rowSpan={1} className="align-middle">Empl.</TableHead>
+                              <TableHead className="text-right border-r bg-accent/10">PU Achat</TableHead>
+                              <TableHead className="text-right bg-accent/10">Montant Achats</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
