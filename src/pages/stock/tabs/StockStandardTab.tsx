@@ -464,13 +464,13 @@ export default function StockStandardTab() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead rowSpan={2} className="border-r align-middle">Code</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle">Date entrée</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle">Désignation</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle text-center">Cl.</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle">Unité</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle text-center">Pcs</TableHead>
-                              <TableHead rowSpan={2} className="border-r align-middle">Cond.</TableHead>
+                              <TableHead className="border-r align-middle">Code</TableHead>
+                              <TableHead className="border-r align-middle">Date entrée</TableHead>
+                              <TableHead className="border-r align-middle">Désignation</TableHead>
+                              <TableHead className="border-r align-middle text-center">Cl.</TableHead>
+                              <TableHead className="border-r align-middle">Unité</TableHead>
+                              <TableHead className="border-r align-middle text-center">Pcs</TableHead>
+                              <TableHead className="border-r align-middle">Cond.</TableHead>
                               <TableHead className="text-center border-r bg-muted/30">Stock Initial</TableHead>
                               <TableHead className="text-center border-r bg-success/5">Entrées</TableHead>
                               <TableHead className="text-center border-r bg-destructive/5">Sorties</TableHead>
