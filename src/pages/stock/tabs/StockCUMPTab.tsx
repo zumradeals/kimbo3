@@ -225,26 +225,42 @@ export default function StockCUMPTab() {
             <div className="py-12 text-center text-muted-foreground">Aucune donnée CUMP</div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+             <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Article</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Stock avant</TableHead>
-                    <TableHead className="text-right bg-success/5">Entrée Qté</TableHead>
-                    <TableHead className="text-right bg-success/5">Entrée Montant</TableHead>
-                    <TableHead className="text-right bg-destructive/5">Sortie Qté</TableHead>
-                    <TableHead className="text-right bg-destructive/5">Sortie Montant</TableHead>
-                    <TableHead className="text-right bg-primary/5">Stock après</TableHead>
-                    <TableHead className="text-right bg-primary/5 font-bold">CUMP</TableHead>
-                    <TableHead className="text-right bg-primary/5 font-bold">Valeur Stock</TableHead>
-                    <TableHead>Anomalie</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-bottom">Article</TableHead>
+                    <TableHead rowSpan={2} className="border-r align-bottom">Date</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-muted/30">Stock Initial</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-success/5">Entrée</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-destructive/5">Sortie</TableHead>
+                    <TableHead colSpan={3} className="text-center border-r bg-primary/5">Stock Final</TableHead>
+                    <TableHead rowSpan={2} className="text-right bg-accent/10 font-bold align-bottom">Valeur Stock</TableHead>
+                    <TableHead rowSpan={2} className="align-bottom">Anomalie</TableHead>
+                  </TableRow>
+                  <TableRow>
+                    <TableHead className="text-right border-r bg-muted/30 text-xs">Qté</TableHead>
+                    <TableHead className="text-right bg-muted/30 text-xs">PU</TableHead>
+                    <TableHead className="text-right border-r bg-muted/30 text-xs">Montant</TableHead>
+                    <TableHead className="text-right bg-success/5 text-xs">Qté</TableHead>
+                    <TableHead className="text-right bg-success/5 text-xs">PU</TableHead>
+                    <TableHead className="text-right border-r bg-success/5 text-xs">Montant</TableHead>
+                    <TableHead className="text-right bg-destructive/5 text-xs">Qté</TableHead>
+                    <TableHead className="text-right bg-destructive/5 text-xs">PU</TableHead>
+                    <TableHead className="text-right border-r bg-destructive/5 text-xs">Montant</TableHead>
+                    <TableHead className="text-right bg-primary/5 text-xs">Qté</TableHead>
+                    <TableHead className="text-right bg-primary/5 text-xs">PU (CUMP)</TableHead>
+                    <TableHead className="text-right border-r bg-primary/5 text-xs">Montant</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cumpData.map((row, i) => (
+                  {cumpData.map((row) => {
+                    const puAvant = row.stock_avant > 0 ? row.valeur_avant / row.stock_avant : 0;
+                    const puEntree = row.entree_qty > 0 ? row.entree_montant / row.entree_qty : 0;
+                    const puSortie = row.sortie_qty > 0 ? row.cump_avant : 0;
+                    const montantFinal = row.stock_apres * row.cump;
+                    return (
                     <TableRow key={row.id}>
-                      <TableCell>
+                      <TableCell className="border-r">
                         <Link to={`/stock/${row.article_stock_id}`}>
                           <Badge variant="outline" className="font-mono text-xs cursor-pointer hover:bg-accent">
                             {row.article_code}
@@ -252,30 +268,44 @@ export default function StockCUMPTab() {
                         </Link>
                         <div className="text-xs text-muted-foreground truncate max-w-[150px]">{row.article_designation}</div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs">
+                      <TableCell className="whitespace-nowrap text-xs border-r">
                         {format(new Date(row.date_mouvement), 'dd/MM/yyyy HH:mm', { locale: fr })}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.stock_avant}</TableCell>
+                      {/* Stock Initial */}
+                      <TableCell className="text-right font-mono text-xs bg-muted/30">{row.stock_avant > 0 ? row.stock_avant : '-'}</TableCell>
+                      <TableCell className="text-right font-mono text-xs bg-muted/30">{row.stock_avant > 0 ? fmtCump(puAvant) : '-'}</TableCell>
+                      <TableCell className="text-right font-mono text-xs border-r bg-muted/30">{row.stock_avant > 0 ? fmtInt(row.valeur_avant) : '-'}</TableCell>
+                      {/* Entrée */}
                       <TableCell className="text-right font-mono text-xs bg-success/5">
                         {row.entree_qty > 0 ? <span className="text-success font-semibold">+{row.entree_qty}</span> : '-'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs bg-success/5">
+                        {row.entree_qty > 0 ? <span className="text-success">{fmtCump(puEntree)}</span> : '-'}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs border-r bg-success/5">
                         {row.entree_montant > 0 ? <span className="text-success">{fmtInt(row.entree_montant)}</span> : '-'}
                       </TableCell>
+                      {/* Sortie */}
                       <TableCell className="text-right font-mono text-xs bg-destructive/5">
                         {row.sortie_qty > 0 ? <span className="text-destructive">-{row.sortie_qty}</span> : '-'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs bg-destructive/5">
+                        {row.sortie_qty > 0 ? <span className="text-destructive">{fmtCump(puSortie)}</span> : '-'}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs border-r bg-destructive/5">
                         {row.sortie_montant > 0 ? <span className="text-destructive">{fmtInt(row.sortie_montant)}</span> : '-'}
                       </TableCell>
+                      {/* Stock Final */}
                       <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{Math.round(row.stock_apres)}</TableCell>
                       <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{fmtCump(row.cump)}</TableCell>
-                      <TableCell className="text-right font-mono text-xs bg-primary/5 font-bold">{fmtInt(row.valeur_stock)} ₣</TableCell>
-                      {row.anomalie && (
-                        <TableCell className="text-xs text-destructive font-medium">{row.anomalie}</TableCell>
-                      )}
+                      <TableCell className="text-right font-mono text-xs border-r bg-primary/5 font-bold">{fmtInt(montantFinal)}</TableCell>
+                      {/* Valeur Stock */}
+                      <TableCell className="text-right font-mono text-xs bg-accent/10 font-bold">{fmtInt(row.valeur_stock)} ₣</TableCell>
+                      {/* Anomalie */}
+                      <TableCell className="text-xs text-destructive font-medium">{row.anomalie || ''}</TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
