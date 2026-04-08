@@ -554,9 +554,7 @@ export default function StockStandardTab() {
             </Accordion>
             <div className="mt-4 flex items-center justify-end gap-6 rounded-lg bg-muted/30 px-4 py-3">
               <span className="text-sm font-semibold">TOTAL GÉNÉRAL :</span>
-              <span className="text-sm font-mono text-success font-semibold">Entrées : {fmt(totals.entrees)} ₣</span>
-              <span className="text-sm font-mono text-destructive font-semibold">Sorties : {fmt(totals.sorties)} ₣</span>
-              <span className="text-sm font-mono font-bold">Stock : {fmt(totals.stock)} ₣</span>
+              <span className="text-sm font-mono font-bold">Valeur des achats : {fmt(totals.entrees)} ₣</span>
             </div>
             </>
           )}
