@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Setting } from '@/types/kpm';
-import { Save, Building, DollarSign, FileText, Bell } from 'lucide-react';
+import { Save, Building, DollarSign, FileText, Bell, Settings2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface SettingGroup {
   key: string;
