@@ -106,10 +106,10 @@ export default function BLDetail() {
   const isAAL = roles.includes('aal');
 
   // NEW WORKFLOW permissions
-  // Logistique soumet le BL brouillon → soumis_aal
+  // Logistique soumet le BL brouillon → soumis_aal (ou soumis_daf si bypass AAL)
   const canSubmitToAAL = (isOperational || isAdmin) && (bl?.status === 'brouillon' || bl?.status === 'prepare');
-  // AAL valide → soumis_daf  OR  rejette → brouillon
-  const canValidateAAL = (isAAL || isAdmin) && bl?.status === 'soumis_aal';
+  // AAL valide → soumis_daf  OR  rejette → brouillon (désactivé si bypass)
+  const canValidateAAL = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'soumis_aal';
   // DAF valide → valide_daf  OR  refuse → refuse_daf (retour AAL)
   const canValidateDAF = (isDAF || isAdmin) && bl?.status === 'soumis_daf';
   // Logistique marque prêt à livrer
@@ -118,8 +118,10 @@ export default function BLDetail() {
   const canDeliver = (isOperational || isAdmin) && bl?.status === 'pret_a_livrer';
   // Clôture après livraison
   const canClose = (isOperational || isAdmin) && bl?.status === 'livre';
-  // AAL can resubmit after DAF refusal
-  const canResubmitAfterRefuse = (isAAL || isAdmin) && bl?.status === 'refuse_daf';
+  // AAL can resubmit after DAF refusal (désactivé si bypass)
+  const canResubmitAfterRefuse = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'refuse_daf';
+  // When bypass: logistique handles DAF refusals directly
+  const canResubmitAfterRefuseBypass = aalBypassEnabled && (isOperational || isAdmin) && bl?.status === 'refuse_daf';
   
   const canDelete = isAdmin;
 
