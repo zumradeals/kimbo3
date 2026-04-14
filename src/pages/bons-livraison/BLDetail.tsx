@@ -736,7 +736,26 @@ export default function BLDetail() {
           </Card>
         )}
 
-        {/* Logistique: Marquer prêt à livrer */}
+        {/* Bypass: Logistique resubmit after DAF refusal */}
+        {canResubmitAfterRefuseBypass && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-foreground">BL refusé par le DAF</p>
+                <p className="text-sm text-muted-foreground">Corrigez et resoumetez directement au DAF.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => updateStatus('brouillon')} disabled={isSaving}>
+                  Remettre en brouillon
+                </Button>
+                <Button onClick={() => updateStatus('soumis_daf', { daf_rejection_reason: null })} disabled={isSaving}>
+                  <Send className="mr-2 h-4 w-4" />Resoumettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {canMarkReady && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
