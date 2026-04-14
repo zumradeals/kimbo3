@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
+import { useAALBypass } from '@/hooks/useAALBypass';
 
 interface LigneInput {
   id: string;
