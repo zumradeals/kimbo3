@@ -561,14 +561,22 @@ export default function BLDetail() {
   };
 
   // Workflow steps for timeline
-  const workflowSteps = [
-    { label: 'Brouillon', done: true },
-    { label: 'Soumis AAL', done: !['brouillon', 'prepare'].includes(bl.status) },
-    { label: 'Soumis DAF', done: !['brouillon', 'prepare', 'soumis_aal'].includes(bl.status) && bl.status !== 'refuse_daf' },
-    { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-    { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-    { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-  ];
+  const workflowSteps = aalBypassEnabled
+    ? [
+        { label: 'Brouillon', done: true },
+        { label: 'Soumis DAF', done: !['brouillon', 'prepare'].includes(bl.status) && bl.status !== 'refuse_daf' },
+        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+      ]
+    : [
+        { label: 'Brouillon', done: true },
+        { label: 'Soumis AAL', done: !['brouillon', 'prepare'].includes(bl.status) },
+        { label: 'Soumis DAF', done: !['brouillon', 'prepare', 'soumis_aal'].includes(bl.status) && bl.status !== 'refuse_daf' },
+        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+      ];
 
   return (
     <AppLayout>
