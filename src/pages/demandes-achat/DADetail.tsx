@@ -895,17 +895,18 @@ export default function DADetail() {
     if (!da || !financeComment.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'en_revision_achats' : 'retour_aal';
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           validated_dg_by: user?.id,
           validated_dg_at: new Date().toISOString(),
           dg_comment: financeComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA renvoyée à l\'AAL par le DG' });
+      toast({ title: aalBypassEnabled ? 'DA renvoyée aux Achats par le DG' : 'DA renvoyée à l\'AAL par le DG' });
       setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
