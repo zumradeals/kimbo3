@@ -986,22 +986,23 @@ export default function DADetail() {
     toast({ title: 'PDF exporté', description: 'Fiche d\'approbation DAF téléchargée.' });
   };
 
-  // DAF request revision → also goes to retour_aal
+  // DAF request revision → retour_aal (or en_revision_achats if bypass)
   const handleRequestRevision = async () => {
     if (!da || !revisionComment.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'en_revision_achats' : 'retour_aal';
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           revision_requested_by: user?.id,
           revision_requested_at: new Date().toISOString(),
           revision_comment: revisionComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
+      toast({ title: aalBypassEnabled ? 'DA renvoyée aux Achats' : 'DA renvoyée à l\'AAL', description: aalBypassEnabled ? 'Les Achats ont été notifiés pour correction.' : 'L\'AAL a été notifié pour correction.' });
       setShowRevisionDialog(false);
       setRevisionComment('');
       fetchDA();
