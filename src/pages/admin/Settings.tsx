@@ -104,6 +104,8 @@ export default function AdminSettings() {
         return FileText;
       case 'notifications':
         return Bell;
+      case 'workflow':
+        return Settings2;
       default:
         return Building;
     }
