@@ -34,7 +34,7 @@ import { exportBLToPDF } from '@/utils/pdfExport';
 import { CancelDialog } from '@/components/ui/CancelDialog';
 import { SignaturePad } from '@/components/bons-livraison/SignaturePad';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
-
+import { useAALBypass } from '@/hooks/useAALBypass';
 const statusColors: Record<BLStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
   prepare: 'bg-muted text-muted-foreground',
