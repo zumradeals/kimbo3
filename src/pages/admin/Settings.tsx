@@ -121,6 +121,8 @@ export default function AdminSettings() {
         return 'Formats de références';
       case 'notifications':
         return 'Notifications';
+      case 'workflow':
+        return 'Workflow';
       default:
         return category;
     }
