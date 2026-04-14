@@ -916,22 +916,23 @@ export default function DADetail() {
     }
   };
 
-  // DAF refuse → retour_aal (not refusee_finance)
+  // DAF refuse → retour_aal (or en_revision_achats if bypass)
   const handleRefuseFinance = async () => {
     if (!da || !financeComment.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'en_revision_achats' : 'retour_aal';
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           validated_finance_by: user?.id,
           validated_finance_at: new Date().toISOString(),
           finance_decision_comment: financeComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
+      toast({ title: aalBypassEnabled ? 'DA renvoyée aux Achats' : 'DA renvoyée à l\'AAL', description: aalBypassEnabled ? 'Les Achats ont été notifiés pour correction.' : 'L\'AAL a été notifié pour correction.' });
       setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
