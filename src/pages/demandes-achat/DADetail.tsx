@@ -132,6 +132,7 @@ export default function DADetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
+  const { aalBypassEnabled } = useAALBypass();
   const { toast } = useToast();
 
   const [da, setDA] = useState<DemandeAchat | null>(null);
