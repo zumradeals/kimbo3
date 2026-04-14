@@ -88,6 +88,7 @@ import { fr } from 'date-fns/locale';
 import { exportDAToPDF, exportDAFValidationToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
 import { CancelDialog } from '@/components/ui/CancelDialog';
+import { useAALBypass } from '@/hooks/useAALBypass';
 
 const statusColors: Record<DAStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
