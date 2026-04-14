@@ -25,6 +25,7 @@ export default function NoteFraisCreate() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const { aalBypassEnabled } = useAALBypass();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
