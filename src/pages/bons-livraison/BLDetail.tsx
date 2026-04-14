@@ -81,6 +81,7 @@ export default function BLDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
+  const { aalBypassEnabled } = useAALBypass();
   const { toast } = useToast();
 
   const [bl, setBL] = useState<BonLivraison | null>(null);
