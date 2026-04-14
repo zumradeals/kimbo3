@@ -67,6 +67,7 @@ import { exportDechargeComptableToPDF } from '@/utils/pdfExport';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
 import { CompteComptableAutocomplete } from '@/components/ui/CompteComptableAutocomplete';
 import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
+import { useAALBypass } from '@/hooks/useAALBypass';
 
 const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -106,6 +107,7 @@ export default function NoteFraisDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
+  const { aalBypassEnabled } = useAALBypass();
   const { toast } = useToast();
 
   const [note, setNote] = useState<NoteFraisWithRelations | null>(null);
