@@ -67,6 +67,7 @@ import { exportDechargeComptableToPDF } from '@/utils/pdfExport';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
 import { CompteComptableAutocomplete } from '@/components/ui/CompteComptableAutocomplete';
 import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
+import { useAALBypass } from '@/hooks/useAALBypass';
 
 const statusColors: Record<NoteFraisStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -106,6 +107,7 @@ export default function NoteFraisDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
+  const { aalBypassEnabled } = useAALBypass();
   const { toast } = useToast();
 
   const [note, setNote] = useState<NoteFraisWithRelations | null>(null);
@@ -234,17 +236,18 @@ export default function NoteFraisDetail() {
     setIsSaving(true);
 
     try {
+      const newStatus = aalBypassEnabled ? 'soumise' : 'soumis_aal';
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'soumis_aal',
+          status: newStatus,
           submitted_at: new Date().toISOString(),
         })
         .eq('id', note.id);
 
       if (error) throw error;
 
-      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise au AAL.' });
+      toast({ title: 'Note soumise', description: aalBypassEnabled ? 'Votre note de frais a été soumise au DAF.' : 'Votre note de frais a été soumise au AAL.' });
       fetchNote();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -388,17 +391,18 @@ export default function NoteFraisDetail() {
     if (!note || !rejectionReason.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'rejetee' : 'retour_aal';
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           validated_dg_by: user?.id,
           validated_dg_at: new Date().toISOString(),
           dg_comment: rejectionReason.trim(),
         })
         .eq('id', note.id);
       if (error) throw error;
-      toast({ title: 'Note renvoyée à l\'AAL par le DG' });
+      toast({ title: aalBypassEnabled ? 'Note renvoyée au demandeur par le DG' : 'Note renvoyée à l\'AAL par le DG' });
       setShowRejectDialog(false);
       setRejectionReason('');
       fetchNote();
@@ -409,16 +413,17 @@ export default function NoteFraisDetail() {
     }
   };
 
-  // DAF rejects → goes to retour_aal (NOT directly to user)
+  // DAF rejects → goes to retour_aal (or rejetee if bypass)
   const handleReject = async () => {
     if (!note || !rejectionReason.trim()) return;
     setIsSaving(true);
 
     try {
+      const targetStatus = aalBypassEnabled ? 'rejetee' : 'retour_aal';
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           rejection_reason: rejectionReason.trim(),
           rejected_by: user?.id,
           rejected_at: new Date().toISOString(),
@@ -427,7 +432,7 @@ export default function NoteFraisDetail() {
 
       if (error) throw error;
 
-      toast({ title: 'Note renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
+      toast({ title: aalBypassEnabled ? 'Note renvoyée au demandeur' : 'Note renvoyée à l\'AAL', description: aalBypassEnabled ? 'Le demandeur a été notifié.' : 'L\'AAL a été notifié pour correction.' });
       setShowRejectDialog(false);
       fetchNote();
     } catch (error: any) {

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
+import { useAALBypass } from '@/hooks/useAALBypass';
 
 interface LigneInput {
   id: string;
@@ -24,6 +25,7 @@ export default function NoteFraisCreate() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const { aalBypassEnabled } = useAALBypass();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -117,10 +119,11 @@ export default function NoteFraisCreate() {
       if (lignesError) throw lignesError;
 
       if (!asBrouillon) {
+        const newStatus = aalBypassEnabled ? 'soumise' : 'soumis_aal';
         const { error: updateError } = await supabase
           .from('notes_frais')
           .update({
-            status: 'soumis_aal',
+            status: newStatus,
             submitted_at: new Date().toISOString(),
           })
           .eq('id', noteData.id);
@@ -132,7 +135,7 @@ export default function NoteFraisCreate() {
         title: asBrouillon ? 'Brouillon enregistré' : 'Note soumise',
         description: asBrouillon
           ? 'Votre note de frais a été enregistrée comme brouillon.'
-          : 'Votre note de frais a été soumise au AAL pour validation.',
+          : aalBypassEnabled ? 'Votre note de frais a été soumise au DAF pour validation.' : 'Votre note de frais a été soumise au AAL pour validation.',
       });
 
       navigate(`/notes-frais/${noteData.id}`);

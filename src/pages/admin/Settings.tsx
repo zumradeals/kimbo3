@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Setting } from '@/types/kpm';
-import { Save, Building, DollarSign, FileText, Bell } from 'lucide-react';
+import { Save, Building, DollarSign, FileText, Bell, Settings2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface SettingGroup {
   key: string;
@@ -103,6 +104,8 @@ export default function AdminSettings() {
         return FileText;
       case 'notifications':
         return Bell;
+      case 'workflow':
+        return Settings2;
       default:
         return Building;
     }
@@ -118,6 +121,8 @@ export default function AdminSettings() {
         return 'Formats de références';
       case 'notifications':
         return 'Notifications';
+      case 'workflow':
+        return 'Workflow';
       default:
         return category;
     }
@@ -182,30 +187,62 @@ export default function AdminSettings() {
                           {category === 'thresholds' && 'Définissez les montants de validation par niveau.'}
                           {category === 'general' && 'Informations générales de l\'entreprise.'}
                           {category === 'references' && 'Préfixes pour la génération des références.'}
+                          {category === 'workflow' && 'Configuration des étapes du circuit de validation.'}
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {categorySettings.map((setting) => (
-                        <div key={setting.id} className="space-y-2">
-                          <Label htmlFor={setting.key}>
-                            {setting.description || setting.key}
-                          </Label>
-                          <Input
-                            id={setting.key}
-                            value={editedValues[setting.key] || ''}
-                            onChange={(e) =>
-                              setEditedValues({
-                                ...editedValues,
-                                [setting.key]: e.target.value,
-                              })
-                            }
-                            placeholder={setting.description || ''}
-                          />
-                        </div>
-                      ))}
+                      {categorySettings.map((setting) => {
+                        const isBooleanSetting = setting.value === 'true' || setting.value === 'false';
+                        
+                        if (isBooleanSetting) {
+                          return (
+                            <div key={setting.id} className="flex items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <Label htmlFor={setting.key}>
+                                  {setting.description || setting.key}
+                                </Label>
+                                {setting.key === 'aal_bypass_enabled' && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Quand activé, les DA, BL et NDF passent directement au DAF sans validation AAL
+                                  </p>
+                                )}
+                              </div>
+                              <Switch
+                                id={setting.key}
+                                checked={editedValues[setting.key] === 'true'}
+                                onCheckedChange={(checked) =>
+                                  setEditedValues({
+                                    ...editedValues,
+                                    [setting.key]: checked ? 'true' : 'false',
+                                  })
+                                }
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={setting.id} className="space-y-2">
+                            <Label htmlFor={setting.key}>
+                              {setting.description || setting.key}
+                            </Label>
+                            <Input
+                              id={setting.key}
+                              value={editedValues[setting.key] || ''}
+                              onChange={(e) =>
+                                setEditedValues({
+                                  ...editedValues,
+                                  [setting.key]: e.target.value,
+                                })
+                              }
+                              placeholder={setting.description || ''}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>

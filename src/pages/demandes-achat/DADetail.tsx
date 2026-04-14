@@ -88,6 +88,7 @@ import { fr } from 'date-fns/locale';
 import { exportDAToPDF, exportDAFValidationToPDF } from '@/utils/pdfExport';
 import { DATimeline } from '@/components/ui/DATimeline';
 import { CancelDialog } from '@/components/ui/CancelDialog';
+import { useAALBypass } from '@/hooks/useAALBypass';
 
 const statusColors: Record<DAStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
@@ -131,6 +132,7 @@ export default function DADetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
+  const { aalBypassEnabled } = useAALBypass();
   const { toast } = useToast();
 
   const [da, setDA] = useState<DemandeAchat | null>(null);
@@ -184,20 +186,19 @@ export default function DADetail() {
   const canValidateDG = (isDG || isAdmin) && da?.status === 'en_attente_dg';
 
   // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
-  const canValidateAAL = isAAL && da?.status === 'chiffree';
-  const canRejectAAL = isAAL && da?.status === 'chiffree';
+  const canValidateAAL = !aalBypassEnabled && isAAL && da?.status === 'chiffree';
+  const canRejectAAL = !aalBypassEnabled && isAAL && da?.status === 'chiffree';
   // AAL transmet au DAF après sa propre validation
-  const canTransmitToDAF = isAAL && da?.status === 'validee_aal';
+  const canTransmitToDAF = !aalBypassEnabled && isAAL && da?.status === 'validee_aal';
   // AAL gère les retours DAF
-  const canHandleRetourAAL = (isAAL || isAdmin) && da?.status === 'retour_aal';
+  const canHandleRetourAAL = !aalBypassEnabled && (isAAL || isAdmin) && da?.status === 'retour_aal';
 
   // Mutualisation: Les deux peuvent soumettre aux Achats
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'chiffree', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
-  // Achats/Logistique ne soumet plus directement au DAF. Après chiffrage → AAL prend la main.
-  // En révision achats, on re-soumet en chiffré pour que l'AAL re-valide.
-  const canSubmitToValidation = false; // Désactivé: tout passe par l'AAL
+  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'chiffree', 'en_revision_achats', ...(aalBypassEnabled ? [] : ['retour_aal'])].includes(da?.status || '');
+  // Quand le bypass AAL est activé, Achats/Logistique peut soumettre directement au DAF après chiffrage
+  const canSubmitToValidation = aalBypassEnabled && (isAchats || isOperational || isAdmin) && da?.status === 'chiffree';
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   // Admin, Logistique et Achats peuvent supprimer les DA quel que soit le statut (sauf payée)
   const canDelete = isAdmin || isAchats || isOperational;
@@ -894,17 +895,18 @@ export default function DADetail() {
     if (!da || !financeComment.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'en_revision_achats' : 'retour_aal';
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           validated_dg_by: user?.id,
           validated_dg_at: new Date().toISOString(),
           dg_comment: financeComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA renvoyée à l\'AAL par le DG' });
+      toast({ title: aalBypassEnabled ? 'DA renvoyée aux Achats par le DG' : 'DA renvoyée à l\'AAL par le DG' });
       setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
@@ -915,22 +917,23 @@ export default function DADetail() {
     }
   };
 
-  // DAF refuse → retour_aal (not refusee_finance)
+  // DAF refuse → retour_aal (or en_revision_achats if bypass)
   const handleRefuseFinance = async () => {
     if (!da || !financeComment.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'en_revision_achats' : 'retour_aal';
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           validated_finance_by: user?.id,
           validated_finance_at: new Date().toISOString(),
           finance_decision_comment: financeComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
+      toast({ title: aalBypassEnabled ? 'DA renvoyée aux Achats' : 'DA renvoyée à l\'AAL', description: aalBypassEnabled ? 'Les Achats ont été notifiés pour correction.' : 'L\'AAL a été notifié pour correction.' });
       setShowFinanceRefuseDialog(false);
       setFinanceComment('');
       fetchDA();
@@ -984,22 +987,23 @@ export default function DADetail() {
     toast({ title: 'PDF exporté', description: 'Fiche d\'approbation DAF téléchargée.' });
   };
 
-  // DAF request revision → also goes to retour_aal
+  // DAF request revision → retour_aal (or en_revision_achats if bypass)
   const handleRequestRevision = async () => {
     if (!da || !revisionComment.trim()) return;
     setIsSaving(true);
     try {
+      const targetStatus = aalBypassEnabled ? 'en_revision_achats' : 'retour_aal';
       const { error } = await supabase
         .from('demandes_achat')
         .update({
-          status: 'retour_aal',
+          status: targetStatus,
           revision_requested_by: user?.id,
           revision_requested_at: new Date().toISOString(),
           revision_comment: revisionComment.trim(),
         })
         .eq('id', da.id);
       if (error) throw error;
-      toast({ title: 'DA renvoyée à l\'AAL', description: 'L\'AAL a été notifié pour correction.' });
+      toast({ title: aalBypassEnabled ? 'DA renvoyée aux Achats' : 'DA renvoyée à l\'AAL', description: aalBypassEnabled ? 'Les Achats ont été notifiés pour correction.' : 'L\'AAL a été notifié pour correction.' });
       setShowRevisionDialog(false);
       setRevisionComment('');
       fetchDA();

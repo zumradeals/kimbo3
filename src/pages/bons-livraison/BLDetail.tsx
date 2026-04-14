@@ -34,7 +34,7 @@ import { exportBLToPDF } from '@/utils/pdfExport';
 import { CancelDialog } from '@/components/ui/CancelDialog';
 import { SignaturePad } from '@/components/bons-livraison/SignaturePad';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
-
+import { useAALBypass } from '@/hooks/useAALBypass';
 const statusColors: Record<BLStatus, string> = {
   brouillon: 'bg-muted text-muted-foreground',
   prepare: 'bg-muted text-muted-foreground',
@@ -81,6 +81,7 @@ export default function BLDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isAdmin } = useAuth();
+  const { aalBypassEnabled } = useAALBypass();
   const { toast } = useToast();
 
   const [bl, setBL] = useState<BonLivraison | null>(null);
@@ -105,10 +106,10 @@ export default function BLDetail() {
   const isAAL = roles.includes('aal');
 
   // NEW WORKFLOW permissions
-  // Logistique soumet le BL brouillon → soumis_aal
+  // Logistique soumet le BL brouillon → soumis_aal (ou soumis_daf si bypass AAL)
   const canSubmitToAAL = (isOperational || isAdmin) && (bl?.status === 'brouillon' || bl?.status === 'prepare');
-  // AAL valide → soumis_daf  OR  rejette → brouillon
-  const canValidateAAL = (isAAL || isAdmin) && bl?.status === 'soumis_aal';
+  // AAL valide → soumis_daf  OR  rejette → brouillon (désactivé si bypass)
+  const canValidateAAL = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'soumis_aal';
   // DAF valide → valide_daf  OR  refuse → refuse_daf (retour AAL)
   const canValidateDAF = (isDAF || isAdmin) && bl?.status === 'soumis_daf';
   // Logistique marque prêt à livrer
@@ -117,8 +118,10 @@ export default function BLDetail() {
   const canDeliver = (isOperational || isAdmin) && bl?.status === 'pret_a_livrer';
   // Clôture après livraison
   const canClose = (isOperational || isAdmin) && bl?.status === 'livre';
-  // AAL can resubmit after DAF refusal
-  const canResubmitAfterRefuse = (isAAL || isAdmin) && bl?.status === 'refuse_daf';
+  // AAL can resubmit after DAF refusal (désactivé si bypass)
+  const canResubmitAfterRefuse = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'refuse_daf';
+  // When bypass: logistique handles DAF refusals directly
+  const canResubmitAfterRefuseBypass = aalBypassEnabled && (isOperational || isAdmin) && bl?.status === 'refuse_daf';
   
   const canDelete = isAdmin;
 
@@ -209,20 +212,26 @@ export default function BLDetail() {
     }
   };
 
-  // Submit to AAL
+  // Submit to AAL (or directly to DAF if bypass enabled)
   const handleSubmitToAAL = async () => {
     if (!bl) return;
 
     setIsSaving(true);
     try {
-      const { data, error } = await supabase.rpc('submit_bl_to_aal', { _bl_id: bl.id });
+      if (aalBypassEnabled) {
+        // Skip AAL, go directly to soumis_daf
+        await updateStatus('soumis_daf', {});
+        toast({ title: 'BL soumis', description: 'Le BL a été transmis directement au DAF pour validation.' });
+      } else {
+        const { data, error } = await supabase.rpc('submit_bl_to_aal', { _bl_id: bl.id });
 
-      if (error) throw error;
-      if (!data) {
-        throw new Error('La soumission du BL a échoué.');
+        if (error) throw error;
+        if (!data) {
+          throw new Error('La soumission du BL a échoué.');
+        }
+
+        toast({ title: 'BL soumis', description: 'Le BL a été transmis à l\'AAL pour validation.' });
       }
-
-      toast({ title: 'BL soumis', description: 'Le BL a été transmis à l\'AAL pour validation.' });
       await fetchBL();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -552,14 +561,22 @@ export default function BLDetail() {
   };
 
   // Workflow steps for timeline
-  const workflowSteps = [
-    { label: 'Brouillon', done: true },
-    { label: 'Soumis AAL', done: !['brouillon', 'prepare'].includes(bl.status) },
-    { label: 'Soumis DAF', done: !['brouillon', 'prepare', 'soumis_aal'].includes(bl.status) && bl.status !== 'refuse_daf' },
-    { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-    { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-    { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-  ];
+  const workflowSteps = aalBypassEnabled
+    ? [
+        { label: 'Brouillon', done: true },
+        { label: 'Soumis DAF', done: !['brouillon', 'prepare'].includes(bl.status) && bl.status !== 'refuse_daf' },
+        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+      ]
+    : [
+        { label: 'Brouillon', done: true },
+        { label: 'Soumis AAL', done: !['brouillon', 'prepare'].includes(bl.status) },
+        { label: 'Soumis DAF', done: !['brouillon', 'prepare', 'soumis_aal'].includes(bl.status) && bl.status !== 'refuse_daf' },
+        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+      ];
 
   return (
     <AppLayout>
@@ -644,16 +661,16 @@ export default function BLDetail() {
 
         {/* === ACTION CARDS === */}
 
-        {/* Logistique: Soumettre à AAL */}
+        {/* Logistique: Soumettre à AAL / DAF */}
         {canSubmitToAAL && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">BL en brouillon</p>
-                <p className="text-sm text-muted-foreground">Soumettez ce BL à l'AAL pour validation.</p>
+                <p className="text-sm text-muted-foreground">{aalBypassEnabled ? 'Soumettez ce BL directement au DAF pour validation.' : 'Soumettez ce BL à l\'AAL pour validation.'}</p>
               </div>
               <Button onClick={handleSubmitToAAL} disabled={isSaving}>
-                <Send className="mr-2 h-4 w-4" />Soumettre à l'AAL
+                <Send className="mr-2 h-4 w-4" />{aalBypassEnabled ? 'Soumettre au DAF' : 'Soumettre à l\'AAL'}
               </Button>
             </CardContent>
           </Card>
@@ -719,7 +736,26 @@ export default function BLDetail() {
           </Card>
         )}
 
-        {/* Logistique: Marquer prêt à livrer */}
+        {/* Bypass: Logistique resubmit after DAF refusal */}
+        {canResubmitAfterRefuseBypass && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-foreground">BL refusé par le DAF</p>
+                <p className="text-sm text-muted-foreground">Corrigez et resoumetez directement au DAF.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => updateStatus('brouillon')} disabled={isSaving}>
+                  Remettre en brouillon
+                </Button>
+                <Button onClick={() => updateStatus('soumis_daf', { daf_rejection_reason: null })} disabled={isSaving}>
+                  <Send className="mr-2 h-4 w-4" />Resoumettre au DAF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {canMarkReady && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
