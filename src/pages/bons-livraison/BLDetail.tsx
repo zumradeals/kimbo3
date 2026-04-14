@@ -653,16 +653,16 @@ export default function BLDetail() {
 
         {/* === ACTION CARDS === */}
 
-        {/* Logistique: Soumettre à AAL */}
+        {/* Logistique: Soumettre à AAL / DAF */}
         {canSubmitToAAL && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">BL en brouillon</p>
-                <p className="text-sm text-muted-foreground">Soumettez ce BL à l'AAL pour validation.</p>
+                <p className="text-sm text-muted-foreground">{aalBypassEnabled ? 'Soumettez ce BL directement au DAF pour validation.' : 'Soumettez ce BL à l\'AAL pour validation.'}</p>
               </div>
               <Button onClick={handleSubmitToAAL} disabled={isSaving}>
-                <Send className="mr-2 h-4 w-4" />Soumettre à l'AAL
+                <Send className="mr-2 h-4 w-4" />{aalBypassEnabled ? 'Soumettre au DAF' : 'Soumettre à l\'AAL'}
               </Button>
             </CardContent>
           </Card>
