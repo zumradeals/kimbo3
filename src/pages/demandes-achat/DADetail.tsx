@@ -186,20 +186,19 @@ export default function DADetail() {
   const canValidateDG = (isDG || isAdmin) && da?.status === 'en_attente_dg';
 
   // AAL validation: après chiffrée, l'AAL doit valider avant transmission au DAF
-  const canValidateAAL = isAAL && da?.status === 'chiffree';
-  const canRejectAAL = isAAL && da?.status === 'chiffree';
+  const canValidateAAL = !aalBypassEnabled && isAAL && da?.status === 'chiffree';
+  const canRejectAAL = !aalBypassEnabled && isAAL && da?.status === 'chiffree';
   // AAL transmet au DAF après sa propre validation
-  const canTransmitToDAF = isAAL && da?.status === 'validee_aal';
+  const canTransmitToDAF = !aalBypassEnabled && isAAL && da?.status === 'validee_aal';
   // AAL gère les retours DAF
-  const canHandleRetourAAL = (isAAL || isAdmin) && da?.status === 'retour_aal';
+  const canHandleRetourAAL = !aalBypassEnabled && (isAAL || isAdmin) && da?.status === 'retour_aal';
 
   // Mutualisation: Les deux peuvent soumettre aux Achats
   const canSubmitToAchats = (isOperational || isAdmin) && da?.status === 'brouillon';
   const canAnalyze = (isAchats || isOperational || isAdmin) && da?.status === 'soumise';
-  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'chiffree', 'en_revision_achats', 'retour_aal'].includes(da?.status || '');
-  // Achats/Logistique ne soumet plus directement au DAF. Après chiffrage → AAL prend la main.
-  // En révision achats, on re-soumet en chiffré pour que l'AAL re-valide.
-  const canSubmitToValidation = false; // Désactivé: tout passe par l'AAL
+  const canPrice = (isAchats || isOperational || isAdmin) && ['soumise', 'en_analyse', 'chiffree', 'en_revision_achats', ...(aalBypassEnabled ? [] : ['retour_aal'])].includes(da?.status || '');
+  // Quand le bypass AAL est activé, Achats/Logistique peut soumettre directement au DAF après chiffrage
+  const canSubmitToValidation = aalBypassEnabled && (isAchats || isOperational || isAdmin) && da?.status === 'chiffree';
   const canReject = (isAchats || isAdmin) && ['soumise', 'en_analyse'].includes(da?.status || '');
   // Admin, Logistique et Achats peuvent supprimer les DA quel que soit le statut (sauf payée)
   const canDelete = isAdmin || isAchats || isOperational;
