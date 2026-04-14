@@ -187,6 +187,7 @@ export default function AdminSettings() {
                           {category === 'thresholds' && 'Définissez les montants de validation par niveau.'}
                           {category === 'general' && 'Informations générales de l\'entreprise.'}
                           {category === 'references' && 'Préfixes pour la génération des références.'}
+                          {category === 'workflow' && 'Configuration des étapes du circuit de validation.'}
                         </CardDescription>
                       </div>
                     </div>
