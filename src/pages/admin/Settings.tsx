@@ -194,24 +194,55 @@ export default function AdminSettings() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {categorySettings.map((setting) => (
-                        <div key={setting.id} className="space-y-2">
-                          <Label htmlFor={setting.key}>
-                            {setting.description || setting.key}
-                          </Label>
-                          <Input
-                            id={setting.key}
-                            value={editedValues[setting.key] || ''}
-                            onChange={(e) =>
-                              setEditedValues({
-                                ...editedValues,
-                                [setting.key]: e.target.value,
-                              })
-                            }
-                            placeholder={setting.description || ''}
-                          />
-                        </div>
-                      ))}
+                      {categorySettings.map((setting) => {
+                        const isBooleanSetting = setting.value === 'true' || setting.value === 'false';
+                        
+                        if (isBooleanSetting) {
+                          return (
+                            <div key={setting.id} className="flex items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <Label htmlFor={setting.key}>
+                                  {setting.description || setting.key}
+                                </Label>
+                                {setting.key === 'aal_bypass_enabled' && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Quand activé, les DA, BL et NDF passent directement au DAF sans validation AAL
+                                  </p>
+                                )}
+                              </div>
+                              <Switch
+                                id={setting.key}
+                                checked={editedValues[setting.key] === 'true'}
+                                onCheckedChange={(checked) =>
+                                  setEditedValues({
+                                    ...editedValues,
+                                    [setting.key]: checked ? 'true' : 'false',
+                                  })
+                                }
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={setting.id} className="space-y-2">
+                            <Label htmlFor={setting.key}>
+                              {setting.description || setting.key}
+                            </Label>
+                            <Input
+                              id={setting.key}
+                              value={editedValues[setting.key] || ''}
+                              onChange={(e) =>
+                                setEditedValues({
+                                  ...editedValues,
+                                  [setting.key]: e.target.value,
+                                })
+                              }
+                              placeholder={setting.description || ''}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
