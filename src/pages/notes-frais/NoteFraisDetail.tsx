@@ -236,17 +236,18 @@ export default function NoteFraisDetail() {
     setIsSaving(true);
 
     try {
+      const newStatus = aalBypassEnabled ? 'soumise' : 'soumis_aal';
       const { error } = await supabase
         .from('notes_frais')
         .update({
-          status: 'soumis_aal',
+          status: newStatus,
           submitted_at: new Date().toISOString(),
         })
         .eq('id', note.id);
 
       if (error) throw error;
 
-      toast({ title: 'Note soumise', description: 'Votre note de frais a été soumise au AAL.' });
+      toast({ title: 'Note soumise', description: aalBypassEnabled ? 'Votre note de frais a été soumise au DAF.' : 'Votre note de frais a été soumise au AAL.' });
       fetchNote();
     } catch (error: any) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
