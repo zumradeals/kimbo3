@@ -331,7 +331,7 @@ export default function NoteFraisCreate() {
             className="w-full sm:w-auto"
           >
             <Receipt className="mr-2 h-4 w-4" />
-            {isSubmitting ? 'Envoi...' : 'Soumettre au AAL'}
+            {isSubmitting ? 'Envoi...' : (aalBypassEnabled ? 'Soumettre au DAF' : 'Soumettre au AAL')}
           </Button>
         </div>
       </div>
