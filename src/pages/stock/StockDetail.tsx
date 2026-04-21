@@ -1115,14 +1115,14 @@ export default function StockDetail() {
 
       {/* Dialog Édition */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Modifier l'article</DialogTitle>
             <DialogDescription>
               Mettre à jour les informations de l'article. Les modifications de quantité seront tracées.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 py-4">
+          <div className="space-y-5 py-4 overflow-y-auto flex-1 pr-2 -mr-2">
             {/* Désignation */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">
