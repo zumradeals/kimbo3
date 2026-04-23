@@ -114,6 +114,7 @@ export default function NoteFraisDetail() {
   const [note, setNote] = useState<NoteFraisWithRelations | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [caisses, setCaisses] = useState<Caisse[]>([]);
+  const [attachments, setAttachments] = useState<NoteFraisAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -208,6 +209,14 @@ export default function NoteFraisDetail() {
         ...data,
         lignes: lignesData || [],
       } as unknown as NoteFraisWithRelations);
+
+      // Fetch multi-attachments sorted by date (most recent first)
+      const { data: attData } = await supabase
+        .from('note_frais_attachments')
+        .select('*')
+        .eq('note_frais_id', id)
+        .order('created_at', { ascending: false });
+      setAttachments((attData as NoteFraisAttachment[]) || []);
     } catch (error: any) {
       console.error('Error:', error);
     } finally {
