@@ -104,6 +104,14 @@ export default function NoteFraisEdit() {
         setExistingAttachment({ url: data.attachment_url, name: data.attachment_name || 'Pièce jointe' });
       }
 
+      // Fetch multi-attachments sorted by date desc
+      const { data: attData } = await supabase
+        .from('note_frais_attachments')
+        .select('*')
+        .eq('note_frais_id', data.id)
+        .order('created_at', { ascending: false });
+      setExistingAttachments((attData as NoteFraisAttachment[]) || []);
+
       setLignes(
         (data.lignes || []).map((l: NoteFraisLigne) => ({
           id: l.id,
@@ -205,6 +213,33 @@ export default function NoteFraisEdit() {
         .eq('id', id);
 
       if (noteError) throw noteError;
+
+      // Delete removed attachments
+      if (deletedAttachmentIds.length > 0) {
+        await supabase
+          .from('note_frais_attachments')
+          .delete()
+          .in('id', deletedAttachmentIds);
+      }
+
+      // Upload new attachments
+      for (const item of newAttachments) {
+        const ext = item.file.name.split('.').pop();
+        const path = `${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('notes-frais-attachments')
+          .upload(path, item.file, { upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
+        await supabase.from('note_frais_attachments').insert({
+          note_frais_id: id,
+          file_url: pub.publicUrl,
+          file_name: item.file.name,
+          file_size: item.file.size,
+          file_type: item.file.type || null,
+          uploaded_by: user?.id ?? null,
+        });
+      }
 
       // Delete removed lignes
       if (deletedLigneIds.length > 0) {
