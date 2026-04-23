@@ -208,21 +208,23 @@ export const exportDAToPDF = async (data: DAExportData) => {
     statusTextColor = COLORS.warning;
   }
   
-  doc.setFontSize(6);
-  const statusWidth = doc.getTextWidth(statusText) + 6;
-  doc.setFillColor(...statusBgColor);
-  doc.roundedRect(pageWidth - margin - statusWidth, y + 13, statusWidth, 5, 1, 1, 'F');
-  doc.setTextColor(...statusTextColor);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.text(statusText, pageWidth - margin - statusWidth / 2, y + 16.5, { align: 'center' });
+  const statusWidth = doc.getTextWidth(statusText) + 8;
+  const statusHeight = 6;
+  const statusY = y + 14;
+  doc.setFillColor(...statusBgColor);
+  doc.roundedRect(pageWidth - margin - statusWidth, statusY, statusWidth, statusHeight, 1.5, 1.5, 'F');
+  doc.setTextColor(...statusTextColor);
+  doc.text(statusText, pageWidth - margin - statusWidth / 2, statusY + 4.2, { align: 'center' });
   
-  // Ligne séparatrice
-  y = 24;
+  // Ligne séparatrice (sous le badge avec marge)
+  y = statusY + statusHeight + 4; // = 32
   doc.setDrawColor(...COLORS.orange);
   doc.setLineWidth(0.6);
   doc.line(margin, y, pageWidth - margin, y);
   
-  y = 28;
+  y += 5;
   
   // Watermark brouillon
   if (data.status.toLowerCase().includes('brouillon')) {
