@@ -17,9 +17,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Save, Paperclip, X, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, X, FileText } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
-import { NoteFraisLigne } from '@/types/kpm';
+import { NoteFraisLigne, NoteFraisAttachment } from '@/types/kpm';
+import { MultiAttachmentsInput, PendingAttachment } from '@/components/notes-frais/MultiAttachmentsInput';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface LigneInput {
   id: string;
@@ -44,6 +47,11 @@ export default function NoteFraisEdit() {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<{ url: string; name: string } | null>(null);
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
+
+  // Multi-attachments
+  const [existingAttachments, setExistingAttachments] = useState<NoteFraisAttachment[]>([]);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
+  const [newAttachments, setNewAttachments] = useState<PendingAttachment[]>([]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -95,6 +103,14 @@ export default function NoteFraisEdit() {
       if (data.attachment_url) {
         setExistingAttachment({ url: data.attachment_url, name: data.attachment_name || 'Pièce jointe' });
       }
+
+      // Fetch multi-attachments sorted by date desc
+      const { data: attData } = await supabase
+        .from('note_frais_attachments')
+        .select('*')
+        .eq('note_frais_id', data.id)
+        .order('created_at', { ascending: false });
+      setExistingAttachments((attData as NoteFraisAttachment[]) || []);
 
       setLignes(
         (data.lignes || []).map((l: NoteFraisLigne) => ({
@@ -197,6 +213,33 @@ export default function NoteFraisEdit() {
         .eq('id', id);
 
       if (noteError) throw noteError;
+
+      // Delete removed attachments
+      if (deletedAttachmentIds.length > 0) {
+        await supabase
+          .from('note_frais_attachments')
+          .delete()
+          .in('id', deletedAttachmentIds);
+      }
+
+      // Upload new attachments
+      for (const item of newAttachments) {
+        const ext = item.file.name.split('.').pop();
+        const path = `${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('notes-frais-attachments')
+          .upload(path, item.file, { upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
+        await supabase.from('note_frais_attachments').insert({
+          note_frais_id: id,
+          file_url: pub.publicUrl,
+          file_name: item.file.name,
+          file_size: item.file.size,
+          file_type: item.file.type || null,
+          uploaded_by: user?.id ?? null,
+        });
+      }
 
       // Delete removed lignes
       if (deletedLigneIds.length > 0) {
@@ -305,42 +348,57 @@ export default function NoteFraisEdit() {
                 />
               </div>
 
-              {/* Pièce jointe */}
+              {/* Pièces jointes (multi) */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Paperclip className="h-3.5 w-3.5" />
-                  Pièce jointe
-                </Label>
-                {attachmentFile ? (
-                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
-                    <FileText className="h-5 w-5 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{attachmentFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(attachmentFile.size / 1024).toFixed(0)} Ko • Nouveau</p>
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setAttachmentFile(null)} className="h-8 w-8 shrink-0">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : existingAttachment && !removeExistingAttachment ? (
-                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
-                    <FileText className="h-5 w-5 text-primary shrink-0" />
-                    <a href={existingAttachment.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
-                      <p className="text-sm font-medium truncate">{existingAttachment.name}</p>
-                      <p className="text-xs text-muted-foreground">Existant</p>
-                    </a>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setRemoveExistingAttachment(true)} className="h-8 w-8 shrink-0">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-3 hover:border-primary/50 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
-                      onChange={handleAttachmentSelect}
-                      className="block w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
-                    />
+                <MultiAttachmentsInput
+                  pending={newAttachments}
+                  onAdd={(files) =>
+                    setNewAttachments((prev) => [
+                      ...prev,
+                      ...files.map((f) => ({ id: crypto.randomUUID(), file: f })),
+                    ])
+                  }
+                  onRemove={(id) =>
+                    setNewAttachments((prev) => prev.filter((a) => a.id !== id))
+                  }
+                />
+                {existingAttachments.filter((a) => !deletedAttachmentIds.includes(a.id)).length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Pièces existantes ({existingAttachments.filter((a) => !deletedAttachmentIds.includes(a.id)).length})
+                    </p>
+                    <ul className="space-y-2">
+                      {existingAttachments
+                        .filter((a) => !deletedAttachmentIds.includes(a.id))
+                        .map((att) => (
+                          <li
+                            key={att.id}
+                            className="flex items-center gap-3 rounded-md border bg-muted/30 p-2"
+                          >
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <a
+                              href={att.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 min-w-0 hover:underline"
+                            >
+                              <p className="text-sm font-medium truncate">{att.file_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(att.created_at), 'dd MMM yyyy à HH:mm', { locale: fr })}
+                              </p>
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeletedAttachmentIds((prev) => [...prev, att.id])}
+                              className="h-7 w-7 shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </li>
+                        ))}
+                    </ul>
                   </div>
                 )}
               </div>

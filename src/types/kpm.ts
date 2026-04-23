@@ -854,6 +854,18 @@ export interface NoteFrais {
   paid_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   rejected_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
   lignes?: NoteFraisLigne[];
+  attachments?: NoteFraisAttachment[];
+}
+
+export interface NoteFraisAttachment {
+  id: string;
+  note_frais_id: string;
+  file_url: string;
+  file_name: string;
+  file_size: number | null;
+  file_type: string | null;
+  uploaded_by: string | null;
+  created_at: string;
 }
 
 export interface NoteFraisLigne {

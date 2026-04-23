@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { NoteFrais, NoteFraisLigne, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS, PaymentMethod, SYSCOHADA_CLASSES } from '@/types/kpm';
+import { NoteFraisAttachment } from '@/types/kpm';
 import { UserBadge } from '@/components/ui/UserBadge';
 import {
   ArrowLeft,
@@ -113,6 +114,7 @@ export default function NoteFraisDetail() {
   const [note, setNote] = useState<NoteFraisWithRelations | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [caisses, setCaisses] = useState<Caisse[]>([]);
+  const [attachments, setAttachments] = useState<NoteFraisAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -207,6 +209,14 @@ export default function NoteFraisDetail() {
         ...data,
         lignes: lignesData || [],
       } as unknown as NoteFraisWithRelations);
+
+      // Fetch multi-attachments sorted by date (most recent first)
+      const { data: attData } = await supabase
+        .from('note_frais_attachments')
+        .select('*')
+        .eq('note_frais_id', id)
+        .order('created_at', { ascending: false });
+      setAttachments((attData as NoteFraisAttachment[]) || []);
     } catch (error: any) {
       console.error('Error:', error);
     } finally {
@@ -1015,25 +1025,61 @@ export default function NoteFraisDetail() {
           </CardContent>
         </Card>
 
-        {/* Pièce jointe */}
-        {note.attachment_url && (
+        {/* Pièces jointes (multi, triées par date desc) */}
+        {(attachments.length > 0 || note.attachment_url) && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Pièce jointe</CardTitle>
+              <CardTitle className="text-sm">
+                Pièces jointes
+                {attachments.length > 0 && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">
+                    ({attachments.length})
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription className="text-xs">Triées de la plus récente à la plus ancienne</CardDescription>
             </CardHeader>
             <CardContent>
-              <a
-                href={note.attachment_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-md border bg-muted/30 p-3 hover:bg-muted/50 transition-colors"
-              >
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{note.attachment_name || 'Pièce jointe'}</p>
-                  <p className="text-xs text-muted-foreground">Cliquer pour ouvrir</p>
-                </div>
-              </a>
+              <ul className="space-y-2">
+                {attachments.map((att) => (
+                  <li key={att.id}>
+                    <a
+                      href={att.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-md border bg-muted/30 p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{att.file_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Ajoutée le {format(new Date(att.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                          {att.file_size ? ` • ${(att.file_size / 1024).toFixed(0)} Ko` : ''}
+                        </p>
+                      </div>
+                    </a>
+                  </li>
+                ))}
+                {/* Legacy single attachment fallback */}
+                {note.attachment_url && (
+                  <li>
+                    <a
+                      href={note.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-md border bg-muted/30 p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {note.attachment_name || 'Pièce jointe'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Pièce jointe d'origine</p>
+                      </div>
+                    </a>
+                  </li>
+                )}
+              </ul>
             </CardContent>
           </Card>
         )}
