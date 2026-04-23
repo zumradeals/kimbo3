@@ -1979,13 +1979,29 @@ export const exportBesoinToPDF = async (data: BesoinExportData) => {
     doc.setTextColor(...COLORS.textPrimary);
     doc.setFont('helvetica', 'normal');
     const splitDesc = doc.splitTextToSize(data.description, contentWidth - 8);
-    const descLines = Math.min(splitDesc.length, 4);
-    const descHeight = descLines * 4 + 4;
+    const lineHeight = 4;
+    const padding = 4;
+    const maxBlockHeight = pageHeight - margin - 60; // garde de la place pour le tableau et le pied
+    let descLinesArr: string[] = splitDesc;
+    let descHeight = descLinesArr.length * lineHeight + padding * 2;
+
+    // Si la description ne tient pas sur la page actuelle, on saute
+    if (y + descHeight > pageHeight - 25) {
+      // Cap la hauteur à l'espace dispo restant pour éviter un débordement
+      if (descHeight > maxBlockHeight) {
+        const maxLines = Math.max(1, Math.floor((maxBlockHeight - padding * 2) / lineHeight));
+        descLinesArr = splitDesc.slice(0, maxLines);
+        if (splitDesc.length > maxLines && descLinesArr.length > 0) {
+          descLinesArr[descLinesArr.length - 1] = descLinesArr[descLinesArr.length - 1].replace(/.{0,3}$/, '...');
+        }
+        descHeight = descLinesArr.length * lineHeight + padding * 2;
+      }
+    }
     doc.setFillColor(...COLORS.white);
     doc.setDrawColor(...COLORS.orange);
     doc.setLineWidth(0.3);
     doc.roundedRect(margin, y, contentWidth, descHeight, 1.5, 1.5, 'FD');
-    doc.text(splitDesc.slice(0, 4), margin + 4, y + 5);
+    doc.text(descLinesArr, margin + padding, y + padding + 1);
     y += descHeight + 4;
   }
 
@@ -2032,9 +2048,16 @@ export const exportBesoinToPDF = async (data: BesoinExportData) => {
     tableLineWidth: 0.1,
   });
 
-  // Traçabilité
+  // Traçabilité — bloc avec saut de page si nécessaire
   const finalY = doc.lastAutoTable.finalY + 6;
-  const traceY = Math.min(finalY, pageHeight - 35);
+  const traceBlockHeight = 22; // titre + cadre
+  let traceY = finalY;
+
+  // Si pas assez de place pour le bloc complet + pied de page, on passe à une nouvelle page
+  if (traceY + traceBlockHeight > pageHeight - 18) {
+    doc.addPage();
+    traceY = margin + 4;
+  }
 
   drawMiniSectionTitle(doc, margin, traceY, '🔒 Traçabilité');
   doc.setFillColor(...COLORS.white);
