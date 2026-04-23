@@ -2020,6 +2020,47 @@ export type Database = {
           },
         ]
       }
+      note_frais_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          note_frais_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          note_frais_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          note_frais_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_frais_attachments_note_frais_id_fkey"
+            columns: ["note_frais_id"]
+            isOneToOne: false
+            referencedRelation: "notes_frais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_frais_lignes: {
         Row: {
           created_at: string
