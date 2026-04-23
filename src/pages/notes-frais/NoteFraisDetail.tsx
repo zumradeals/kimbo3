@@ -591,9 +591,13 @@ export default function NoteFraisDetail() {
     }
   };
 
-  const canEdit = isCreator && (note?.status === 'brouillon' || note?.status === 'rejetee');
-  // Admin peut supprimer toute note non payée ; le créateur peut supprimer brouillon/rejetée
-  const canDelete = (isAdmin && note?.status !== 'payee') || (isCreator && ['brouillon', 'rejetee'].includes(note?.status || ''));
+  const canEdit =
+    (isCreator && (note?.status === 'brouillon' || note?.status === 'rejetee')) ||
+    ((isAdmin || isLogistique) && note?.status !== 'payee');
+  // Admin/Logistique peuvent supprimer toute note non payée ; le créateur peut supprimer brouillon/rejetée
+  const canDelete =
+    ((isAdmin || isLogistique) && note?.status !== 'payee') ||
+    (isCreator && ['brouillon', 'rejetee'].includes(note?.status || ''));
 
   if (isLoading) {
     return (
