@@ -17,9 +17,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Save, Paperclip, X, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, X, FileText } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
-import { NoteFraisLigne } from '@/types/kpm';
+import { NoteFraisLigne, NoteFraisAttachment } from '@/types/kpm';
+import { MultiAttachmentsInput, PendingAttachment } from '@/components/notes-frais/MultiAttachmentsInput';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface LigneInput {
   id: string;
@@ -44,6 +47,11 @@ export default function NoteFraisEdit() {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<{ url: string; name: string } | null>(null);
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
+
+  // Multi-attachments
+  const [existingAttachments, setExistingAttachments] = useState<NoteFraisAttachment[]>([]);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
+  const [newAttachments, setNewAttachments] = useState<PendingAttachment[]>([]);
 
   const [formData, setFormData] = useState({
     title: '',
