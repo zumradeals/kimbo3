@@ -146,14 +146,8 @@ export default function NoteFraisCreate() {
 
       if (lignesError) throw lignesError;
 
-      // Upload attachment if any
-      const uploaded = await uploadAttachment(noteData.id);
-      if (uploaded) {
-        await supabase
-          .from('notes_frais')
-          .update({ attachment_url: uploaded.url, attachment_name: uploaded.name })
-          .eq('id', noteData.id);
-      }
+      // Upload all attachments to the new attachments table
+      await uploadAttachments(noteData.id);
 
       if (!asBrouillon) {
         const newStatus = aalBypassEnabled ? 'soumise' : 'soumis_aal';
