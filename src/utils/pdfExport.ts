@@ -2076,3 +2076,208 @@ export const exportBesoinToPDF = async (data: BesoinExportData) => {
   addCompactFooter(doc);
   doc.save(`BESOIN_${data.reference}.pdf`);
 };
+
+// ===================== NOTE DE FRAIS - EXPORT PDF =====================
+interface NoteFraisExportData {
+  reference: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  department: string;
+  createdBy: string;
+  createdByFonction?: string;
+  createdAt: string;
+  projetCode?: string;
+  projetName?: string;
+  description?: string;
+  totalAmount: number;
+  currency: string;
+  validatedDafBy?: string;
+  validatedDafAt?: string;
+  validatedDgBy?: string;
+  validatedDgAt?: string;
+  paidBy?: string;
+  paidAt?: string;
+  modePaiement?: string;
+  referencePaiement?: string;
+  lignes: Array<{
+    date: string;
+    motif: string;
+    projet?: string;
+    montant: number;
+    observations?: string;
+  }>;
+}
+
+export const exportNoteFraisToPDF = async (data: NoteFraisExportData) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 12;
+  const contentWidth = pageWidth - margin * 2;
+
+  // ========== EN-TÊTE STANDARDISÉ ==========
+  let y = drawStandardPdfHeader(doc, {
+    documentTitle: 'NOTE DE FRAIS',
+    reference: data.reference,
+    status: data.status,
+    statusLabel: data.statusLabel || data.status,
+    margin,
+  });
+
+  // Watermark brouillon
+  if (data.status.toLowerCase().includes('brouillon')) {
+    doc.setTextColor(235, 235, 235);
+    doc.setFontSize(45);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BROUILLON', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+  }
+
+  // Titre / objet
+  doc.setFontSize(11);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  const titleLines = doc.splitTextToSize(data.title || '-', contentWidth);
+  doc.text(titleLines.slice(0, 2), margin, y);
+  y += titleLines.slice(0, 2).length * 5 + 2;
+
+  // Bloc infos
+  doc.setFillColor(...COLORS.grisTresClair);
+  doc.setDrawColor(...COLORS.borderLight);
+  doc.roundedRect(margin, y, contentWidth, 22, 1.5, 1.5, 'FD');
+
+  const c1 = margin + 4;
+  const c2 = margin + contentWidth * 0.25;
+  const c3 = margin + contentWidth * 0.5;
+  const c4 = margin + contentWidth * 0.75;
+
+  drawCompactInfo(doc, c1, y + 6, 'Demandeur', data.createdBy);
+  drawCompactInfo(doc, c2, y + 6, 'Fonction', data.createdByFonction || '-');
+  drawCompactInfo(doc, c3, y + 6, 'Département', data.department);
+  drawCompactInfo(doc, c4, y + 6, 'Créée le', formatDate(data.createdAt));
+
+  drawCompactInfo(doc, c1, y + 14, 'Projet', data.projetCode || '-');
+  drawCompactInfo(doc, c2, y + 14, 'Nom projet', data.projetName || '-');
+  drawCompactInfo(doc, c3, y + 14, 'Mode paiement', data.modePaiement || '-');
+  drawCompactInfo(doc, c4, y + 14, 'Réf. paiement', data.referencePaiement || '-');
+
+  y += 26;
+
+  // Description
+  if (data.description && data.description.trim()) {
+    drawMiniSectionTitle(doc, margin, y, 'Description');
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'normal');
+    const splitDesc = doc.splitTextToSize(data.description, contentWidth - 8);
+    const lineHeight = 4;
+    const padding = 4;
+    const maxBlockHeight = pageHeight - margin - 80;
+    let descLinesArr: string[] = splitDesc;
+    let descHeight = descLinesArr.length * lineHeight + padding * 2;
+
+    if (descHeight > maxBlockHeight) {
+      const maxLines = Math.max(1, Math.floor((maxBlockHeight - padding * 2) / lineHeight));
+      descLinesArr = splitDesc.slice(0, maxLines);
+      if (splitDesc.length > maxLines && descLinesArr.length > 0) {
+        descLinesArr[descLinesArr.length - 1] = descLinesArr[descLinesArr.length - 1].replace(/.{0,3}$/, '...');
+      }
+      descHeight = descLinesArr.length * lineHeight + padding * 2;
+    }
+    doc.setFillColor(...COLORS.white);
+    doc.setDrawColor(...COLORS.orange);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentWidth, descHeight, 1.5, 1.5, 'FD');
+    doc.text(descLinesArr, margin + padding, y + padding + 1);
+    y += descHeight + 4;
+  }
+
+  // Lignes
+  drawMiniSectionTitle(doc, margin, y, `Détail des dépenses (${data.lignes.length})`);
+  y += 4;
+
+  const tableData = data.lignes.map((l, idx) => [
+    String(idx + 1),
+    formatDate(l.date),
+    l.motif,
+    l.projet || '-',
+    formatMontant(l.montant, data.currency),
+    l.observations || '-',
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['N°', 'Date', 'Motif', 'Projet', 'Montant', 'Observations']],
+    body: tableData,
+    theme: 'plain',
+    headStyles: {
+      fillColor: COLORS.marron,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 7,
+      cellPadding: 2,
+      halign: 'left',
+    },
+    bodyStyles: { fontSize: 7, textColor: COLORS.textPrimary, cellPadding: 2 },
+    alternateRowStyles: { fillColor: COLORS.grisAlternate },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 22, halign: 'center' },
+      2: { cellWidth: 60, halign: 'left' },
+      3: { cellWidth: 28, halign: 'left' },
+      4: { cellWidth: 28, halign: 'right' },
+      5: { cellWidth: 'auto', halign: 'left' },
+    },
+    margin: { left: margin, right: margin },
+    tableLineColor: COLORS.border,
+    tableLineWidth: 0.1,
+  });
+
+  // Total
+  let finalY = doc.lastAutoTable.finalY + 3;
+
+  const totalsX = pageWidth - margin - 70;
+  doc.setFillColor(...COLORS.orangeLight);
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(totalsX, finalY, 70, 12, 2, 2, 'FD');
+
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('MONTANT TOTAL :', totalsX + 4, finalY + 7);
+
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatMontant(data.totalAmount, data.currency), totalsX + 66, finalY + 7, { align: 'right' });
+
+  finalY += 16;
+
+  // Traçabilité — saut de page si nécessaire
+  const traceBlockHeight = 22;
+  let traceY = finalY + 4;
+  if (traceY + traceBlockHeight > pageHeight - 22) {
+    doc.addPage();
+    traceY = margin + 4;
+  }
+
+  drawMiniSectionTitle(doc, margin, traceY, '🔒 Traçabilité');
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(margin, traceY + 4, contentWidth, 14, 1.5, 1.5, 'FD');
+  doc.setFillColor(...COLORS.orange);
+  doc.rect(margin, traceY + 4, 2.5, 14, 'F');
+
+  const tCol = contentWidth / 4;
+  const ty = traceY + 10;
+  drawMiniTrace(doc, margin + 6, ty, 'Créé par', data.createdBy);
+  drawMiniTrace(doc, margin + tCol, ty, 'Validation DAF', data.validatedDafBy);
+  drawMiniTrace(doc, margin + tCol * 2, ty, 'Validation DG', data.validatedDgBy);
+  drawMiniTrace(doc, margin + tCol * 3, ty, 'Paiement', data.paidBy);
+
+  addCompactFooter(doc);
+  doc.save(`NDF_${data.reference}.pdf`);
+};
