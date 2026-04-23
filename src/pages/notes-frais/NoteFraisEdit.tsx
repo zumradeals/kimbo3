@@ -305,6 +305,46 @@ export default function NoteFraisEdit() {
                 />
               </div>
 
+              {/* Pièce jointe */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Pièce jointe
+                </Label>
+                {attachmentFile ? (
+                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{attachmentFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(attachmentFile.size / 1024).toFixed(0)} Ko • Nouveau</p>
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setAttachmentFile(null)} className="h-8 w-8 shrink-0">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : existingAttachment && !removeExistingAttachment ? (
+                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <a href={existingAttachment.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
+                      <p className="text-sm font-medium truncate">{existingAttachment.name}</p>
+                      <p className="text-xs text-muted-foreground">Existant</p>
+                    </a>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setRemoveExistingAttachment(true)} className="h-8 w-8 shrink-0">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-3 hover:border-primary/50 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                      onChange={handleAttachmentSelect}
+                      className="block w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="pt-4 border-t">
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Total</p>
