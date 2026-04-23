@@ -1015,6 +1015,29 @@ export default function NoteFraisDetail() {
           </CardContent>
         </Card>
 
+        {/* Pièce jointe */}
+        {note.attachment_url && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Pièce jointe</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <a
+                href={note.attachment_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-md border bg-muted/30 p-3 hover:bg-muted/50 transition-colors"
+              >
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{note.attachment_name || 'Pièce jointe'}</p>
+                  <p className="text-xs text-muted-foreground">Cliquer pour ouvrir</p>
+                </div>
+              </a>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Timeline */}
         <Card>
           <CardHeader>
