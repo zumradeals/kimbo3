@@ -969,10 +969,12 @@ export default function BesoinDetail() {
           <Card>
             <CardHeader>
               <CardTitle>Lignes de besoin ({lignesForDisplay.length})</CardTitle>
-              <CardDescription>Articles et services demandés</CardDescription>
+              <CardDescription>
+                Articles et services demandés — vue compacte avec pagination
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <BesoinLignesTable lignes={lignesForDisplay} onChange={() => {}} readOnly />
+              <BesoinLignesCompact lignes={lignesForDisplay as any} />
             </CardContent>
           </Card>
         )}
