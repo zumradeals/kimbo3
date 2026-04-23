@@ -659,6 +659,48 @@ export default function NoteFraisDetail() {
               <FileCheck className="mr-2 h-4 w-4" />
               Imprimer
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const u: any = note.user;
+                exportNoteFraisToPDF({
+                  reference: note.reference,
+                  title: note.title || '',
+                  status: note.status,
+                  statusLabel: NOTE_FRAIS_STATUS_LABELS[note.status],
+                  department: note.department?.name || '-',
+                  createdBy: u ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : '-',
+                  createdByFonction: u?.fonction || undefined,
+                  createdAt: note.created_at,
+                  projetCode: note.projet?.code,
+                  projetName: note.projet?.name,
+                  description: note.description || undefined,
+                  totalAmount: note.total_amount || 0,
+                  currency: note.currency || 'XOF',
+                  validatedDafBy: (note as any).validated_daf_by_profile
+                    ? `${(note as any).validated_daf_by_profile.first_name || ''} ${(note as any).validated_daf_by_profile.last_name || ''}`.trim()
+                    : undefined,
+                  validatedDafAt: (note as any).validated_daf_at || undefined,
+                  paidBy: (note as any).paid_by_profile
+                    ? `${(note as any).paid_by_profile.first_name || ''} ${(note as any).paid_by_profile.last_name || ''}`.trim()
+                    : undefined,
+                  paidAt: (note as any).paid_at || undefined,
+                  modePaiement: note.mode_paiement || undefined,
+                  referencePaiement: note.reference_paiement || undefined,
+                  lignes: (note.lignes || []).map((l: any) => ({
+                    date: l.date_depense,
+                    motif: l.motif,
+                    projet: l.projet?.code,
+                    montant: l.montant,
+                    observations: l.observations,
+                  })),
+                });
+              }}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Exporter PDF
+            </Button>
             {canEdit && (
               <Link to={`/notes-frais/${note.id}/modifier`}>
                 <Button variant="outline" size="sm">
