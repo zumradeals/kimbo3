@@ -1022,6 +1022,18 @@ export default function NoteFraisDetail() {
           </Card>
         )}
 
+        {/* Description */}
+        {note.description && note.description.trim() && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm text-foreground">{note.description}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Lignes */}
         <Card>
           <CardHeader>
