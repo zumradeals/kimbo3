@@ -65,6 +65,7 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { exportDechargeComptableToPDF } from '@/utils/pdfExport';
+import { exportNoteFraisToPDF } from '@/utils/pdfExport';
 import { PaymentFormDynamic } from '@/components/comptabilite/PaymentFormDynamic';
 import { CompteComptableAutocomplete } from '@/components/ui/CompteComptableAutocomplete';
 import { CorrectionCaisseDialog } from '@/components/caisse/CorrectionCaisseDialog';
