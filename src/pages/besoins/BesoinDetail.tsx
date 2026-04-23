@@ -713,6 +713,28 @@ export default function BesoinDetail() {
           </Card>
         )}
 
+        {/* Prochain destinataire selon le statut */}
+        {(() => {
+          const recipient = getNextRecipient(besoin.status);
+          if (!recipient) return null;
+          return (
+            <Card className="border-primary/40 bg-primary/5">
+              <CardContent className="flex items-start gap-3 py-4">
+                <ArrowRight className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Prochain destinataire :</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-semibold">
+                      {recipient.label}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{recipient.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Logistics actions - Créé */}
         {canManage && besoin.status === 'cree' && (
           <Card className="border-warning/50 bg-warning/5">
