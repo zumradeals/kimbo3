@@ -9,9 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins, Paperclip, X, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
 import { useAALBypass } from '@/hooks/useAALBypass';
+import { MultiAttachmentsInput, PendingAttachment } from '@/components/notes-frais/MultiAttachmentsInput';
 
 interface LigneInput {
   id: string;
@@ -28,7 +29,7 @@ export default function NoteFraisCreate() {
   const { aalBypassEnabled } = useAALBypass();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -70,26 +71,30 @@ export default function NoteFraisCreate() {
 
   const totalAmount = lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
 
-  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'Fichier trop volumineux', description: 'Limite : 10 Mo.', variant: 'destructive' });
-      return;
+  const uploadAttachments = async (noteId: string): Promise<void> => {
+    if (attachments.length === 0) return;
+    for (const item of attachments) {
+      const ext = item.file.name.split('.').pop();
+      const path = `${noteId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('notes-frais-attachments')
+        .upload(path, item.file, { upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage
+        .from('notes-frais-attachments')
+        .getPublicUrl(path);
+      const { error: insErr } = await supabase
+        .from('note_frais_attachments')
+        .insert({
+          note_frais_id: noteId,
+          file_url: pub.publicUrl,
+          file_name: item.file.name,
+          file_size: item.file.size,
+          file_type: item.file.type || null,
+          uploaded_by: user?.id ?? null,
+        });
+      if (insErr) throw insErr;
     }
-    setAttachmentFile(file);
-  };
-
-  const uploadAttachment = async (noteId: string): Promise<{ url: string; name: string } | null> => {
-    if (!attachmentFile) return null;
-    const ext = attachmentFile.name.split('.').pop();
-    const path = `${noteId}/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from('notes-frais-attachments')
-      .upload(path, attachmentFile, { upsert: false });
-    if (upErr) throw upErr;
-    const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
-    return { url: pub.publicUrl, name: attachmentFile.name };
   };
 
   const handleSubmit = async (asBrouillon: boolean) => {
