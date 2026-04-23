@@ -294,9 +294,11 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps = {}) {
     <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-primary">
-          <span className="text-lg font-bold text-sidebar-primary-foreground">K</span>
-        </div>
+        <img
+          src="/logo-kimbo.png"
+          alt="Kimbo Africa SA"
+          className="h-10 w-10 object-contain shrink-0"
+        />
         <div className="flex-1 min-w-0">
           <h1 className="font-serif text-lg font-bold text-sidebar-foreground truncate">
             KPM SYSTEME

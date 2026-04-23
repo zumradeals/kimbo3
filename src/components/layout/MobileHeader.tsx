@@ -19,9 +19,11 @@ export function MobileHeader() {
     <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between gap-2 border-b bg-background/95 backdrop-blur-sm px-3 lg:hidden">
       {/* Left: Logo compact */}
       <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
-          <span className="text-sm font-bold text-secondary-foreground">K</span>
-        </div>
+        <img
+          src="/logo-kimbo.png"
+          alt="Kimbo Africa SA"
+          className="h-8 w-8 object-contain"
+        />
         <span className="font-serif text-sm font-bold text-foreground">KPM</span>
       </Link>
 

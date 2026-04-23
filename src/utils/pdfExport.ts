@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { KIMBO_LOGO_BASE64 } from '@/assets/logo-kimbo-base64';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -97,28 +98,27 @@ const formatDateTime = (dateString: string | undefined): string => {
   }
 };
 
-// Logo KIMBO AFRICA en Base64 pré-encodé pour éviter les problèmes CORS
-// Logo simplifié textuel pour garantir l'affichage
-const drawKimboLogo = (doc: jsPDF, x: number, y: number, width: number): void => {
-  // Fond orange arrondi pour le K
-  doc.setFillColor(...COLORS.orange);
-  doc.roundedRect(x, y, 12, 12, 2, 2, 'F');
-  
-  // Lettre K en blanc
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.white);
-  doc.setFont('helvetica', 'bold');
-  doc.text('K', x + 3.8, y + 8.5);
-  
-  // Texte KIMBO AFRICA
-  doc.setFontSize(14);
-  doc.setTextColor(...COLORS.marron);
-  doc.setFont('helvetica', 'bold');
-  doc.text('KIMBO', x + 15, y + 6);
-  
-  doc.setFontSize(14);
-  doc.setTextColor(...COLORS.orange);
-  doc.text('AFRICA', x + 15, y + 12);
+// Logo KIMBO AFRICA - image officielle (base64 PNG)
+const drawKimboLogo = (doc: jsPDF, x: number, y: number, _width: number): void => {
+  try {
+    // Logo officiel - carré 18x18mm
+    doc.addImage(KIMBO_LOGO_BASE64, 'PNG', x, y - 2, 18, 18);
+    // Nom société à droite du logo
+    doc.setFontSize(13);
+    doc.setTextColor(...COLORS.marron);
+    doc.setFont('helvetica', 'bold');
+    doc.text('KIMBO AFRICA SA', x + 21, y + 6);
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Procurement Management System', x + 21, y + 11);
+  } catch (e) {
+    // Fallback texte si l'image échoue
+    doc.setFontSize(14);
+    doc.setTextColor(...COLORS.marron);
+    doc.setFont('helvetica', 'bold');
+    doc.text('KIMBO AFRICA SA', x, y + 8);
+  }
 };
 
 // ===================== HEADER PDF STANDARDISÉ =====================
