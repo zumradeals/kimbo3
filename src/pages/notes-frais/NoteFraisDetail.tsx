@@ -689,12 +689,12 @@ export default function NoteFraisDetail() {
                   {note.status === 'rejetee' ? 'Note rejetée' : 'Brouillon'}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Soumettez cette note au AAL pour contrôle.
+                  {aalBypassEnabled ? 'Soumettez cette note au DAF pour validation.' : 'Soumettez cette note au AAL pour contrôle.'}
                 </p>
               </div>
               <Button onClick={handleSubmit} disabled={isSaving}>
                 <FileCheck className="mr-2 h-4 w-4" />
-                Soumettre au AAL
+                {aalBypassEnabled ? 'Soumettre au DAF' : 'Soumettre au AAL'}
               </Button>
             </CardContent>
           </Card>
