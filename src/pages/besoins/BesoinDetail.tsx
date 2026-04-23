@@ -70,10 +70,13 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { BesoinLignesTable } from '@/components/besoins/BesoinLignesTable';
+import { BesoinLignesCompact } from '@/components/besoins/BesoinLignesCompact';
 import { BesoinEditLogistique } from '@/components/besoins/BesoinEditLogistique';
 import { CancelDialog } from '@/components/ui/CancelDialog';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import { Ban } from 'lucide-react';
+import { exportBesoinToPDF } from '@/utils/pdfExport';
+import { ArrowRight } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   cree: 'bg-muted text-muted-foreground',
