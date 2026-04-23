@@ -240,6 +240,41 @@ export default function NoteFraisCreate() {
                 Fournissez le contexte et les justifications pour faciliter la validation
               </p>
             </div>
+
+            {/* Pièce jointe */}
+            <div className="space-y-2">
+              <Label htmlFor="attachment" className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Pièce jointe (justificatif global)
+              </Label>
+              {!attachmentFile ? (
+                <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-4 hover:border-primary/50 transition-colors">
+                  <input
+                    id="attachment"
+                    type="file"
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={handleAttachmentSelect}
+                    className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    PDF, image, Word ou Excel (max 10 Mo)
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                  <FileText className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{attachmentFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(attachmentFile.size / 1024).toFixed(0)} Ko
+                    </p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setAttachmentFile(null)} className="h-8 w-8 shrink-0">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
