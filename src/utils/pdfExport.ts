@@ -1841,3 +1841,215 @@ export const exportDAFValidationToPDF = async (data: DAFValidationExportData): P
   // Sauvegarde
   doc.save(`VALIDATION_DAF_${data.reference}.pdf`);
 };
+
+// ===================== BESOIN INTERNE - EXPORT PDF =====================
+interface BesoinExportData {
+  reference: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  besoinType?: string;
+  urgency: string;
+  department: string;
+  createdBy: string;
+  createdAt: string;
+  desiredDate?: string;
+  lieuLivraison?: string;
+  siteProjet?: string;
+  description?: string;
+  takenBy?: string;
+  takenAt?: string;
+  decidedBy?: string;
+  decidedAt?: string;
+  nextRecipient?: string;
+  lignes: Array<{
+    designation: string;
+    category: string;
+    quantity: number;
+    unit: string;
+    urgency: string;
+    justification?: string;
+  }>;
+}
+
+export const exportBesoinToPDF = async (data: BesoinExportData) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 12;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Bande supérieure orange
+  doc.setFillColor(...COLORS.orange);
+  doc.rect(0, 0, pageWidth, 2.5, 'F');
+
+  let y = 8;
+  drawKimboLogo(doc, margin, y, 50);
+
+  doc.setFontSize(12);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  doc.text('BESOIN INTERNE', pageWidth - margin, y + 4, { align: 'right' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.text(data.reference, pageWidth - margin, y + 10, { align: 'right' });
+
+  // Statut
+  const statusText = (data.statusLabel || data.status).toUpperCase();
+  let statusBgColor = COLORS.grisClairFond;
+  let statusTextColor = COLORS.textMuted;
+  const s = data.status.toLowerCase();
+  if (['accepte'].includes(s)) {
+    statusBgColor = COLORS.successLight;
+    statusTextColor = COLORS.success;
+  } else if (['refuse', 'annulee'].includes(s)) {
+    statusBgColor = COLORS.dangerLight;
+    statusTextColor = COLORS.danger;
+  } else if (['pris_en_charge', 'retourne', 'cree'].includes(s)) {
+    statusBgColor = COLORS.warningLight;
+    statusTextColor = COLORS.warning;
+  }
+  doc.setFontSize(6);
+  const statusWidth = doc.getTextWidth(statusText) + 6;
+  doc.setFillColor(...statusBgColor);
+  doc.roundedRect(pageWidth - margin - statusWidth, y + 13, statusWidth, 5, 1, 1, 'F');
+  doc.setTextColor(...statusTextColor);
+  doc.setFont('helvetica', 'bold');
+  doc.text(statusText, pageWidth - margin - statusWidth / 2, y + 16.5, { align: 'center' });
+
+  y = 24;
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.6);
+  doc.line(margin, y, pageWidth - margin, y);
+  y = 28;
+
+  // Titre / objet
+  doc.setFontSize(11);
+  doc.setTextColor(...COLORS.marron);
+  doc.setFont('helvetica', 'bold');
+  const titleLines = doc.splitTextToSize(data.title || '-', contentWidth);
+  doc.text(titleLines.slice(0, 2), margin, y);
+  y += titleLines.slice(0, 2).length * 5 + 2;
+
+  // Bloc infos
+  doc.setFillColor(...COLORS.grisTresClair);
+  doc.setDrawColor(...COLORS.borderLight);
+  doc.roundedRect(margin, y, contentWidth, 22, 1.5, 1.5, 'FD');
+
+  const c1 = margin + 4;
+  const c2 = margin + contentWidth * 0.25;
+  const c3 = margin + contentWidth * 0.5;
+  const c4 = margin + contentWidth * 0.75;
+
+  drawCompactInfo(doc, c1, y + 6, 'Département', data.department);
+  drawCompactInfo(doc, c2, y + 6, 'Demandeur', data.createdBy);
+  drawCompactInfo(doc, c3, y + 6, 'Type', data.besoinType || '-');
+  drawCompactInfo(doc, c4, y + 6, 'Urgence', data.urgency, data.urgency.toLowerCase().includes('urgent') || data.urgency.toLowerCase().includes('critique'));
+
+  drawCompactInfo(doc, c1, y + 14, 'Créé le', formatDate(data.createdAt));
+  drawCompactInfo(doc, c2, y + 14, 'Date souhaitée', data.desiredDate ? formatDate(data.desiredDate) : '-');
+  drawCompactInfo(doc, c3, y + 14, 'Site / Projet', data.siteProjet || '-');
+  drawCompactInfo(doc, c4, y + 14, 'Lieu livraison', data.lieuLivraison || '-');
+
+  y += 26;
+
+  // Prochain destinataire
+  if (data.nextRecipient) {
+    doc.setFillColor(...COLORS.orangeLight);
+    doc.setDrawColor(...COLORS.orange);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, y, contentWidth, 10, 1.5, 1.5, 'FD');
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Prochain destinataire :', margin + 4, y + 4);
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.marron);
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.nextRecipient, margin + 4, y + 8.5);
+    y += 14;
+  }
+
+  // Description
+  if (data.description && data.description.trim()) {
+    drawMiniSectionTitle(doc, margin, y, 'Description');
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.setFont('helvetica', 'normal');
+    const splitDesc = doc.splitTextToSize(data.description, contentWidth - 8);
+    const descLines = Math.min(splitDesc.length, 4);
+    const descHeight = descLines * 4 + 4;
+    doc.setFillColor(...COLORS.white);
+    doc.setDrawColor(...COLORS.orange);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentWidth, descHeight, 1.5, 1.5, 'FD');
+    doc.text(splitDesc.slice(0, 4), margin + 4, y + 5);
+    y += descHeight + 4;
+  }
+
+  // Lignes de besoin avec numérotation séquentielle
+  drawMiniSectionTitle(doc, margin, y, `Lignes de besoin (${data.lignes.length})`);
+  y += 4;
+
+  const tableData = data.lignes.map((l, idx) => [
+    String(idx + 1),
+    l.designation,
+    l.category,
+    l.quantity.toString(),
+    l.unit,
+    l.urgency,
+    l.justification || '-',
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['N°', 'Désignation', 'Catégorie', 'Qté', 'Unité', 'Urgence', 'Justification']],
+    body: tableData,
+    theme: 'plain',
+    headStyles: {
+      fillColor: COLORS.marron,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 7,
+      cellPadding: 2,
+      halign: 'left',
+    },
+    bodyStyles: { fontSize: 7, textColor: COLORS.textPrimary, cellPadding: 2 },
+    alternateRowStyles: { fillColor: COLORS.grisAlternate },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 60, halign: 'left' },
+      2: { cellWidth: 25, halign: 'left' },
+      3: { cellWidth: 12, halign: 'center' },
+      4: { cellWidth: 18, halign: 'center' },
+      5: { cellWidth: 20, halign: 'center' },
+      6: { cellWidth: 'auto', halign: 'left' },
+    },
+    margin: { left: margin, right: margin },
+    tableLineColor: COLORS.border,
+    tableLineWidth: 0.1,
+  });
+
+  // Traçabilité
+  const finalY = doc.lastAutoTable.finalY + 6;
+  const traceY = Math.min(finalY, pageHeight - 35);
+
+  drawMiniSectionTitle(doc, margin, traceY, '🔒 Traçabilité');
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.orange);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(margin, traceY + 4, contentWidth, 14, 1.5, 1.5, 'FD');
+  doc.setFillColor(...COLORS.orange);
+  doc.rect(margin, traceY + 4, 2.5, 14, 'F');
+
+  const tCol = contentWidth / 3;
+  const ty = traceY + 10;
+  drawMiniTrace(doc, margin + 6, ty, 'Créé par', data.createdBy);
+  drawMiniTrace(doc, margin + tCol, ty, 'Pris en charge', data.takenBy);
+  drawMiniTrace(doc, margin + tCol * 2, ty, 'Décision', data.decidedBy);
+
+  addCompactFooter(doc);
+  doc.save(`BESOIN_${data.reference}.pdf`);
+};
