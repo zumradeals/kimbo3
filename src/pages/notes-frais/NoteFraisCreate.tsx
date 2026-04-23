@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins, Paperclip, X, FileText } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
 import { useAALBypass } from '@/hooks/useAALBypass';
 
@@ -28,6 +28,7 @@ export default function NoteFraisCreate() {
   const { aalBypassEnabled } = useAALBypass();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -68,6 +69,28 @@ export default function NoteFraisCreate() {
   };
 
   const totalAmount = lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
+
+  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Fichier trop volumineux', description: 'Limite : 10 Mo.', variant: 'destructive' });
+      return;
+    }
+    setAttachmentFile(file);
+  };
+
+  const uploadAttachment = async (noteId: string): Promise<{ url: string; name: string } | null> => {
+    if (!attachmentFile) return null;
+    const ext = attachmentFile.name.split('.').pop();
+    const path = `${noteId}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from('notes-frais-attachments')
+      .upload(path, attachmentFile, { upsert: false });
+    if (upErr) throw upErr;
+    const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
+    return { url: pub.publicUrl, name: attachmentFile.name };
+  };
 
   const handleSubmit = async (asBrouillon: boolean) => {
     if (!formData.title.trim()) {
@@ -117,6 +140,15 @@ export default function NoteFraisCreate() {
         .insert(lignesData);
 
       if (lignesError) throw lignesError;
+
+      // Upload attachment if any
+      const uploaded = await uploadAttachment(noteData.id);
+      if (uploaded) {
+        await supabase
+          .from('notes_frais')
+          .update({ attachment_url: uploaded.url, attachment_name: uploaded.name })
+          .eq('id', noteData.id);
+      }
 
       if (!asBrouillon) {
         const newStatus = aalBypassEnabled ? 'soumise' : 'soumis_aal';
@@ -207,6 +239,41 @@ export default function NoteFraisCreate() {
               <p className="text-xs text-muted-foreground">
                 Fournissez le contexte et les justifications pour faciliter la validation
               </p>
+            </div>
+
+            {/* Pièce jointe */}
+            <div className="space-y-2">
+              <Label htmlFor="attachment" className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Pièce jointe (justificatif global)
+              </Label>
+              {!attachmentFile ? (
+                <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-4 hover:border-primary/50 transition-colors">
+                  <input
+                    id="attachment"
+                    type="file"
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={handleAttachmentSelect}
+                    className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    PDF, image, Word ou Excel (max 10 Mo)
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                  <FileText className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{attachmentFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(attachmentFile.size / 1024).toFixed(0)} Ko
+                    </p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setAttachmentFile(null)} className="h-8 w-8 shrink-0">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

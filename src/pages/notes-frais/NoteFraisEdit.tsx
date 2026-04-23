@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Paperclip, X, FileText } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
 import { NoteFraisLigne } from '@/types/kpm';
 
@@ -34,12 +34,16 @@ interface LigneInput {
 export default function NoteFraisEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, roles } = useAuth();
   const { toast } = useToast();
+  const isLogistique = roles.includes('responsable_logistique') || roles.includes('agent_logistique');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [note, setNote] = useState<any>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [existingAttachment, setExistingAttachment] = useState<{ url: string; name: string } | null>(null);
+  const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -69,10 +73,13 @@ export default function NoteFraisEdit() {
       }
 
       // Check if user can edit
-      const canEdit = data.user_id === user?.id || isAdmin;
+      const canEdit = data.user_id === user?.id || isAdmin || isLogistique;
       const isEditable = data.status === 'brouillon' || data.status === 'rejetee';
 
-      if (!canEdit || !isEditable) {
+      // Logistique & admin can edit any non-paid note; others only brouillon/rejetee
+      const isEditableForRole = (isAdmin || isLogistique) ? data.status !== 'payee' : isEditable;
+
+      if (!canEdit || !isEditableForRole) {
         toast({ title: 'Accès refusé', description: 'Vous ne pouvez pas modifier cette note.', variant: 'destructive' });
         navigate(`/notes-frais/${id}`);
         return;
@@ -84,6 +91,10 @@ export default function NoteFraisEdit() {
         description: data.description || '',
         projet_id: data.projet_id || '',
       });
+
+      if (data.attachment_url) {
+        setExistingAttachment({ url: data.attachment_url, name: data.attachment_name || 'Pièce jointe' });
+      }
 
       setLignes(
         (data.lignes || []).map((l: NoteFraisLigne) => ({
@@ -133,6 +144,16 @@ export default function NoteFraisEdit() {
 
   const totalAmount = lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
 
+  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Fichier trop volumineux', description: 'Limite : 10 Mo.', variant: 'destructive' });
+      return;
+    }
+    setAttachmentFile(file);
+  };
+
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
       toast({ title: 'Erreur', description: 'Le titre est requis.', variant: 'destructive' });
@@ -147,6 +168,21 @@ export default function NoteFraisEdit() {
 
     setIsSubmitting(true);
     try {
+      // Handle attachment upload/removal
+      let attachmentUpdate: { attachment_url: string | null; attachment_name: string | null } | null = null;
+      if (attachmentFile) {
+        const ext = attachmentFile.name.split('.').pop();
+        const path = `${id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('notes-frais-attachments')
+          .upload(path, attachmentFile, { upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
+        attachmentUpdate = { attachment_url: pub.publicUrl, attachment_name: attachmentFile.name };
+      } else if (removeExistingAttachment) {
+        attachmentUpdate = { attachment_url: null, attachment_name: null };
+      }
+
       // Update note
       const { error: noteError } = await supabase
         .from('notes_frais')
@@ -156,6 +192,7 @@ export default function NoteFraisEdit() {
           projet_id: formData.projet_id || null,
           total_amount: totalAmount,
           updated_at: new Date().toISOString(),
+          ...(attachmentUpdate || {}),
         })
         .eq('id', id);
 
@@ -266,6 +303,46 @@ export default function NoteFraisEdit() {
                   onChange={(pid) => setFormData({ ...formData, projet_id: pid })}
                   placeholder="Sélectionner un projet..."
                 />
+              </div>
+
+              {/* Pièce jointe */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Pièce jointe
+                </Label>
+                {attachmentFile ? (
+                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{attachmentFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(attachmentFile.size / 1024).toFixed(0)} Ko • Nouveau</p>
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setAttachmentFile(null)} className="h-8 w-8 shrink-0">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : existingAttachment && !removeExistingAttachment ? (
+                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <a href={existingAttachment.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
+                      <p className="text-sm font-medium truncate">{existingAttachment.name}</p>
+                      <p className="text-xs text-muted-foreground">Existant</p>
+                    </a>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setRemoveExistingAttachment(true)} className="h-8 w-8 shrink-0">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-3 hover:border-primary/50 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                      onChange={handleAttachmentSelect}
+                      className="block w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t">

@@ -2078,6 +2078,8 @@ export type Database = {
         Row: {
           aal_comment: string | null
           aal_rejection_reason: string | null
+          attachment_name: string | null
+          attachment_url: string | null
           caisse_id: string | null
           comptabilise_at: string | null
           comptabilise_by: string | null
@@ -2126,6 +2128,8 @@ export type Database = {
         Insert: {
           aal_comment?: string | null
           aal_rejection_reason?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
           caisse_id?: string | null
           comptabilise_at?: string | null
           comptabilise_by?: string | null
@@ -2174,6 +2178,8 @@ export type Database = {
         Update: {
           aal_comment?: string | null
           aal_rejection_reason?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
           caisse_id?: string | null
           comptabilise_at?: string | null
           comptabilise_by?: string | null
