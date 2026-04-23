@@ -842,6 +842,8 @@ export interface NoteFrais {
   rejection_reason: string | null;
   rejected_by: string | null;
   rejected_at: string | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
   created_at: string;
   updated_at: string;
   // Relations
