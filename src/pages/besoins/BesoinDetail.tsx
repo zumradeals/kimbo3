@@ -605,6 +605,10 @@ export default function BesoinDetail() {
               <FileText className="mr-2 h-4 w-4" />
               Imprimer
             </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <Download className="mr-2 h-4 w-4" />
+              Exporter PDF
+            </Button>
             <Link to={`/besoins/${id}/dossier`}>
               <Button variant="outline" size="sm">
                 <FolderOpen className="mr-2 h-4 w-4" />
