@@ -22,6 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { NoteFrais, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS } from '@/types/kpm';
 import {
@@ -289,9 +295,18 @@ export default function NotesFraisList() {
                           <TableCell>
                             <div className="font-medium">{note.title}</div>
                             {note.description && (
-                              <div className="text-xs text-muted-foreground line-clamp-1">
-                                {note.description}
-                              </div>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-xs text-muted-foreground line-clamp-1 cursor-help">
+                                      {note.description}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-md whitespace-pre-wrap">
+                                    {note.description}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </TableCell>
                           <TableCell>
