@@ -144,6 +144,16 @@ export default function NoteFraisEdit() {
 
   const totalAmount = lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
 
+  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Fichier trop volumineux', description: 'Limite : 10 Mo.', variant: 'destructive' });
+      return;
+    }
+    setAttachmentFile(file);
+  };
+
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
       toast({ title: 'Erreur', description: 'Le titre est requis.', variant: 'destructive' });
@@ -158,6 +168,21 @@ export default function NoteFraisEdit() {
 
     setIsSubmitting(true);
     try {
+      // Handle attachment upload/removal
+      let attachmentUpdate: { attachment_url: string | null; attachment_name: string | null } | null = null;
+      if (attachmentFile) {
+        const ext = attachmentFile.name.split('.').pop();
+        const path = `${id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('notes-frais-attachments')
+          .upload(path, attachmentFile, { upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
+        attachmentUpdate = { attachment_url: pub.publicUrl, attachment_name: attachmentFile.name };
+      } else if (removeExistingAttachment) {
+        attachmentUpdate = { attachment_url: null, attachment_name: null };
+      }
+
       // Update note
       const { error: noteError } = await supabase
         .from('notes_frais')
@@ -167,6 +192,7 @@ export default function NoteFraisEdit() {
           projet_id: formData.projet_id || null,
           total_amount: totalAmount,
           updated_at: new Date().toISOString(),
+          ...(attachmentUpdate || {}),
         })
         .eq('id', id);
 
