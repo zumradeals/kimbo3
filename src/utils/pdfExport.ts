@@ -1915,52 +1915,14 @@ export const exportBesoinToPDF = async (data: BesoinExportData) => {
   const margin = 12;
   const contentWidth = pageWidth - margin * 2;
 
-  // Bande supérieure orange
-  doc.setFillColor(...COLORS.orange);
-  doc.rect(0, 0, pageWidth, 2.5, 'F');
-
-  let y = 8;
-  drawKimboLogo(doc, margin, y, 50);
-
-  doc.setFontSize(12);
-  doc.setTextColor(...COLORS.marron);
-  doc.setFont('helvetica', 'bold');
-  doc.text('BESOIN INTERNE', pageWidth - margin, y + 4, { align: 'right' });
-
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.text(data.reference, pageWidth - margin, y + 10, { align: 'right' });
-
-  // Statut
-  const statusText = (data.statusLabel || data.status).toUpperCase();
-  let statusBgColor = COLORS.grisClairFond;
-  let statusTextColor = COLORS.textMuted;
-  const s = data.status.toLowerCase();
-  if (['accepte'].includes(s)) {
-    statusBgColor = COLORS.successLight;
-    statusTextColor = COLORS.success;
-  } else if (['refuse', 'annulee'].includes(s)) {
-    statusBgColor = COLORS.dangerLight;
-    statusTextColor = COLORS.danger;
-  } else if (['pris_en_charge', 'retourne', 'cree'].includes(s)) {
-    statusBgColor = COLORS.warningLight;
-    statusTextColor = COLORS.warning;
-  }
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  const statusWidth = doc.getTextWidth(statusText) + 8;
-  const statusHeight = 6;
-  const statusY = y + 14;
-  doc.setFillColor(...statusBgColor);
-  doc.roundedRect(pageWidth - margin - statusWidth, statusY, statusWidth, statusHeight, 1.5, 1.5, 'F');
-  doc.setTextColor(...statusTextColor);
-  doc.text(statusText, pageWidth - margin - statusWidth / 2, statusY + 4.2, { align: 'center' });
-
-  y = statusY + statusHeight + 4; // = 32
-  doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.6);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 5;
+  // ========== EN-TÊTE STANDARDISÉ ==========
+  let y = drawStandardPdfHeader(doc, {
+    documentTitle: 'BESOIN INTERNE',
+    reference: data.reference,
+    status: data.status,
+    statusLabel: data.statusLabel || data.status,
+    margin,
+  });
 
   // Titre / objet
   doc.setFontSize(11);
