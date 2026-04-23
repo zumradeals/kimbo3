@@ -463,6 +463,89 @@ export default function BesoinDetail() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
   };
 
+  // Détermine le prochain destinataire selon le statut du besoin
+  const getNextRecipient = (status: string): { label: string; description: string } | null => {
+    switch (status) {
+      case 'cree':
+        return {
+          label: 'Logistique',
+          description: 'En attente de prise en charge par la Logistique.',
+        };
+      case 'pris_en_charge':
+        return {
+          label: 'Logistique (décision)',
+          description: 'La Logistique doit accepter, retourner ou refuser ce besoin.',
+        };
+      case 'accepte':
+        return {
+          label: 'Conversion en DA → DAF',
+          description:
+            "Une fois converti en Demande d'Achat, ce besoin sera transmis directement au DAF pour validation.",
+        };
+      case 'retourne':
+        return {
+          label: 'Demandeur',
+          description: 'Le demandeur doit corriger puis resoumettre le besoin.',
+        };
+      default:
+        return null;
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!besoin) return;
+    try {
+      const recipient = getNextRecipient(besoin.status);
+      const createdByName = besoin.user
+        ? `${(besoin.user as any).first_name || ''} ${(besoin.user as any).last_name || ''}`.trim() || 'N/A'
+        : 'N/A';
+      const takenByName = besoin.taken_by_profile
+        ? `${besoin.taken_by_profile.first_name || ''} ${besoin.taken_by_profile.last_name || ''}`.trim()
+        : undefined;
+      const decidedByName = besoin.decided_by_profile
+        ? `${besoin.decided_by_profile.first_name || ''} ${besoin.decided_by_profile.last_name || ''}`.trim()
+        : undefined;
+
+      await exportBesoinToPDF({
+        reference: besoin.id.substring(0, 8).toUpperCase(),
+        title: besoin.objet_besoin || besoin.title || 'Besoin interne',
+        status: besoin.status,
+        statusLabel: BESOIN_STATUS_LABELS[besoin.status] || besoin.status,
+        besoinType: besoin.besoin_type
+          ? BESOIN_TYPE_ENUM_LABELS[besoin.besoin_type as BesoinTypeEnum] || besoin.besoin_type
+          : undefined,
+        urgency: BESOIN_URGENCY_LABELS[besoin.urgency] || besoin.urgency,
+        department: besoin.department?.name || 'N/A',
+        createdBy: createdByName,
+        createdAt: besoin.created_at,
+        desiredDate: besoin.desired_date || undefined,
+        lieuLivraison: besoin.lieu_livraison || undefined,
+        siteProjet: besoin.site_projet || besoin.intended_usage || undefined,
+        description: besoin.description || undefined,
+        takenBy: takenByName,
+        takenAt: besoin.taken_at || undefined,
+        decidedBy: decidedByName,
+        decidedAt: besoin.decided_at || undefined,
+        nextRecipient: recipient?.label,
+        lignes: lignesForDisplay.map((l) => ({
+          designation: l.designation,
+          category: BESOIN_LIGNE_CATEGORY_LABELS[l.category as keyof typeof BESOIN_LIGNE_CATEGORY_LABELS] || String(l.category),
+          quantity: l.quantity,
+          unit: l.unit,
+          urgency: BESOIN_URGENCY_LABELS[l.urgency as keyof typeof BESOIN_URGENCY_LABELS]?.split(' ')[0] || String(l.urgency),
+          justification: l.justification || undefined,
+        })),
+      });
+      toast({ title: 'PDF généré', description: 'Le besoin a été exporté en PDF.' });
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Impossible de générer le PDF.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
