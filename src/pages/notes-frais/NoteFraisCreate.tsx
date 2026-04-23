@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Receipt, Calendar, Coins, Paperclip, X, FileText } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
 import { useAALBypass } from '@/hooks/useAALBypass';
 
@@ -28,6 +28,7 @@ export default function NoteFraisCreate() {
   const { aalBypassEnabled } = useAALBypass();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -68,6 +69,28 @@ export default function NoteFraisCreate() {
   };
 
   const totalAmount = lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
+
+  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'Fichier trop volumineux', description: 'Limite : 10 Mo.', variant: 'destructive' });
+      return;
+    }
+    setAttachmentFile(file);
+  };
+
+  const uploadAttachment = async (noteId: string): Promise<{ url: string; name: string } | null> => {
+    if (!attachmentFile) return null;
+    const ext = attachmentFile.name.split('.').pop();
+    const path = `${noteId}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from('notes-frais-attachments')
+      .upload(path, attachmentFile, { upsert: false });
+    if (upErr) throw upErr;
+    const { data: pub } = supabase.storage.from('notes-frais-attachments').getPublicUrl(path);
+    return { url: pub.publicUrl, name: attachmentFile.name };
+  };
 
   const handleSubmit = async (asBrouillon: boolean) => {
     if (!formData.title.trim()) {
@@ -117,6 +140,15 @@ export default function NoteFraisCreate() {
         .insert(lignesData);
 
       if (lignesError) throw lignesError;
+
+      // Upload attachment if any
+      const uploaded = await uploadAttachment(noteData.id);
+      if (uploaded) {
+        await supabase
+          .from('notes_frais')
+          .update({ attachment_url: uploaded.url, attachment_name: uploaded.name })
+          .eq('id', noteData.id);
+      }
 
       if (!asBrouillon) {
         const newStatus = aalBypassEnabled ? 'soumise' : 'soumis_aal';
