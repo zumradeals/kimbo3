@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { NoteFrais, NoteFraisLigne, NoteFraisStatus, NOTE_FRAIS_STATUS_LABELS, PaymentMethod, SYSCOHADA_CLASSES } from '@/types/kpm';
+import { NoteFraisAttachment } from '@/types/kpm';
 import { UserBadge } from '@/components/ui/UserBadge';
 import {
   ArrowLeft,
