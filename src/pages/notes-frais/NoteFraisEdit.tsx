@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Paperclip, X, FileText } from 'lucide-react';
 import { ProjetSelector } from '@/components/ui/ProjetSelector';
 import { NoteFraisLigne } from '@/types/kpm';
 
@@ -34,12 +34,16 @@ interface LigneInput {
 export default function NoteFraisEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, roles } = useAuth();
   const { toast } = useToast();
+  const isLogistique = roles.includes('responsable_logistique') || roles.includes('agent_logistique');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [note, setNote] = useState<any>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [existingAttachment, setExistingAttachment] = useState<{ url: string; name: string } | null>(null);
+  const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -69,10 +73,13 @@ export default function NoteFraisEdit() {
       }
 
       // Check if user can edit
-      const canEdit = data.user_id === user?.id || isAdmin;
+      const canEdit = data.user_id === user?.id || isAdmin || isLogistique;
       const isEditable = data.status === 'brouillon' || data.status === 'rejetee';
 
-      if (!canEdit || !isEditable) {
+      // Logistique & admin can edit any non-paid note; others only brouillon/rejetee
+      const isEditableForRole = (isAdmin || isLogistique) ? data.status !== 'payee' : isEditable;
+
+      if (!canEdit || !isEditableForRole) {
         toast({ title: 'Accès refusé', description: 'Vous ne pouvez pas modifier cette note.', variant: 'destructive' });
         navigate(`/notes-frais/${id}`);
         return;
@@ -84,6 +91,10 @@ export default function NoteFraisEdit() {
         description: data.description || '',
         projet_id: data.projet_id || '',
       });
+
+      if (data.attachment_url) {
+        setExistingAttachment({ url: data.attachment_url, name: data.attachment_name || 'Pièce jointe' });
+      }
 
       setLignes(
         (data.lignes || []).map((l: NoteFraisLigne) => ({
