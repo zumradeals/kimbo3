@@ -137,6 +137,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[60px] text-center">N°</TableHead>
               <TableHead>Désignation</TableHead>
               <TableHead className="w-[120px]">Catégorie</TableHead>
               <TableHead className="w-[80px]">Qté</TableHead>
@@ -146,8 +147,11 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lignes.map((ligne) => (
+            {lignes.map((ligne, index) => (
               <TableRow key={ligne.id}>
+                <TableCell className="text-center font-medium text-muted-foreground">
+                  {index + 1}
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {ligne.article_stock_id && (
@@ -188,6 +192,7 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px] text-center">N°</TableHead>
               <TableHead className="min-w-[200px]">Désignation *</TableHead>
               <TableHead className="w-[130px]">Catégorie *</TableHead>
               <TableHead className="w-[80px]">Qté *</TableHead>
@@ -203,6 +208,9 @@ export function BesoinLignesTable({ lignes, onChange, readOnly = false, showStoc
               const isFromStock = !!ligne.article_stock_id;
               return (
                 <TableRow key={ligne.id}>
+                  <TableCell className="text-center font-medium text-muted-foreground">
+                    {index + 1}
+                  </TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
