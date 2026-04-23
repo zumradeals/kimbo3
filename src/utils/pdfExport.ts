@@ -251,61 +251,15 @@ export const exportDAToPDF = async (data: DAExportData) => {
   const margin = 12;
   const contentWidth = pageWidth - (margin * 2);
   
-  // ========== EN-TÊTE COMPACT ==========
-  let y = 8;
-  
-  // Bande supérieure orange
-  doc.setFillColor(...COLORS.orange);
-  doc.rect(0, 0, pageWidth, 2.5, 'F');
-  
-  // Logo KIMBO stylisé
-  drawKimboLogo(doc, margin, y, 50);
-  
-  // Bloc document à droite
-  doc.setFontSize(12);
-  doc.setTextColor(...COLORS.marron);
-  doc.setFont('helvetica', 'bold');
-  doc.text("DEMANDE D'ACHAT", pageWidth - margin, y + 4, { align: 'right' });
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.textPrimary);
-  doc.text(data.reference, pageWidth - margin, y + 10, { align: 'right' });
-  
-  // Badge statut compact
-  const statusText = data.statusLabel.toUpperCase();
-  let statusBgColor = COLORS.grisClairFond;
-  let statusTextColor = COLORS.textMuted;
-  
-  const statusLower = data.status.toLowerCase();
-  if (['payee', 'validee_finance'].includes(statusLower)) {
-    statusBgColor = COLORS.successLight;
-    statusTextColor = COLORS.success;
-  } else if (['rejetee', 'refusee_finance', 'rejetee_comptabilite'].includes(statusLower)) {
-    statusBgColor = COLORS.dangerLight;
-    statusTextColor = COLORS.danger;
-  } else if (['en_analyse', 'chiffree', 'soumise_validation', 'en_revision_achats', 'soumise'].includes(statusLower)) {
-    statusBgColor = COLORS.warningLight;
-    statusTextColor = COLORS.warning;
-  }
-  
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  const statusWidth = doc.getTextWidth(statusText) + 8;
-  const statusHeight = 6;
-  const statusY = y + 14;
-  doc.setFillColor(...statusBgColor);
-  doc.roundedRect(pageWidth - margin - statusWidth, statusY, statusWidth, statusHeight, 1.5, 1.5, 'F');
-  doc.setTextColor(...statusTextColor);
-  doc.text(statusText, pageWidth - margin - statusWidth / 2, statusY + 4.2, { align: 'center' });
-  
-  // Ligne séparatrice (sous le badge avec marge)
-  y = statusY + statusHeight + 4; // = 32
-  doc.setDrawColor(...COLORS.orange);
-  doc.setLineWidth(0.6);
-  doc.line(margin, y, pageWidth - margin, y);
-  
-  y += 5;
-  
+  // ========== EN-TÊTE STANDARDISÉ ==========
+  let y = drawStandardPdfHeader(doc, {
+    documentTitle: "DEMANDE D'ACHAT",
+    reference: data.reference,
+    status: data.status,
+    statusLabel: data.statusLabel,
+    margin,
+  });
+
   // Watermark brouillon
   if (data.status.toLowerCase().includes('brouillon')) {
     doc.setTextColor(235, 235, 235);
