@@ -59,6 +59,8 @@ import { fr } from 'date-fns/locale';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { ActionTimeline, TimelineEvent } from '@/components/ui/ActionTimeline';
 import { ListSkeleton } from '@/components/ui/ListSkeleton';
+import { exportBesoinToPDF } from '@/utils/pdfExport';
+import { Download } from 'lucide-react';
 import {
   ExpressionBesoinStatus,
   EXPRESSION_STATUS_LABELS,
@@ -584,6 +586,62 @@ export default function ExpressionDetail() {
           <Button variant="outline" size="sm" onClick={() => window.print()}>
             <FileText className="mr-2 h-4 w-4" />
             Imprimer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await exportBesoinToPDF({
+                  reference: expression.titre || `EXP-${expression.id.slice(0, 8)}`,
+                  title: expression.titre || 'Expression de besoin',
+                  status: status,
+                  statusLabel: EXPRESSION_STATUS_LABELS[status],
+                  besoinType: 'Expression de besoin',
+                  urgency: '-',
+                  department: expression.department?.name || '-',
+                  createdBy: formatFullName(demandeur?.first_name, demandeur?.last_name),
+                  createdAt: expression.created_at,
+                  desiredDate: expression.date_souhaitee || undefined,
+                  lieuLivraison: expression.lieu_projet || undefined,
+                  siteProjet: expression.projet
+                    ? `${expression.projet.code} - ${expression.projet.name}`
+                    : undefined,
+                  description: expression.commentaire || undefined,
+                  takenBy: validateur
+                    ? formatFullName(validateur.first_name, validateur.last_name)
+                    : undefined,
+                  takenAt: expression.reviewed_at || undefined,
+                  decidedBy: validateur
+                    ? formatFullName(validateur.first_name, validateur.last_name)
+                    : undefined,
+                  decidedAt:
+                    expression.validated_at ||
+                    expression.rejected_at ||
+                    expression.sent_to_logistics_at ||
+                    undefined,
+                  lignes: lignes.map((l) => ({
+                    designation: l.nom_article,
+                    category: '-',
+                    quantity: l.quantite || 0,
+                    unit: l.unite || 'unité',
+                    urgency: '-',
+                    justification: l.justification || l.precision_technique || undefined,
+                  })),
+                });
+                toast({ title: 'PDF généré', description: 'Le PDF a été téléchargé.' });
+              } catch (err: any) {
+                console.error('PDF export error:', err);
+                toast({
+                  title: 'Erreur',
+                  description: err.message || "Impossible de générer le PDF.",
+                  variant: 'destructive',
+                });
+              }
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exporter PDF
           </Button>
         </div>
 
