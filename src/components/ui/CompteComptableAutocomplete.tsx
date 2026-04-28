@@ -40,6 +40,7 @@ export function CompteComptableAutocomplete({
   const [open, setOpen] = useState(false);
   const [comptes, setComptes] = useState<CompteComptable[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [classeFilter, setClasseFilter] = useState<number | null>(null);
 
   useEffect(() => {
     fetchComptes();
@@ -64,6 +65,18 @@ export function CompteComptableAutocomplete({
   };
 
   const selectedCompte = comptes.find((c) => c.code === value);
+
+  const classeLabels: Record<number, string> = {
+    1: 'Classe 1 - Capitaux',
+    2: 'Classe 2 - Immobilisations',
+    3: 'Classe 3 - Stocks',
+    4: 'Classe 4 - Tiers',
+    5: 'Classe 5 - Trésorerie',
+    6: 'Classe 6 - Charges',
+    7: 'Classe 7 - Produits',
+  };
+
+  const visibleClasses = classeFilter ? [classeFilter] : [6, 7, 2, 3, 4, 5, 1];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -90,6 +103,35 @@ export function CompteComptableAutocomplete({
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
           <CommandInput placeholder="Rechercher par code ou libellé..." />
+          <div className="flex flex-wrap gap-1 border-b px-2 py-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={classeFilter === null ? 'default' : 'outline'}
+              className="h-6 px-2 text-xs"
+              onClick={() => setClasseFilter(null)}
+            >
+              Toutes
+            </Button>
+            {[1, 2, 3, 4, 5, 6, 7].map((cl) => {
+              const count = comptes.filter((c) => c.classe === cl).length;
+              return (
+                <Button
+                  key={cl}
+                  type="button"
+                  size="sm"
+                  variant={classeFilter === cl ? 'default' : 'outline'}
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setClasseFilter(classeFilter === cl ? null : cl)}
+                  title={classeLabels[cl]}
+                  disabled={count === 0}
+                >
+                  C{cl}
+                  <span className="ml-1 text-[10px] opacity-70">{count}</span>
+                </Button>
+              );
+            })}
+          </div>
           <CommandList>
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
@@ -98,19 +140,9 @@ export function CompteComptableAutocomplete({
             ) : (
               <>
                 <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
-                {[6, 7, 2, 3, 4, 5, 1].map((classe) => {
+                {visibleClasses.map((classe) => {
                   const classComptes = comptes.filter((c) => c.classe === classe);
                   if (classComptes.length === 0) return null;
-
-                  const classeLabels: Record<number, string> = {
-                    1: 'Classe 1 - Capitaux',
-                    2: 'Classe 2 - Immobilisations',
-                    3: 'Classe 3 - Stocks',
-                    4: 'Classe 4 - Tiers',
-                    5: 'Classe 5 - Trésorerie',
-                    6: 'Classe 6 - Charges',
-                    7: 'Classe 7 - Produits',
-                  };
 
                   return (
                     <CommandGroup key={classe} heading={classeLabels[classe] || `Classe ${classe}`}>
