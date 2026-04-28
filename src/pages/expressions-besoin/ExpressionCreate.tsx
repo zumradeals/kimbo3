@@ -412,7 +412,7 @@ export default function ExpressionCreate() {
                           </Button>
                         )}
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">Quantité</Label>
                           <Input
