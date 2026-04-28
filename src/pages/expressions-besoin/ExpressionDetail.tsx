@@ -593,7 +593,7 @@ export default function ExpressionDetail() {
             onClick={async () => {
               try {
                 await exportBesoinToPDF({
-                  reference: expression.titre || `EXP-${expression.id.slice(0, 8)}`,
+                  reference: `EXP-${expression.id.slice(0, 8).toUpperCase()}`,
                   title: expression.titre || 'Expression de besoin',
                   status: status,
                   statusLabel: EXPRESSION_STATUS_LABELS[status],

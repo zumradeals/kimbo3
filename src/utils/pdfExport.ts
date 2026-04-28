@@ -154,7 +154,14 @@ export function drawStandardPdfHeader(doc: jsPDF, opts: StandardHeaderOptions): 
   // Référence
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.textPrimary);
-  doc.text(opts.reference, pageWidth - margin, yTop + 10, { align: 'right' });
+  // Tronquer la référence pour ne jamais empiéter sur le logo (zone gauche ~80mm)
+  const maxRefWidth = pageWidth - margin - 85;
+  let refText = opts.reference || '';
+  while (doc.getTextWidth(refText) > maxRefWidth && refText.length > 4) {
+    refText = refText.slice(0, -2);
+  }
+  if (refText !== opts.reference) refText = refText.replace(/.{0,2}$/, '…');
+  doc.text(refText, pageWidth - margin, yTop + 10, { align: 'right' });
 
   // Badge statut – couleurs unifiées pour DA, Besoin, NDF, BL
   const statusText = (opts.statusLabel || opts.status).toUpperCase();
