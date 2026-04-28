@@ -12,6 +12,7 @@ import {
 import { DashboardStatsSkeleton, DashboardFinancialSkeleton, DashboardChartSkeleton } from '@/components/ui/DashboardSkeleton';
 import { LogistiqueDashboard } from '@/components/dashboard/LogistiqueDashboard';
 import { PendingActionsAlert } from '@/components/dashboard/PendingActionsAlert';
+import { MyRequestsTracker } from '@/components/dashboard/MyRequestsTracker';
 import { AchatsDashboard } from '@/components/dashboard/AchatsDashboard';
 import { ComptabiliteDashboard } from '@/components/dashboard/ComptabiliteDashboard';
 import { DAFDashboard } from '@/components/dashboard/DAFDashboard';
@@ -327,6 +328,9 @@ export default function Dashboard() {
 
         {/* Pending Actions Alert */}
         <PendingActionsAlert />
+
+        {/* Suivi complet de mes demandes (Expression -> Besoin -> DA -> BL -> Payée) */}
+        <MyRequestsTracker />
 
         {/* KPI Cards Row */}
         {isLoading ? (
