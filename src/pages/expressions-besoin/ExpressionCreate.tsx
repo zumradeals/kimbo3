@@ -45,7 +45,6 @@ export default function ExpressionCreate() {
   const [articles, setArticles] = useState<ArticleLine[]>([
     { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }
   ]);
-  const [commentaire, setCommentaire] = useState('');
 
   // Nouveaux champs: projet, lieu, date
   const [projetId, setProjetId] = useState<string | null>(null);
@@ -151,7 +150,7 @@ export default function ExpressionCreate() {
           department_id: profile.department_id,
           titre,
           nom_article: titre, // Legacy field - pour compatibilité
-          commentaire: commentaire.trim() || null,
+          commentaire: null,
           projet_id: projetId || null,
           lieu_projet: lieuProjet.trim() || null,
           date_souhaitee: dateSouhaitee || null,
@@ -413,7 +412,7 @@ export default function ExpressionCreate() {
                           </Button>
                         )}
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">Quantité</Label>
                           <Input
@@ -445,15 +444,22 @@ export default function ExpressionCreate() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1 sm:col-span-1">
-                          <Label className="text-xs text-muted-foreground">Justification (optionnel)</Label>
-                          <Input
-                            placeholder="Pourquoi ce besoin?"
-                            value={article.justification}
-                            onChange={(e) => updateArticle(article.id, 'justification', e.target.value)}
-                            maxLength={300}
-                          />
-                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">
+                          Justification (optionnel)
+                        </Label>
+                        <Textarea
+                          placeholder="Pourquoi ce besoin ? Contexte, urgence, précisions techniques..."
+                          value={article.justification}
+                          onChange={(e) => updateArticle(article.id, 'justification', e.target.value)}
+                          maxLength={500}
+                          rows={3}
+                          className="resize-y min-h-[90px]"
+                        />
+                        <p className="text-[11px] text-muted-foreground text-right">
+                          {article.justification.length}/500
+                        </p>
                       </div>
                     </div>
                   </Card>
@@ -468,22 +474,6 @@ export default function ExpressionCreate() {
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter un article
                 </Button>
-              </div>
-
-              {/* Commentaire global */}
-              <div className="space-y-2">
-                <Label htmlFor="commentaire">Commentaire global (optionnel)</Label>
-                <Textarea
-                  id="commentaire"
-                  placeholder="Contexte, urgence particulière, précisions..."
-                  value={commentaire}
-                  onChange={(e) => setCommentaire(e.target.value)}
-                  maxLength={500}
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {commentaire.length}/500 caractères • S'applique à tous les articles
-                </p>
               </div>
 
               {/* Desktop Submit */}
