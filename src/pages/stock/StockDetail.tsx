@@ -1056,7 +1056,7 @@ export default function StockDetail() {
             </div>
             <div className="space-y-2">
               <Label>
-                {adjustForm.type === 'ajustement' ? 'Nouvelle quantité' : 'Quantité'}
+                {adjustForm.type === 'ajustement' ? `Nouvelle quantité (en ${article.unit})` : `Quantité (en ${article.unit})`}
               </Label>
               <Input
                 type="number"
@@ -1065,17 +1065,34 @@ export default function StockDetail() {
                 onChange={(e) => setAdjustForm({ ...adjustForm, quantity: Number(e.target.value) })}
               />
               {adjustForm.type !== 'ajustement' && adjustForm.quantity > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Résultat: {article.quantity_available} 
-                  {adjustForm.type === 'entree' ? ' + ' : ' - '}
-                  {adjustForm.quantity} = {' '}
-                  <strong>
-                    {adjustForm.type === 'entree' 
-                      ? article.quantity_available + adjustForm.quantity
-                      : article.quantity_available - adjustForm.quantity
-                    }
-                  </strong>
-                </p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>
+                    Résultat en {article.unit}: {article.quantity_available} 
+                    {adjustForm.type === 'entree' ? ' + ' : ' - '}
+                    {adjustForm.quantity} = {' '}
+                    <strong>
+                      {adjustForm.type === 'entree' 
+                        ? article.quantity_available + adjustForm.quantity
+                        : article.quantity_available - adjustForm.quantity
+                      } {article.unit}
+                    </strong>
+                  </p>
+                  {(article as any).nombre_pieces > 1 && (
+                    <p>
+                      Équivalent en pièces: <strong>
+                        {((adjustForm.type === 'entree' 
+                          ? article.quantity_available + adjustForm.quantity
+                          : article.quantity_available - adjustForm.quantity) * ((article as any).nombre_pieces || 1))} pièce(s)
+                      </strong>
+                      {' '}({(article as any).nombre_pieces} pièces / {article.unit})
+                    </p>
+                  )}
+                  {adjustForm.type === 'sortie' && adjustForm.quantity > article.quantity_available && (
+                    <p className="text-destructive font-medium">
+                      ⚠ La quantité saisie dépasse le stock disponible ({article.quantity_available} {article.unit})
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             {adjustForm.type === 'sortie' && (
