@@ -794,8 +794,15 @@ export default function StockDetail() {
               <div className="flex items-center gap-3 rounded-lg border p-3">
                 <Package className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Nombre de pièces</p>
-                  <p className="font-semibold">{(article as any).nombre_pieces || 1}</p>
+                  <p className="text-xs text-muted-foreground">Pièces par {article.unit}</p>
+                  <p className="font-semibold">
+                    {(article as any).nombre_pieces || 1}
+                    {((article as any).nombre_pieces || 1) > 1 && (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        (Total: {article.quantity_available * ((article as any).nombre_pieces || 1)} pièce(s))
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-lg border p-3">
