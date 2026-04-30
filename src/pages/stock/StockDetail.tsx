@@ -317,19 +317,10 @@ export default function StockDetail() {
     }
 
     // Conversion pièces → unité de stockage si nombre_pieces > 1
+    // Aucune contrainte de multiplicité : on autorise des fractions de carton/unité
+    // (ex: 11 pièces sur cartons de 15 = 0.7333 carton — soit 2 cartons entamés)
     const np = (article as any).nombre_pieces || 1;
-    let qtyEnUnites = adjustForm.quantity;
-    if (np > 1) {
-      if (adjustForm.quantity % np !== 0) {
-        toast({ 
-          title: 'Quantité invalide', 
-          description: `La quantité doit être un multiple de ${np} pièces (1 ${article.unit} = ${np} pièces).`, 
-          variant: 'destructive' 
-        });
-        return;
-      }
-      qtyEnUnites = adjustForm.quantity / np;
-    }
+    const qtyEnUnites = np > 1 ? adjustForm.quantity / np : adjustForm.quantity;
 
     setIsSaving(true);
     try {
