@@ -1084,28 +1084,27 @@ export default function StockDetail() {
                   // Saisie en pièces — conversion en unités de stockage
                   const qtyPieces = adjustForm.quantity;
                   const qtyUnites = qtyPieces / np;
-                  const isMultiple = qtyPieces % np === 0;
                   const resultatPieces = adjustForm.type === 'entree'
                     ? stockEnPieces + qtyPieces
                     : adjustForm.type === 'sortie'
                       ? stockEnPieces - qtyPieces
                       : qtyPieces;
                   const resultatUnites = resultatPieces / np;
+                  const unitesEntieres = Math.floor(qtyUnites);
+                  const piecesRestantes = qtyPieces % np;
+                  const detailDecomposition = piecesRestantes === 0
+                    ? `${unitesEntieres} ${article.unit} complet(s)`
+                    : `${unitesEntieres} ${article.unit} complet(s) + ${piecesRestantes} pièce(s) sur un ${article.unit} entamé`;
                   
                   return (
                     <div className="text-xs text-muted-foreground space-y-1">
-                      {!isMultiple && (
-                        <p className="text-destructive font-medium">
-                          ⚠ La quantité doit être un multiple de {np} pièces (1 {article.unit} = {np} pièces)
-                        </p>
-                      )}
                       <p>
-                        Soit <strong>{qtyUnites} {article.unit}</strong>
-                        {!isMultiple && ` (≈ ${Math.floor(qtyUnites)} ${article.unit} + ${qtyPieces % np} pièce(s))`}
+                        Soit <strong>{qtyUnites.toFixed(4).replace(/\.?0+$/, '')} {article.unit}</strong>
+                        {' '}— {detailDecomposition}
                       </p>
                       {adjustForm.type !== 'ajustement' && (
                         <p>
-                          Résultat: <strong>{resultatPieces} pièce(s)</strong> = <strong>{resultatUnites} {article.unit}</strong>
+                          Résultat: <strong>{resultatPieces} pièce(s)</strong> = <strong>{resultatUnites.toFixed(4).replace(/\.?0+$/, '')} {article.unit}</strong>
                         </p>
                       )}
                       {adjustForm.type === 'sortie' && qtyPieces > stockEnPieces && (
