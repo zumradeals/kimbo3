@@ -316,28 +316,43 @@ export default function StockDetail() {
       return;
     }
 
+    // Conversion pièces → unité de stockage si nombre_pieces > 1
+    const np = (article as any).nombre_pieces || 1;
+    let qtyEnUnites = adjustForm.quantity;
+    if (np > 1) {
+      if (adjustForm.quantity % np !== 0) {
+        toast({ 
+          title: 'Quantité invalide', 
+          description: `La quantité doit être un multiple de ${np} pièces (1 ${article.unit} = ${np} pièces).`, 
+          variant: 'destructive' 
+        });
+        return;
+      }
+      qtyEnUnites = adjustForm.quantity / np;
+    }
+
     setIsSaving(true);
     try {
       const quantityBefore = article.quantity_available;
       let quantityAfter = quantityBefore;
-      let movementQuantity = adjustForm.quantity;
+      let movementQuantity = qtyEnUnites;
 
       switch (adjustForm.type) {
         case 'entree':
-          quantityAfter = quantityBefore + adjustForm.quantity;
+          quantityAfter = quantityBefore + qtyEnUnites;
           break;
         case 'sortie':
-          if (adjustForm.quantity > quantityBefore) {
+          if (qtyEnUnites > quantityBefore) {
             toast({ title: 'Erreur', description: 'Quantité insuffisante.', variant: 'destructive' });
             setIsSaving(false);
             return;
           }
-          quantityAfter = quantityBefore - adjustForm.quantity;
-          movementQuantity = -adjustForm.quantity;
+          quantityAfter = quantityBefore - qtyEnUnites;
+          movementQuantity = -qtyEnUnites;
           break;
         case 'ajustement':
-          quantityAfter = adjustForm.quantity;
-          movementQuantity = adjustForm.quantity - quantityBefore;
+          quantityAfter = qtyEnUnites;
+          movementQuantity = qtyEnUnites - quantityBefore;
           break;
         default:
           break;
