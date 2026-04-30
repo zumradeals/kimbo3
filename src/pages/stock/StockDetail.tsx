@@ -1014,6 +1014,12 @@ export default function StockDetail() {
             <DialogTitle>Ajuster le stock</DialogTitle>
             <DialogDescription>
               Stock actuel: <strong>{article.quantity_available}</strong> {article.unit}
+              {(article as any).nombre_pieces > 1 && (
+                <span className="text-muted-foreground">
+                  {' '}— soit <strong>{article.quantity_available * ((article as any).nombre_pieces || 1)}</strong> pièce(s)
+                  {' '}({(article as any).nombre_pieces} pièces / {article.unit})
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
