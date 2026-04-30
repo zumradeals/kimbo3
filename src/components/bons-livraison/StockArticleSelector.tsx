@@ -39,6 +39,7 @@ interface StockArticle {
   location: string | null;
   status: 'disponible' | 'reserve' | 'epuise';
   category_id: string | null;
+  nombre_pieces?: number | null;
 }
 
 interface StockCategory {
@@ -221,6 +222,7 @@ export function StockArticleSelector({ onSelect, excludeIds = [] }: StockArticle
                 {filteredArticles.map((article) => {
                   const available = getAvailableQuantity(article);
                   const isLowStock = article.quantity_min && available <= article.quantity_min;
+                  const pieces = article.nombre_pieces || 1;
                   
                   return (
                     <TableRow key={article.id} className="cursor-pointer hover:bg-muted/50">
@@ -246,6 +248,11 @@ export function StockArticleSelector({ onSelect, excludeIds = [] }: StockArticle
                             <AlertTriangle className="h-3 w-3 text-warning" />
                           )}
                         </div>
+                        {pieces > 1 && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            ≈ {available * pieces} pièce(s) ({pieces}/{article.unit})
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className={statusColors[article.status]}>

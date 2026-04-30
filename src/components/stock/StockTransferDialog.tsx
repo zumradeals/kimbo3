@@ -35,6 +35,7 @@ interface StockTransferDialogProps {
   sourceEntrepotId?: string;
   availableQuantity?: number;
   unit?: string;
+  nombrePieces?: number;
   onSuccess?: () => void;
 }
 
@@ -46,6 +47,7 @@ export function StockTransferDialog({
   sourceEntrepotId,
   availableQuantity = 0,
   unit = 'unité',
+  nombrePieces = 1,
   onSuccess,
 }: StockTransferDialogProps) {
   const { toast } = useToast();
@@ -235,7 +237,7 @@ export function StockTransferDialog({
 
           {/* Quantity */}
           <div className="space-y-2">
-            <Label>Quantité à transférer</Label>
+            <Label>Quantité à transférer (en {unit})</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -251,7 +253,15 @@ export function StockTransferDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               Disponible: <span className="font-medium">{availableQuantity} {unit}</span>
+              {nombrePieces > 1 && (
+                <span> — soit <span className="font-medium">{availableQuantity * nombrePieces} pièce(s)</span> ({nombrePieces} pièces / {unit})</span>
+              )}
             </p>
+            {nombrePieces > 1 && parseFloat(form.quantity) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Équivalent à transférer: <span className="font-medium">{parseFloat(form.quantity) * nombrePieces} pièce(s)</span>
+              </p>
+            )}
           </div>
 
           {/* Observations */}

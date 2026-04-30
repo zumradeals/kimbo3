@@ -1223,7 +1223,7 @@ export default function StockDetail() {
             {/* Quantité disponible */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                Quantité disponible <span className="text-destructive">*</span>
+                Quantité disponible (en {editForm.unit || 'unité'}) <span className="text-destructive">*</span>
               </Label>
               <Input
                 type="number"
@@ -1233,6 +1233,12 @@ export default function StockDetail() {
                 onChange={(e) => setEditForm({ ...editForm, quantity_available: Number(e.target.value) })}
                 className="h-11"
               />
+              {editForm.nombre_pieces > 1 && editForm.quantity_available > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Équivalent: <strong>{editForm.quantity_available * editForm.nombre_pieces} pièce(s)</strong>
+                  {' '}({editForm.nombre_pieces} pièces / {editForm.unit || 'unité'})
+                </p>
+              )}
               {article && editForm.quantity_available !== article.quantity_available && (
                 <p className="text-xs text-warning">
                   Modification: {article.quantity_available} → {editForm.quantity_available} 
