@@ -510,7 +510,14 @@ export default function StockStandardTab() {
                                     <Badge variant="secondary" className="text-xs">{row.classe_comptable || '-'}</Badge>
                                   </TableCell>
                                   <TableCell className="border-r text-xs">{row.unit}</TableCell>
-                                  <TableCell className="border-r text-center text-xs">{row.nombre_pieces || 1}</TableCell>
+                                  <TableCell className="border-r text-center text-xs">
+                                    <div>{row.nombre_pieces || 1}</div>
+                                    {(row.nombre_pieces || 1) > 1 && (
+                                      <div className="text-[10px] text-muted-foreground">
+                                        Total: {(row.stock_final_qty ?? 0) * (row.nombre_pieces || 1)} pcs
+                                      </div>
+                                    )}
+                                  </TableCell>
                                   <TableCell className="border-r">
                                     <Badge variant="secondary" className={`text-[10px] ${row.conditionnement === 'perissable' ? 'bg-warning/10 text-warning' : 'bg-muted'}`}>
                                       {row.conditionnement === 'perissable' ? 'Périssable' : 'Durable'}

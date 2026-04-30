@@ -367,7 +367,12 @@ export default function StockKimbo() {
                         {/* Détails article */}
                         <TableCell className="border-l text-xs">{row.unit}</TableCell>
                         <TableCell className="border-l text-center text-xs">
-                          {row.nombre_pieces || 1}
+                          <div>{row.nombre_pieces || 1}</div>
+                          {(row.nombre_pieces || 1) > 1 && (
+                            <div className="text-[10px] text-muted-foreground">
+                              Total: {(row.stock_final_qty ?? 0) * (row.nombre_pieces || 1)} pcs
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="border-l">
                           <Badge
