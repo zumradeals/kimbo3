@@ -16,7 +16,8 @@ import { useEnrichedProfiles } from '@/hooks/useEnrichedProfiles';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { AmortissementTable } from '@/components/immobilisations/AmortissementTable';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle, Wrench, XCircle, UserCheck, History, Hash, Banknote, MapPin, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Wrench, XCircle, UserCheck, History, Hash, Banknote, MapPin, Package, Pencil, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const STATUS_LABELS: Record<string, string> = {
   brouillon: 'Brouillon', validee: 'Validée', active: 'Active',
@@ -181,6 +182,39 @@ export default function ImmobilisationDetail() {
         {canManage && nextActions.length > 0 && (
           <Card>
             <CardContent className="flex flex-wrap gap-2 py-4">
+              {immo.status === 'brouillon' && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/immobilisations/${immo.id}/modifier`)}>
+                    <Pencil className="mr-1.5 h-4 w-4" />Modifier
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="mr-1.5 h-4 w-4" />Supprimer
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce brouillon ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible. L'immobilisation {immo.code} sera définitivement supprimée.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={async () => {
+                            const { error } = await supabase.from('immobilisations').delete().eq('id', immo.id);
+                            if (error) { toast.error(error.message); return; }
+                            toast.success('Brouillon supprimé');
+                            navigate('/immobilisations');
+                          }}
+                        >Supprimer</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
               {nextActions.map(a => (
                 <Button key={a.status} variant={a.variant} size="sm" onClick={() => setActionDialog(a.status)}>
                   <a.icon className="mr-1.5 h-4 w-4" />{a.label}
