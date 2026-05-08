@@ -211,6 +211,7 @@ function AppRoutes() {
       {/* Module Immobilisations */}
       <Route path="/immobilisations" element={<ProtectedRoute><ImmobilisationsList /></ProtectedRoute>} />
       <Route path="/immobilisations/nouveau" element={<ProtectedRoute><ImmobilisationCreate /></ProtectedRoute>} />
+      <Route path="/immobilisations/:id/modifier" element={<ProtectedRoute><ImmobilisationCreate /></ProtectedRoute>} />
       <Route path="/immobilisations/:id" element={<ProtectedRoute><ImmobilisationDetail /></ProtectedRoute>} />
       
       {/* Profil et Utilisateurs */}

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -18,6 +18,8 @@ const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'
 
 export default function ImmobilisationCreate() {
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const isEdit = !!editId;
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +46,48 @@ export default function ImmobilisationCreate() {
     mois_acquisition: '' as string,
   });
 
+  // Charger l'immobilisation existante en mode édition
+  const { data: existingImmo } = useQuery({
+    queryKey: ['immobilisation-edit', editId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('immobilisations').select('*').eq('id', editId!).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isEdit,
+  });
+
+  useEffect(() => {
+    if (!existingImmo) return;
+    if (existingImmo.status !== 'brouillon') {
+      toast.error('Seules les immobilisations en brouillon peuvent être modifiées');
+      navigate(`/immobilisations/${existingImmo.id}`);
+      return;
+    }
+    setForm({
+      designation: existingImmo.designation || '',
+      description: existingImmo.description || '',
+      type: (existingImmo.type as any) || 'corporel',
+      classe_comptable: existingImmo.classe_comptable || 2,
+      category: existingImmo.category || '',
+      date_acquisition: existingImmo.date_acquisition || new Date().toISOString().split('T')[0],
+      mode_acquisition: existingImmo.mode_acquisition || 'achat_da',
+      valeur_acquisition: existingImmo.valeur_acquisition || 0,
+      devise: existingImmo.devise || 'XOF',
+      emplacement: existingImmo.emplacement || '',
+      department_id: existingImmo.department_id || '',
+      etat: existingImmo.etat || 'neuf',
+      duree_vie_annees: existingImmo.duree_vie_estimee ? Math.round(existingImmo.duree_vie_estimee / 12) : undefined,
+      numero_serie: existingImmo.numero_serie || '',
+      affecte_a: existingImmo.affecte_a || '',
+      da_id: existingImmo.da_id || '',
+      article_stock_id: existingImmo.article_stock_id || '',
+      mode_amortissement: ((existingImmo as any).mode_amortissement as any) || 'lineaire',
+      date_debut_exercice: (existingImmo as any).date_debut_exercice || '',
+      mois_acquisition: (existingImmo as any).mois_acquisition || '',
+    });
+  }, [existingImmo, navigate]);
+
   const { data: departments } = useQuery({
     queryKey: ['departments-active'],
     queryFn: async () => {
@@ -69,7 +113,7 @@ export default function ImmobilisationCreate() {
     try {
       const dureeVieMois = form.duree_vie_annees ? form.duree_vie_annees * 12 : null;
 
-      const insertData: any = {
+      const payload: any = {
         designation: form.designation.trim(),
         description: form.description.trim() || null,
         type: form.type,
@@ -87,19 +131,27 @@ export default function ImmobilisationCreate() {
         affecte_a: form.affecte_a || null,
         da_id: form.da_id || null,
         article_stock_id: form.article_stock_id || null,
-        created_by: user.id,
-        code: '',
         mode_amortissement: form.mode_amortissement,
         date_debut_exercice: form.date_debut_exercice || null,
         mois_acquisition: form.mois_acquisition || null,
       };
 
-      const { data, error } = await supabase.from('immobilisations').insert(insertData).select('id').single();
-      if (error) throw error;
-      toast.success('Immobilisation créée avec succès');
-      navigate(`/immobilisations/${data.id}`);
+      if (isEdit) {
+        const { error } = await supabase.from('immobilisations').update(payload).eq('id', editId!);
+        if (error) throw error;
+        toast.success('Immobilisation modifiée avec succès');
+        navigate(`/immobilisations/${editId}`);
+      } else {
+        const { data, error } = await supabase
+          .from('immobilisations')
+          .insert({ ...payload, created_by: user.id, code: '' })
+          .select('id').single();
+        if (error) throw error;
+        toast.success('Immobilisation créée avec succès');
+        navigate(`/immobilisations/${data.id}`);
+      }
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la création');
+      toast.error(err.message || 'Erreur');
     } finally {
       setLoading(false);
     }
@@ -113,8 +165,8 @@ export default function ImmobilisationCreate() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
           <div>
-            <h1 className="text-2xl font-bold">Nouvelle immobilisation</h1>
-            <p className="text-sm text-muted-foreground">Enregistrer un nouveau bien durable</p>
+            <h1 className="text-2xl font-bold">{isEdit ? 'Modifier l\'immobilisation' : 'Nouvelle immobilisation'}</h1>
+            <p className="text-sm text-muted-foreground">{isEdit ? 'Modification des données du brouillon' : 'Enregistrer un nouveau bien durable'}</p>
           </div>
         </div>
 
@@ -305,7 +357,7 @@ export default function ImmobilisationCreate() {
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>Annuler</Button>
             <Button type="submit" disabled={loading}>
-              <Save className="mr-2 h-4 w-4" />{loading ? 'Création...' : 'Créer l\'immobilisation'}
+              <Save className="mr-2 h-4 w-4" />{loading ? 'Enregistrement...' : (isEdit ? 'Enregistrer les modifications' : 'Créer l\'immobilisation')}
             </Button>
           </div>
         </form>
