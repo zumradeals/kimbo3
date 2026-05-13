@@ -1792,6 +1792,14 @@ export default function DADetail() {
                     <p className="text-sm text-muted-foreground">
                       Modifiez les quantités, prix ou fournisseurs dans la section Articles ci-dessous, puis validez le chiffrage. L'AAL re-validera ensuite.
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                      <span className="text-muted-foreground">
+                        Ancien montant : <span className="font-medium text-foreground">{(da.total_amount || 0).toLocaleString()} {da.currency || 'XOF'}</span>
+                      </span>
+                      <span className="text-muted-foreground">
+                        Nouveau montant (live) : <span className="font-bold text-warning">{total.toLocaleString()} XOF</span>
+                      </span>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={handleMarkAsChiffree} disabled={isSaving || total === 0}>
@@ -1806,19 +1814,31 @@ export default function DADetail() {
         )}
 
         {/* Total if priced */}
-        {da.total_amount && !['validee_finance', 'refusee_finance'].includes(da.status) && (
-          <Card className="border-success/50 bg-success/5">
-            <CardContent className="flex items-center gap-3 py-4">
-              <DollarSign className="h-6 w-6 text-success" />
-              <div>
-                <p className="text-lg font-bold text-foreground">
-                  {da.total_amount.toLocaleString()} {da.currency}
-                </p>
-                <p className="text-sm text-muted-foreground">Montant total estimé</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {da.total_amount && !['validee_finance', 'refusee_finance'].includes(da.status) && (() => {
+          const isRevision = da.status === 'en_revision_achats';
+          const displayed = isRevision && total > 0 ? total : da.total_amount;
+          const changed = isRevision && total > 0 && total !== da.total_amount;
+          return (
+            <Card className="border-success/50 bg-success/5">
+              <CardContent className="flex items-center gap-3 py-4">
+                <DollarSign className="h-6 w-6 text-success" />
+                <div>
+                  <p className="text-lg font-bold text-foreground">
+                    {displayed.toLocaleString()} {da.currency || 'XOF'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Montant total estimé{isRevision ? ' (recalculé en direct)' : ''}
+                  </p>
+                  {changed && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Ancien : <span className="line-through">{da.total_amount.toLocaleString()} {da.currency || 'XOF'}</span> — sera enregistré après « Valider le chiffrage révisé ».
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Besoin source */}
         <Card>
