@@ -813,6 +813,51 @@ export default function BesoinDetail() {
           </Card>
         )}
 
+        {/* Lien parent / besoins-fils issus d'une scission */}
+        {(parentBesoin || childBesoins.length > 0) && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Split className="h-4 w-4 text-primary" />
+                <p className="font-medium text-foreground">Besoins liés (scission)</p>
+              </div>
+              {parentBesoin && (
+                <Link
+                  to={`/besoins/${parentBesoin.id}`}
+                  className="block rounded-md border bg-background p-3 hover:bg-muted/40 transition"
+                >
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Besoin parent (à convertir en BL — stock)</p>
+                  <p className="font-medium">{parentBesoin.title}</p>
+                  <p className="text-xs text-muted-foreground">Statut : {parentBesoin.status}{parentBesoin.is_locked ? ' • verrouillé' : ''}</p>
+                </Link>
+              )}
+              {childBesoins.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/besoins/${c.id}`}
+                  className="block rounded-md border bg-background p-3 hover:bg-muted/40 transition"
+                >
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Besoin-fils (à convertir en DA — achat)</p>
+                  <p className="font-medium">{c.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Statut : {c.status}{c.is_locked ? ` • ${c.locked_reason ?? 'verrouillé'}` : ''}
+                  </p>
+                </Link>
+              ))}
+              {parentBesoin && (
+                <p className="text-xs text-muted-foreground">
+                  Ce besoin contient les lignes <strong>à acheter</strong>. Le besoin parent contient les lignes <strong>disponibles en stock</strong> à convertir en BL.
+                </p>
+              )}
+              {!parentBesoin && childBesoins.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Ce besoin conserve les lignes <strong>disponibles en stock</strong> (à convertir en BL ci-dessous). Le ou les besoins-fils contiennent les lignes <strong>à acheter</strong> (DA).
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Transformation actions for accepted besoins */}
         {canManage && besoin.status === 'accepte' && !besoin.is_locked && canTransform && (
           <Card className="border-success/50 bg-success/5">
