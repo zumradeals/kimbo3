@@ -3441,6 +3441,10 @@ export type Database = {
         Args: { _besoin_id: string; _ligne_ids: string[] }
         Returns: string
       }
+      split_besoin_qty: {
+        Args: { _besoin_id: string; _moves: Json }
+        Returns: string
+      }
       submit_bl_to_aal: {
         Args: { _bl_id: string }
         Returns: {
