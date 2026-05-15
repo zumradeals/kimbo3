@@ -105,23 +105,22 @@ export default function BLDetail() {
   const isDAF = roles.includes('daf');
   const isAAL = roles.includes('aal');
 
-  // NEW WORKFLOW permissions
-  // Logistique soumet le BL brouillon → soumis_aal (ou soumis_daf si bypass AAL)
-  const canSubmitToAAL = (isOperational || isAdmin) && (bl?.status === 'brouillon' || bl?.status === 'prepare');
-  // AAL valide → soumis_daf  OR  rejette → brouillon (désactivé si bypass)
-  const canValidateAAL = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'soumis_aal';
-  // DAF valide → valide_daf  OR  refuse → refuse_daf (retour AAL)
-  const canValidateDAF = (isDAF || isAdmin) && bl?.status === 'soumis_daf';
-  // Logistique marque prêt à livrer
-  const canMarkReady = (isOperational || isAdmin) && bl?.status === 'valide_daf';
-  // Logistique enregistre la livraison
+  // NEW WORKFLOW (logistique uniquement) :
+  // brouillon/prepare → pret_a_livrer → livre → cloture
+  // Le DAF et l'AAL n'interviennent plus dans la validation des BL.
+  const canMarkReady = (isOperational || isAdmin) && [
+    'brouillon', 'prepare',
+    // legacy in-flight states: laisser la logistique forcer le passage en prêt à livrer
+    'soumis_aal', 'soumis_daf', 'valide_daf', 'refuse_daf', 'refusee', 'en_attente_validation',
+  ].includes(bl?.status as string);
   const canDeliver = (isOperational || isAdmin) && bl?.status === 'pret_a_livrer';
-  // Clôture après livraison
   const canClose = (isOperational || isAdmin) && bl?.status === 'livre';
-  // AAL can resubmit after DAF refusal (désactivé si bypass)
-  const canResubmitAfterRefuse = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'refuse_daf';
-  // When bypass: logistique handles DAF refusals directly
-  const canResubmitAfterRefuseBypass = aalBypassEnabled && (isOperational || isAdmin) && bl?.status === 'refuse_daf';
+  // Anciens contrôles désactivés
+  const canSubmitToAAL = false;
+  const canValidateAAL = false;
+  const canValidateDAF = false;
+  const canResubmitAfterRefuse = false;
+  const canResubmitAfterRefuseBypass = false;
   
   const canDelete = isAdmin;
 
@@ -212,80 +211,7 @@ export default function BLDetail() {
     }
   };
 
-  // Submit to AAL (or directly to DAF if bypass enabled)
-  const handleSubmitToAAL = async () => {
-    if (!bl) return;
-
-    setIsSaving(true);
-    try {
-      if (aalBypassEnabled) {
-        // Skip AAL, go directly to soumis_daf
-        await updateStatus('soumis_daf', {});
-        toast({ title: 'BL soumis', description: 'Le BL a été transmis directement au DAF pour validation.' });
-      } else {
-        const { data, error } = await supabase.rpc('submit_bl_to_aal', { _bl_id: bl.id });
-
-        if (error) throw error;
-        if (!data) {
-          throw new Error('La soumission du BL a échoué.');
-        }
-
-        toast({ title: 'BL soumis', description: 'Le BL a été transmis à l\'AAL pour validation.' });
-      }
-      await fetchBL();
-    } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // AAL validates → soumis_daf
-  const handleAALValidate = () => updateStatus('soumis_daf', {
-    validated_aal_by: user?.id,
-    validated_aal_at: new Date().toISOString(),
-  });
-
-  // AAL rejects → brouillon
-  const handleAALReject = async () => {
-    if (!rejectReason.trim()) {
-      toast({ title: 'Motif requis', description: 'Veuillez indiquer un motif de rejet.', variant: 'destructive' });
-      return;
-    }
-    await updateStatus('brouillon', { aal_rejection_reason: rejectReason });
-    setShowRejectDialog(false);
-    setRejectReason('');
-  };
-
-  // DAF validates → valide_daf
-  const handleDAFValidate = () => updateStatus('valide_daf', {
-    validated_daf_by: user?.id,
-    validated_daf_at: new Date().toISOString(),
-  });
-
-  // DAF refuses → refuse_daf
-  const handleDAFReject = async () => {
-    if (!rejectReason.trim()) {
-      toast({ title: 'Motif requis', description: 'Veuillez indiquer un motif de refus.', variant: 'destructive' });
-      return;
-    }
-    await updateStatus('refuse_daf', {
-      daf_rejection_reason: rejectReason,
-      rejected_by: user?.id,
-      rejected_at: new Date().toISOString(),
-    });
-    setShowRejectDialog(false);
-    setRejectReason('');
-  };
-
-  // AAL resubmits after DAF refusal
-  const handleResubmitToDAF = () => updateStatus('soumis_daf', {
-    validated_aal_by: user?.id,
-    validated_aal_at: new Date().toISOString(),
-    daf_rejection_reason: null,
-  });
-
-  // Mark ready to deliver
+  // Mark ready to deliver (depuis n'importe quel statut intermédiaire)
   const handleMarkReady = () => updateStatus('pret_a_livrer');
 
   // Close BL
@@ -560,23 +486,13 @@ export default function BLDetail() {
     });
   };
 
-  // Workflow steps for timeline
-  const workflowSteps = aalBypassEnabled
-    ? [
-        { label: 'Brouillon', done: true },
-        { label: 'Soumis DAF', done: !['brouillon', 'prepare'].includes(bl.status) && bl.status !== 'refuse_daf' },
-        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-      ]
-    : [
-        { label: 'Brouillon', done: true },
-        { label: 'Soumis AAL', done: !['brouillon', 'prepare'].includes(bl.status) },
-        { label: 'Soumis DAF', done: !['brouillon', 'prepare', 'soumis_aal'].includes(bl.status) && bl.status !== 'refuse_daf' },
-        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-      ];
+  // Workflow simplifié — logistique uniquement
+  const workflowSteps = [
+    { label: 'Brouillon', done: true },
+    { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+    { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+    { label: 'Clôturé', done: bl.status === 'cloture' },
+  ];
 
   return (
     <AppLayout>
@@ -659,109 +575,14 @@ export default function BLDetail() {
           </Card>
         )}
 
-        {/* === ACTION CARDS === */}
-
-        {/* Logistique: Soumettre à AAL / DAF */}
-        {canSubmitToAAL && (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">BL en brouillon</p>
-                <p className="text-sm text-muted-foreground">{aalBypassEnabled ? 'Soumettez ce BL directement au DAF pour validation.' : 'Soumettez ce BL à l\'AAL pour validation.'}</p>
-              </div>
-              <Button onClick={handleSubmitToAAL} disabled={isSaving}>
-                <Send className="mr-2 h-4 w-4" />{aalBypassEnabled ? 'Soumettre au DAF' : 'Soumettre à l\'AAL'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AAL: Valider ou Rejeter */}
-        {canValidateAAL && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">Validation AAL requise</p>
-                <p className="text-sm text-muted-foreground">Validez pour transmettre au DAF, ou rejetez avec motif.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => openRejectDialog('aal')} disabled={isSaving}>
-                  <XCircle className="mr-2 h-4 w-4" />Rejeter
-                </Button>
-                <Button onClick={handleAALValidate} disabled={isSaving}>
-                  <CheckCircle className="mr-2 h-4 w-4" />Valider AAL
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* DAF: Valider ou Refuser */}
-        {canValidateDAF && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">Validation DAF requise</p>
-                <p className="text-sm text-muted-foreground">Validez ce BL pour autoriser la livraison.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => openRejectDialog('daf')} disabled={isSaving}>
-                  <XCircle className="mr-2 h-4 w-4" />Refuser
-                </Button>
-                <Button onClick={handleDAFValidate} disabled={isSaving}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />Valider DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AAL: Resubmit after DAF refusal */}
-        {canResubmitAfterRefuse && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">BL refusé par le DAF</p>
-                <p className="text-sm text-muted-foreground">Corrigez et resoumetez au DAF, ou renvoyez à la logistique.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => updateStatus('brouillon')} disabled={isSaving}>
-                  Renvoyer à la logistique
-                </Button>
-                <Button onClick={handleResubmitToDAF} disabled={isSaving}>
-                  <Send className="mr-2 h-4 w-4" />Resoumettre au DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Bypass: Logistique resubmit after DAF refusal */}
-        {canResubmitAfterRefuseBypass && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">BL refusé par le DAF</p>
-                <p className="text-sm text-muted-foreground">Corrigez et resoumetez directement au DAF.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => updateStatus('brouillon')} disabled={isSaving}>
-                  Remettre en brouillon
-                </Button>
-                <Button onClick={() => updateStatus('soumis_daf', { daf_rejection_reason: null })} disabled={isSaving}>
-                  <Send className="mr-2 h-4 w-4" />Resoumettre au DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* === ACTION CARDS — Logistique uniquement === */}
 
         {canMarkReady && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-medium text-foreground">Validé par le DAF ✓</p>
-                <p className="text-sm text-muted-foreground">Marquez ce BL comme prêt à livrer/enlever.</p>
+                <p className="font-medium text-foreground">BL prêt à être livré</p>
+                <p className="text-sm text-muted-foreground">La logistique valide directement et marque ce BL comme prêt à livrer/enlever.</p>
               </div>
               <Button onClick={handleMarkReady} disabled={isSaving}>
                 <PackageCheck className="mr-2 h-4 w-4" />Marquer prêt à livrer
@@ -968,27 +789,7 @@ export default function BLDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject Dialog (AAL or DAF) */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{rejectSource === 'aal' ? 'Rejeter le BL (AAL)' : 'Refuser le BL (DAF)'}</DialogTitle>
-            <DialogDescription>
-              {rejectSource === 'aal' ? 'Le BL sera renvoyé à la logistique pour correction.' : 'Le BL sera renvoyé à l\'AAL.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <Label>Motif du {rejectSource === 'aal' ? 'rejet' : 'refus'} *</Label>
-            <Textarea placeholder="Indiquez le motif..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Annuler</Button>
-            <Button variant="destructive" onClick={rejectSource === 'aal' ? handleAALReject : handleDAFReject} disabled={isSaving || !rejectReason.trim()}>
-              {isSaving ? 'En cours...' : 'Confirmer'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reject Dialog supprimé — plus de validation DAF/AAL sur les BL */}
 
       {/* Delivery Dialog */}
       <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
