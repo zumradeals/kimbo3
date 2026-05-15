@@ -110,6 +110,8 @@ export default function BesoinDetail() {
 
   const [besoin, setBesoin] = useState<BesoinWithRelations | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [parentBesoin, setParentBesoin] = useState<{ id: string; title: string; status: string; is_locked: boolean } | null>(null);
+  const [childBesoins, setChildBesoins] = useState<Array<{ id: string; title: string; status: string; is_locked: boolean; locked_reason: string | null }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -211,6 +213,24 @@ export default function BesoinDetail() {
         lignes: lignesData || [],
         attachments: attachmentsData || [],
       } as BesoinWithRelations);
+
+      // Fetch parent (if any) + children (scissions)
+      const [{ data: parentData }, { data: childrenData }] = await Promise.all([
+        data.parent_besoin_id
+          ? supabase
+              .from('besoins')
+              .select('id, title, status, is_locked')
+              .eq('id', data.parent_besoin_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        supabase
+          .from('besoins')
+          .select('id, title, status, is_locked, locked_reason')
+          .eq('parent_besoin_id', data.id)
+          .order('created_at', { ascending: true }),
+      ]);
+      setParentBesoin(parentData as any);
+      setChildBesoins((childrenData as any) || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
