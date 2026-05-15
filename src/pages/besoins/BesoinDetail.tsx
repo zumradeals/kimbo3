@@ -1264,6 +1264,16 @@ export default function BesoinDetail() {
         entityType="besoin"
         isLoading={isSaving}
       />
+
+      {/* Split Dialog */}
+      {besoin && (
+        <SplitBesoinDialog
+          besoinId={besoin.id}
+          open={showSplitDialog}
+          onOpenChange={setShowSplitDialog}
+          onDone={fetchBesoin}
+        />
+      )}
     </AppLayout>
   );
 }
