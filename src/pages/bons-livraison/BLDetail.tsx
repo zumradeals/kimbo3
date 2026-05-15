@@ -575,109 +575,14 @@ export default function BLDetail() {
           </Card>
         )}
 
-        {/* === ACTION CARDS === */}
-
-        {/* Logistique: Soumettre à AAL / DAF */}
-        {canSubmitToAAL && (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">BL en brouillon</p>
-                <p className="text-sm text-muted-foreground">{aalBypassEnabled ? 'Soumettez ce BL directement au DAF pour validation.' : 'Soumettez ce BL à l\'AAL pour validation.'}</p>
-              </div>
-              <Button onClick={handleSubmitToAAL} disabled={isSaving}>
-                <Send className="mr-2 h-4 w-4" />{aalBypassEnabled ? 'Soumettre au DAF' : 'Soumettre à l\'AAL'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AAL: Valider ou Rejeter */}
-        {canValidateAAL && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">Validation AAL requise</p>
-                <p className="text-sm text-muted-foreground">Validez pour transmettre au DAF, ou rejetez avec motif.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => openRejectDialog('aal')} disabled={isSaving}>
-                  <XCircle className="mr-2 h-4 w-4" />Rejeter
-                </Button>
-                <Button onClick={handleAALValidate} disabled={isSaving}>
-                  <CheckCircle className="mr-2 h-4 w-4" />Valider AAL
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* DAF: Valider ou Refuser */}
-        {canValidateDAF && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">Validation DAF requise</p>
-                <p className="text-sm text-muted-foreground">Validez ce BL pour autoriser la livraison.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => openRejectDialog('daf')} disabled={isSaving}>
-                  <XCircle className="mr-2 h-4 w-4" />Refuser
-                </Button>
-                <Button onClick={handleDAFValidate} disabled={isSaving}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />Valider DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AAL: Resubmit after DAF refusal */}
-        {canResubmitAfterRefuse && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">BL refusé par le DAF</p>
-                <p className="text-sm text-muted-foreground">Corrigez et resoumetez au DAF, ou renvoyez à la logistique.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => updateStatus('brouillon')} disabled={isSaving}>
-                  Renvoyer à la logistique
-                </Button>
-                <Button onClick={handleResubmitToDAF} disabled={isSaving}>
-                  <Send className="mr-2 h-4 w-4" />Resoumettre au DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Bypass: Logistique resubmit after DAF refusal */}
-        {canResubmitAfterRefuseBypass && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium text-foreground">BL refusé par le DAF</p>
-                <p className="text-sm text-muted-foreground">Corrigez et resoumetez directement au DAF.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => updateStatus('brouillon')} disabled={isSaving}>
-                  Remettre en brouillon
-                </Button>
-                <Button onClick={() => updateStatus('soumis_daf', { daf_rejection_reason: null })} disabled={isSaving}>
-                  <Send className="mr-2 h-4 w-4" />Resoumettre au DAF
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* === ACTION CARDS — Logistique uniquement === */}
 
         {canMarkReady && (
           <Card className="border-primary/50 bg-primary/5">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-medium text-foreground">Validé par le DAF ✓</p>
-                <p className="text-sm text-muted-foreground">Marquez ce BL comme prêt à livrer/enlever.</p>
+                <p className="font-medium text-foreground">BL prêt à être livré</p>
+                <p className="text-sm text-muted-foreground">La logistique valide directement et marque ce BL comme prêt à livrer/enlever.</p>
               </div>
               <Button onClick={handleMarkReady} disabled={isSaving}>
                 <PackageCheck className="mr-2 h-4 w-4" />Marquer prêt à livrer
