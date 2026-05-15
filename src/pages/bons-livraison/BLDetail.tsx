@@ -789,27 +789,7 @@ export default function BLDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject Dialog (AAL or DAF) */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{rejectSource === 'aal' ? 'Rejeter le BL (AAL)' : 'Refuser le BL (DAF)'}</DialogTitle>
-            <DialogDescription>
-              {rejectSource === 'aal' ? 'Le BL sera renvoyé à la logistique pour correction.' : 'Le BL sera renvoyé à l\'AAL.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <Label>Motif du {rejectSource === 'aal' ? 'rejet' : 'refus'} *</Label>
-            <Textarea placeholder="Indiquez le motif..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Annuler</Button>
-            <Button variant="destructive" onClick={rejectSource === 'aal' ? handleAALReject : handleDAFReject} disabled={isSaving || !rejectReason.trim()}>
-              {isSaving ? 'En cours...' : 'Confirmer'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reject Dialog supprimé — plus de validation DAF/AAL sur les BL */}
 
       {/* Delivery Dialog */}
       <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
