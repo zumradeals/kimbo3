@@ -105,23 +105,22 @@ export default function BLDetail() {
   const isDAF = roles.includes('daf');
   const isAAL = roles.includes('aal');
 
-  // NEW WORKFLOW permissions
-  // Logistique soumet le BL brouillon → soumis_aal (ou soumis_daf si bypass AAL)
-  const canSubmitToAAL = (isOperational || isAdmin) && (bl?.status === 'brouillon' || bl?.status === 'prepare');
-  // AAL valide → soumis_daf  OR  rejette → brouillon (désactivé si bypass)
-  const canValidateAAL = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'soumis_aal';
-  // DAF valide → valide_daf  OR  refuse → refuse_daf (retour AAL)
-  const canValidateDAF = (isDAF || isAdmin) && bl?.status === 'soumis_daf';
-  // Logistique marque prêt à livrer
-  const canMarkReady = (isOperational || isAdmin) && bl?.status === 'valide_daf';
-  // Logistique enregistre la livraison
+  // NEW WORKFLOW (logistique uniquement) :
+  // brouillon/prepare → pret_a_livrer → livre → cloture
+  // Le DAF et l'AAL n'interviennent plus dans la validation des BL.
+  const canMarkReady = (isOperational || isAdmin) && [
+    'brouillon', 'prepare',
+    // legacy in-flight states: laisser la logistique forcer le passage en prêt à livrer
+    'soumis_aal', 'soumis_daf', 'valide_daf', 'refuse_daf', 'refusee', 'en_attente_validation',
+  ].includes(bl?.status as string);
   const canDeliver = (isOperational || isAdmin) && bl?.status === 'pret_a_livrer';
-  // Clôture après livraison
   const canClose = (isOperational || isAdmin) && bl?.status === 'livre';
-  // AAL can resubmit after DAF refusal (désactivé si bypass)
-  const canResubmitAfterRefuse = !aalBypassEnabled && (isAAL || isAdmin) && bl?.status === 'refuse_daf';
-  // When bypass: logistique handles DAF refusals directly
-  const canResubmitAfterRefuseBypass = aalBypassEnabled && (isOperational || isAdmin) && bl?.status === 'refuse_daf';
+  // Anciens contrôles désactivés
+  const canSubmitToAAL = false;
+  const canValidateAAL = false;
+  const canValidateDAF = false;
+  const canResubmitAfterRefuse = false;
+  const canResubmitAfterRefuseBypass = false;
   
   const canDelete = isAdmin;
 
@@ -212,80 +211,7 @@ export default function BLDetail() {
     }
   };
 
-  // Submit to AAL (or directly to DAF if bypass enabled)
-  const handleSubmitToAAL = async () => {
-    if (!bl) return;
-
-    setIsSaving(true);
-    try {
-      if (aalBypassEnabled) {
-        // Skip AAL, go directly to soumis_daf
-        await updateStatus('soumis_daf', {});
-        toast({ title: 'BL soumis', description: 'Le BL a été transmis directement au DAF pour validation.' });
-      } else {
-        const { data, error } = await supabase.rpc('submit_bl_to_aal', { _bl_id: bl.id });
-
-        if (error) throw error;
-        if (!data) {
-          throw new Error('La soumission du BL a échoué.');
-        }
-
-        toast({ title: 'BL soumis', description: 'Le BL a été transmis à l\'AAL pour validation.' });
-      }
-      await fetchBL();
-    } catch (error: any) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // AAL validates → soumis_daf
-  const handleAALValidate = () => updateStatus('soumis_daf', {
-    validated_aal_by: user?.id,
-    validated_aal_at: new Date().toISOString(),
-  });
-
-  // AAL rejects → brouillon
-  const handleAALReject = async () => {
-    if (!rejectReason.trim()) {
-      toast({ title: 'Motif requis', description: 'Veuillez indiquer un motif de rejet.', variant: 'destructive' });
-      return;
-    }
-    await updateStatus('brouillon', { aal_rejection_reason: rejectReason });
-    setShowRejectDialog(false);
-    setRejectReason('');
-  };
-
-  // DAF validates → valide_daf
-  const handleDAFValidate = () => updateStatus('valide_daf', {
-    validated_daf_by: user?.id,
-    validated_daf_at: new Date().toISOString(),
-  });
-
-  // DAF refuses → refuse_daf
-  const handleDAFReject = async () => {
-    if (!rejectReason.trim()) {
-      toast({ title: 'Motif requis', description: 'Veuillez indiquer un motif de refus.', variant: 'destructive' });
-      return;
-    }
-    await updateStatus('refuse_daf', {
-      daf_rejection_reason: rejectReason,
-      rejected_by: user?.id,
-      rejected_at: new Date().toISOString(),
-    });
-    setShowRejectDialog(false);
-    setRejectReason('');
-  };
-
-  // AAL resubmits after DAF refusal
-  const handleResubmitToDAF = () => updateStatus('soumis_daf', {
-    validated_aal_by: user?.id,
-    validated_aal_at: new Date().toISOString(),
-    daf_rejection_reason: null,
-  });
-
-  // Mark ready to deliver
+  // Mark ready to deliver (depuis n'importe quel statut intermédiaire)
   const handleMarkReady = () => updateStatus('pret_a_livrer');
 
   // Close BL
@@ -560,23 +486,13 @@ export default function BLDetail() {
     });
   };
 
-  // Workflow steps for timeline
-  const workflowSteps = aalBypassEnabled
-    ? [
-        { label: 'Brouillon', done: true },
-        { label: 'Soumis DAF', done: !['brouillon', 'prepare'].includes(bl.status) && bl.status !== 'refuse_daf' },
-        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-      ]
-    : [
-        { label: 'Brouillon', done: true },
-        { label: 'Soumis AAL', done: !['brouillon', 'prepare'].includes(bl.status) },
-        { label: 'Soumis DAF', done: !['brouillon', 'prepare', 'soumis_aal'].includes(bl.status) && bl.status !== 'refuse_daf' },
-        { label: 'Validé DAF', done: ['valide_daf', 'pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-        { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
-      ];
+  // Workflow simplifié — logistique uniquement
+  const workflowSteps = [
+    { label: 'Brouillon', done: true },
+    { label: 'Prêt à livrer', done: ['pret_a_livrer', 'livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+    { label: 'Livré', done: ['livre', 'livree_partiellement', 'cloture'].includes(bl.status) },
+    { label: 'Clôturé', done: bl.status === 'cloture' },
+  ];
 
   return (
     <AppLayout>
