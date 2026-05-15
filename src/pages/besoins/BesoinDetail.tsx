@@ -76,7 +76,8 @@ import { CancelDialog } from '@/components/ui/CancelDialog';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import { Ban } from 'lucide-react';
 import { exportBesoinToPDF } from '@/utils/pdfExport';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Split } from 'lucide-react';
+import { SplitBesoinDialog } from '@/components/besoins/SplitBesoinDialog';
 
 const statusColors: Record<string, string> = {
   cree: 'bg-muted text-muted-foreground',
@@ -119,6 +120,7 @@ export default function BesoinDetail() {
   const [returnComment, setReturnComment] = useState('');
   const [lockReason, setLockReason] = useState('');
   const [canTransform, setCanTransform] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
 
   // Logistique ET Achats partagent les mêmes capacités opérationnelles (mutualisation)
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
