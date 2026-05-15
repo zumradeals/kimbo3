@@ -76,7 +76,8 @@ import { CancelDialog } from '@/components/ui/CancelDialog';
 import { ReadOnlyBadge } from '@/components/ui/ReadOnlyBadge';
 import { Ban } from 'lucide-react';
 import { exportBesoinToPDF } from '@/utils/pdfExport';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Split } from 'lucide-react';
+import { SplitBesoinDialog } from '@/components/besoins/SplitBesoinDialog';
 
 const statusColors: Record<string, string> = {
   cree: 'bg-muted text-muted-foreground',
@@ -119,6 +120,7 @@ export default function BesoinDetail() {
   const [returnComment, setReturnComment] = useState('');
   const [lockReason, setLockReason] = useState('');
   const [canTransform, setCanTransform] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
 
   // Logistique ET Achats partagent les mêmes capacités opérationnelles (mutualisation)
   const isLogistics = roles.some((r) => ['responsable_logistique', 'agent_logistique'].includes(r));
@@ -821,6 +823,24 @@ export default function BesoinDetail() {
                   </Button>
                 </Link>
               </div>
+              {(besoin.lignes?.length ?? 0) > 1 && (
+                <div className="mt-3 border-t pt-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full justify-start text-primary hover:bg-primary/10"
+                    onClick={() => setShowSplitDialog(true)}
+                  >
+                    <Split className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <p className="font-medium">Scinder ce besoin (mixte stock / achat)</p>
+                      <p className="text-xs text-muted-foreground">
+                        Crée un besoin-fils avec les lignes à acheter, conserve ici celles disponibles en stock
+                      </p>
+                    </div>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -1244,6 +1264,16 @@ export default function BesoinDetail() {
         entityType="besoin"
         isLoading={isSaving}
       />
+
+      {/* Split Dialog */}
+      {besoin && (
+        <SplitBesoinDialog
+          besoinId={besoin.id}
+          open={showSplitDialog}
+          onOpenChange={setShowSplitDialog}
+          onDone={fetchBesoin}
+        />
+      )}
     </AppLayout>
   );
 }
