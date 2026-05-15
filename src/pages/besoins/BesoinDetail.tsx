@@ -823,6 +823,24 @@ export default function BesoinDetail() {
                   </Button>
                 </Link>
               </div>
+              {(besoin.lignes?.length ?? 0) > 1 && (
+                <div className="mt-3 border-t pt-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full justify-start text-primary hover:bg-primary/10"
+                    onClick={() => setShowSplitDialog(true)}
+                  >
+                    <Split className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <p className="font-medium">Scinder ce besoin (mixte stock / achat)</p>
+                      <p className="text-xs text-muted-foreground">
+                        Crée un besoin-fils avec les lignes à acheter, conserve ici celles disponibles en stock
+                      </p>
+                    </div>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
