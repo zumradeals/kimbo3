@@ -294,6 +294,7 @@ export type Database = {
           locked_at: string | null
           locked_reason: string | null
           objet_besoin: string | null
+          parent_besoin_id: string | null
           projet_id: string | null
           rejection_reason: string | null
           return_comment: string | null
@@ -337,6 +338,7 @@ export type Database = {
           locked_at?: string | null
           locked_reason?: string | null
           objet_besoin?: string | null
+          parent_besoin_id?: string | null
           projet_id?: string | null
           rejection_reason?: string | null
           return_comment?: string | null
@@ -380,6 +382,7 @@ export type Database = {
           locked_at?: string | null
           locked_reason?: string | null
           objet_besoin?: string | null
+          parent_besoin_id?: string | null
           projet_id?: string | null
           rejection_reason?: string | null
           return_comment?: string | null
@@ -414,6 +417,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "besoins_parent_besoin_id_fkey"
+            columns: ["parent_besoin_id"]
+            isOneToOne: false
+            referencedRelation: "besoins"
             referencedColumns: ["id"]
           },
           {
@@ -3426,6 +3436,10 @@ export type Database = {
       reject_expression_by_manager: {
         Args: { _expression_id: string; _rejection_reason: string }
         Returns: boolean
+      }
+      split_besoin: {
+        Args: { _besoin_id: string; _ligne_ids: string[] }
+        Returns: string
       }
       submit_bl_to_aal: {
         Args: { _bl_id: string }
