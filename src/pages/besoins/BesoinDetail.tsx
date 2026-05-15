@@ -110,6 +110,8 @@ export default function BesoinDetail() {
 
   const [besoin, setBesoin] = useState<BesoinWithRelations | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [parentBesoin, setParentBesoin] = useState<{ id: string; title: string; status: string; is_locked: boolean } | null>(null);
+  const [childBesoins, setChildBesoins] = useState<Array<{ id: string; title: string; status: string; is_locked: boolean; locked_reason: string | null }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -211,6 +213,24 @@ export default function BesoinDetail() {
         lignes: lignesData || [],
         attachments: attachmentsData || [],
       } as BesoinWithRelations);
+
+      // Fetch parent (if any) + children (scissions)
+      const [{ data: parentData }, { data: childrenData }] = await Promise.all([
+        data.parent_besoin_id
+          ? supabase
+              .from('besoins')
+              .select('id, title, status, is_locked')
+              .eq('id', data.parent_besoin_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        supabase
+          .from('besoins')
+          .select('id, title, status, is_locked, locked_reason')
+          .eq('parent_besoin_id', data.id)
+          .order('created_at', { ascending: true }),
+      ]);
+      setParentBesoin(parentData as any);
+      setChildBesoins((childrenData as any) || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -789,6 +809,51 @@ export default function BesoinDetail() {
                   Accepter
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Lien parent / besoins-fils issus d'une scission */}
+        {(parentBesoin || childBesoins.length > 0) && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Split className="h-4 w-4 text-primary" />
+                <p className="font-medium text-foreground">Besoins liés (scission)</p>
+              </div>
+              {parentBesoin && (
+                <Link
+                  to={`/besoins/${parentBesoin.id}`}
+                  className="block rounded-md border bg-background p-3 hover:bg-muted/40 transition"
+                >
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Besoin parent (à convertir en BL — stock)</p>
+                  <p className="font-medium">{parentBesoin.title}</p>
+                  <p className="text-xs text-muted-foreground">Statut : {parentBesoin.status}{parentBesoin.is_locked ? ' • verrouillé' : ''}</p>
+                </Link>
+              )}
+              {childBesoins.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/besoins/${c.id}`}
+                  className="block rounded-md border bg-background p-3 hover:bg-muted/40 transition"
+                >
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Besoin-fils (à convertir en DA — achat)</p>
+                  <p className="font-medium">{c.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Statut : {c.status}{c.is_locked ? ` • ${c.locked_reason ?? 'verrouillé'}` : ''}
+                  </p>
+                </Link>
+              ))}
+              {parentBesoin && (
+                <p className="text-xs text-muted-foreground">
+                  Ce besoin contient les lignes <strong>à acheter</strong>. Le besoin parent contient les lignes <strong>disponibles en stock</strong> à convertir en BL.
+                </p>
+              )}
+              {!parentBesoin && childBesoins.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Ce besoin conserve les lignes <strong>disponibles en stock</strong> (à convertir en BL ci-dessous). Le ou les besoins-fils contiennent les lignes <strong>à acheter</strong> (DA).
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
