@@ -137,7 +137,7 @@ export default function BLList() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-serif text-2xl font-bold text-foreground">Bons de Livraison</h1>
-            <p className="text-muted-foreground">Gérez les sorties de stock via le circuit AAL → DAF → Livraison</p>
+            <p className="text-muted-foreground">Gérez les sorties de stock — circuit Logistique → Prêt à livrer → Livré</p>
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export default function BLList() {
             <div>
               <p className="font-medium text-foreground">Circuit de validation</p>
               <p className="text-sm text-muted-foreground">
-                Brouillon → AAL → DAF → Prêt à livrer → Livré. Le stock est impacté uniquement à la livraison.
+                Brouillon → Prêt à livrer → Livré. Le stock est impacté uniquement à la livraison.
               </p>
             </div>
           </CardContent>
