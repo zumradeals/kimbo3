@@ -556,16 +556,7 @@ export default function BLDetail() {
           </CardContent>
         </Card>
 
-        {/* Rejection reasons display */}
-        {bl.status === 'refuse_daf' && bl.daf_rejection_reason && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardContent className="py-4">
-              <p className="font-medium text-destructive">Refusé par le DAF</p>
-              <p className="text-sm text-muted-foreground mt-1">{bl.daf_rejection_reason}</p>
-            </CardContent>
-          </Card>
-        )}
-
+        {/* Plus de message DAF : le DAF ne valide plus les BL. */}
         {bl.aal_rejection_reason && ['brouillon', 'prepare'].includes(bl.status) && (
           <Card className="border-warning/50 bg-warning/5">
             <CardContent className="py-4">
