@@ -17,7 +17,7 @@
     "checks": [
       {
         "name": "default",
-        "path": "/health",
+        "path": "/",
         "expected_status": 200,
         "timeout_s": 30
       }
