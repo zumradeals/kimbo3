@@ -1,0 +1,30 @@
+{
+  "contract_version": "1.0",
+  "name": "kimbo3",
+  "artifact_type": "docker-compose",
+  "source_ref": {
+    "type": "branch",
+    "value": "main"
+  },
+  "runtime": {
+    "compose_file": "docker-compose.yml",
+    "ports": {
+      "http": 80
+    }
+  },
+  "env": [],
+  "health": {
+    "checks": [
+      {
+        "name": "default",
+        "path": "/health",
+        "expected_status": 200,
+        "timeout_s": 30
+      }
+    ]
+  },
+  "policies": {
+    "ban_latest": false,
+    "on_error_stop": true
+  }
+}
