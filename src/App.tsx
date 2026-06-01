@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Pages
 import Auth from "./pages/Auth";
@@ -226,6 +227,7 @@ function AppRoutes() {
 
 function App() {
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       {/* Use Vite's BASE_URL so routing works both at / and on subpaths */}
       <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -238,6 +240,7 @@ function App() {
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
