@@ -28,13 +28,12 @@ function isChunkLoadError(error: unknown): boolean {
   );
 }
 
-function tryReloadOnce(): boolean {
+function tryReloadOnce(key = "kpm:chunk-reload-at", cooldownMs = 30_000): boolean {
   try {
-    const key = "kpm:chunk-reload-at";
     const now = Date.now();
     const last = Number(sessionStorage.getItem(key) ?? "0");
-    // Évite la boucle infinie de rechargements (cooldown 30 s)
-    if (now - last < 30_000) return false;
+    // Évite la boucle infinie de rechargements
+    if (now - last < cooldownMs) return false;
     sessionStorage.setItem(key, String(now));
     window.location.reload();
     return true;
@@ -54,12 +53,19 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("[ErrorBoundary]", error, info);
     if (isChunkLoadError(error)) {
       tryReloadOnce();
+    } else {
+      // Erreur runtime inattendue : on tente un rechargement silencieux
+      // une seule fois (cooldown 2 min) pour éviter une page d'erreur
+      // pénible pour les utilisateurs métier. Si l'erreur persiste après
+      // reload, on affiche le fallback manuel.
+      tryReloadOnce("kpm:runtime-reload-at", 120_000);
     }
   }
 
   handleReload = () => {
     try {
       sessionStorage.removeItem("kpm:chunk-reload-at");
+      sessionStorage.removeItem("kpm:runtime-reload-at");
     } catch {
       /* noop */
     }
@@ -74,6 +80,28 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col items-center gap-4">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">Mise à jour de l'application…</p>
+            </div>
+          </div>
+        );
+      }
+
+      // Pour une erreur runtime, on affiche un spinner pendant que le
+      // rechargement automatique se déclenche. Le fallback "bouton" ne
+      // s'affiche que si le cooldown bloque le reload (erreur récurrente).
+      const runtimeReloadKey = "kpm:runtime-reload-at";
+      let recentlyReloaded = false;
+      try {
+        const last = Number(sessionStorage.getItem(runtimeReloadKey) ?? "0");
+        recentlyReloaded = Date.now() - last < 5_000;
+      } catch {
+        /* noop */
+      }
+      if (!recentlyReloaded) {
+        return (
+          <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-sm text-muted-foreground">Récupération en cours…</p>
             </div>
           </div>
         );
