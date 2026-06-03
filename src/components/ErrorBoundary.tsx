@@ -7,6 +7,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  reloadAttempted: boolean;
 }
 
 /**
@@ -28,13 +29,12 @@ function isChunkLoadError(error: unknown): boolean {
   );
 }
 
-function tryReloadOnce(): boolean {
+function tryReloadOnce(key = "kpm:chunk-reload-at", cooldownMs = 30_000): boolean {
   try {
-    const key = "kpm:chunk-reload-at";
     const now = Date.now();
     const last = Number(sessionStorage.getItem(key) ?? "0");
-    // Évite la boucle infinie de rechargements (cooldown 30 s)
-    if (now - last < 30_000) return false;
+    // Évite la boucle infinie de rechargements
+    if (now - last < cooldownMs) return false;
     sessionStorage.setItem(key, String(now));
     window.location.reload();
     return true;
@@ -44,22 +44,28 @@ function tryReloadOnce(): boolean {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, reloadAttempted: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, reloadAttempted: false };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary]", error, info);
-    if (isChunkLoadError(error)) {
-      tryReloadOnce();
-    }
+    const reloaded = isChunkLoadError(error)
+      ? tryReloadOnce()
+      : // Erreur runtime inattendue : on tente un rechargement silencieux
+        // une seule fois (cooldown 2 min) pour éviter une page d'erreur
+        // pénible pour les utilisateurs métier. Si l'erreur persiste après
+        // reload, on affiche le fallback manuel.
+        tryReloadOnce("kpm:runtime-reload-at", 120_000);
+    this.setState({ reloadAttempted: reloaded });
   }
 
   handleReload = () => {
     try {
       sessionStorage.removeItem("kpm:chunk-reload-at");
+      sessionStorage.removeItem("kpm:runtime-reload-at");
     } catch {
       /* noop */
     }
@@ -74,6 +80,21 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col items-center gap-4">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">Mise à jour de l'application…</p>
+            </div>
+          </div>
+        );
+      }
+
+      // Si un rechargement automatique vient d'être déclenché, on affiche
+      // juste un spinner le temps que la page se recharge. Le fallback
+      // manuel n'apparaît que si l'erreur se répète (cooldown bloque le
+      // reload automatique) — preuve qu'un simple reload ne suffit pas.
+      if (this.state.reloadAttempted) {
+        return (
+          <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-sm text-muted-foreground">Récupération en cours…</p>
             </div>
           </div>
         );
