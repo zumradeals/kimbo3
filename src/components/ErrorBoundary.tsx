@@ -7,6 +7,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  reloadAttempted: boolean;
 }
 
 /**
@@ -43,23 +44,22 @@ function tryReloadOnce(key = "kpm:chunk-reload-at", cooldownMs = 30_000): boolea
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, reloadAttempted: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, reloadAttempted: false };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary]", error, info);
-    if (isChunkLoadError(error)) {
-      tryReloadOnce();
-    } else {
-      // Erreur runtime inattendue : on tente un rechargement silencieux
-      // une seule fois (cooldown 2 min) pour éviter une page d'erreur
-      // pénible pour les utilisateurs métier. Si l'erreur persiste après
-      // reload, on affiche le fallback manuel.
-      tryReloadOnce("kpm:runtime-reload-at", 120_000);
-    }
+    const reloaded = isChunkLoadError(error)
+      ? tryReloadOnce()
+      : // Erreur runtime inattendue : on tente un rechargement silencieux
+        // une seule fois (cooldown 2 min) pour éviter une page d'erreur
+        // pénible pour les utilisateurs métier. Si l'erreur persiste après
+        // reload, on affiche le fallback manuel.
+        tryReloadOnce("kpm:runtime-reload-at", 120_000);
+    this.setState({ reloadAttempted: reloaded });
   }
 
   handleReload = () => {
@@ -85,18 +85,11 @@ export class ErrorBoundary extends Component<Props, State> {
         );
       }
 
-      // Pour une erreur runtime, on affiche un spinner pendant que le
-      // rechargement automatique se déclenche. Le fallback "bouton" ne
-      // s'affiche que si le cooldown bloque le reload (erreur récurrente).
-      const runtimeReloadKey = "kpm:runtime-reload-at";
-      let recentlyReloaded = false;
-      try {
-        const last = Number(sessionStorage.getItem(runtimeReloadKey) ?? "0");
-        recentlyReloaded = Date.now() - last < 5_000;
-      } catch {
-        /* noop */
-      }
-      if (!recentlyReloaded) {
+      // Si un rechargement automatique vient d'être déclenché, on affiche
+      // juste un spinner le temps que la page se recharge. Le fallback
+      // manuel n'apparaît que si l'erreur se répète (cooldown bloque le
+      // reload automatique) — preuve qu'un simple reload ne suffit pas.
+      if (this.state.reloadAttempted) {
         return (
           <div className="flex min-h-screen items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
