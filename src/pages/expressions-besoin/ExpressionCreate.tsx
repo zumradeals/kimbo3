@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User, Plus, Trash2, Send, Calendar, MapPin, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2, Send, Calendar, MapPin, FolderOpen, FileText, AlertTriangle } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
 import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
@@ -31,6 +31,8 @@ interface ArticleLine {
   quantite: string;
   unite: string;
   justification: string;
+  category: 'materiel' | 'service' | 'transport' | 'autre';
+  urgency: 'normale' | 'urgente' | 'critique';
 }
 
 export default function ExpressionCreate() {
@@ -43,10 +45,16 @@ export default function ExpressionCreate() {
 
   // Multi-line articles
   const [articles, setArticles] = useState<ArticleLine[]>([
-    { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }
+    { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '', category: 'materiel', urgency: 'normale' }
   ]);
 
-  // Nouveaux champs: projet, lieu, date
+  // Champs en-tête enrichis
+  const [objet, setObjet] = useState('');
+  const [description, setDescription] = useState('');
+  const [besoinType, setBesoinType] = useState<'article' | 'service' | 'mission' | 'autre'>('article');
+  const [urgence, setUrgence] = useState<'normale' | 'urgente' | 'critique'>('normale');
+
+  // Projet, lieu, date
   const [projetId, setProjetId] = useState<string | null>(null);
   const [lieuProjet, setLieuProjet] = useState('');
   const [dateSouhaitee, setDateSouhaitee] = useState('');
@@ -87,7 +95,7 @@ export default function ExpressionCreate() {
   const hasManager = !!profile?.chef_hierarchique_id;
 
   const addArticle = () => {
-    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }]);
+    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '', category: 'materiel', urgency: 'normale' }]);
   };
 
   const removeArticle = (id: string) => {
@@ -116,6 +124,15 @@ export default function ExpressionCreate() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!objet.trim()) {
+      toast({
+        title: 'Objet requis',
+        description: 'Précisez un objet/titre clair pour cette expression de besoin.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (validArticles.length === 0) {
       toast({
         title: 'Erreur',
@@ -137,11 +154,7 @@ export default function ExpressionCreate() {
     setIsSubmitting(true);
 
     try {
-      // 1. Créer l'expression groupe (parent) — toujours en brouillon d'abord
-      // pour respecter la RLS sur expressions_besoin_lignes qui exige status='brouillon'
-      const titre = validArticles.length > 1 
-        ? `${validArticles.length} articles demandés`
-        : validArticles[0].nomArticle.trim();
+      const titre = objet.trim();
 
       const { data: expression, error: expressionError } = await supabase
         .from('expressions_besoin')
@@ -149,8 +162,12 @@ export default function ExpressionCreate() {
           user_id: user?.id,
           department_id: profile.department_id,
           titre,
+          objet: titre,
           nom_article: titre, // Legacy field - pour compatibilité
-          commentaire: null,
+          commentaire: description.trim() || null,
+          description: description.trim() || null,
+          besoin_type: besoinType,
+          urgence,
           projet_id: projetId || null,
           lieu_projet: lieuProjet.trim() || null,
           date_souhaitee: dateSouhaitee || null,
@@ -168,6 +185,8 @@ export default function ExpressionCreate() {
         quantite: article.quantite ? parseInt(article.quantite) : null,
         unite: article.unite || 'unité',
         justification: article.justification.trim() || null,
+        category: article.category,
+        urgency: article.urgency,
       }));
 
       const { error: lignesError } = await supabase
@@ -234,7 +253,7 @@ export default function ExpressionCreate() {
       </Link>
       <Button 
         type="submit" 
-        disabled={isSubmitting || validArticles.length === 0}
+        disabled={isSubmitting || validArticles.length === 0 || !objet.trim()}
         className="flex-1 sm:flex-none"
       >
         {isSubmitting ? (
@@ -342,6 +361,55 @@ export default function ExpressionCreate() {
                 </div>
               </div>
 
+              {/* Objet (titre) — obligatoire */}
+              <div className="space-y-2">
+                <Label htmlFor="objet" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Objet de l'expression *
+                </Label>
+                <Input
+                  id="objet"
+                  placeholder="Ex: Achat cartouches d'encre bureau marketing"
+                  value={objet}
+                  onChange={(e) => setObjet(e.target.value)}
+                  maxLength={200}
+                  required
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Titre court et clair — réutilisé tel quel par la Logistique pour le Besoin / la DA.
+                </p>
+              </div>
+
+              {/* Type et urgence */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Type de besoin</Label>
+                  <Select value={besoinType} onValueChange={(v: any) => setBesoinType(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="article">Article</SelectItem>
+                      <SelectItem value="service">Service</SelectItem>
+                      <SelectItem value="mission">Mission</SelectItem>
+                      <SelectItem value="autre">Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Niveau d'urgence
+                  </Label>
+                  <Select value={urgence} onValueChange={(v: any) => setUrgence(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normale">Normale</SelectItem>
+                      <SelectItem value="urgente">Urgente</SelectItem>
+                      <SelectItem value="critique">Critique</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* Projet, Lieu et Date souhaitée */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
@@ -382,6 +450,20 @@ export default function ExpressionCreate() {
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
+              </div>
+
+              {/* Description / contexte général */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description / contexte (optionnel)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Contexte global, objectif, contraintes particulières..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  className="resize-y min-h-[80px]"
+                />
               </div>
 
               {/* Articles list */}
@@ -441,6 +523,37 @@ export default function ExpressionCreate() {
                               <SelectItem value="boîte">Boîte</SelectItem>
                               <SelectItem value="lot">Lot</SelectItem>
                               <SelectItem value="carton">Carton</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Catégorie</Label>
+                          <Select
+                            value={article.category}
+                            onValueChange={(v) => updateArticle(article.id, 'category', v)}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="materiel">Matériel</SelectItem>
+                              <SelectItem value="service">Service</SelectItem>
+                              <SelectItem value="transport">Transport</SelectItem>
+                              <SelectItem value="autre">Autre</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Urgence ligne</Label>
+                          <Select
+                            value={article.urgency}
+                            onValueChange={(v) => updateArticle(article.id, 'urgency', v)}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="normale">Normale</SelectItem>
+                              <SelectItem value="urgente">Urgente</SelectItem>
+                              <SelectItem value="critique">Critique</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
