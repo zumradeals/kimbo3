@@ -1544,17 +1544,58 @@ export type Database = {
         }
         Relationships: []
       }
+      expression_besoin_attachments: {
+        Row: {
+          created_at: string
+          expression_id: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          expression_id: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          expression_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expression_besoin_attachments_expression_id_fkey"
+            columns: ["expression_id"]
+            isOneToOne: false
+            referencedRelation: "expressions_besoin"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expressions_besoin: {
         Row: {
           besoin_id: string | null
+          besoin_type: string | null
           chef_validateur_id: string | null
           commentaire: string | null
           created_at: string
           date_souhaitee: string | null
           department_id: string
+          description: string | null
           id: string
           lieu_projet: string | null
           nom_article: string
+          objet: string | null
           precision_technique: string | null
           projet_id: string | null
           quantite: number | null
@@ -1568,19 +1609,23 @@ export type Database = {
           titre: string | null
           unite: string | null
           updated_at: string
+          urgence: Database["public"]["Enums"]["besoin_urgency"]
           user_id: string
           validated_at: string | null
         }
         Insert: {
           besoin_id?: string | null
+          besoin_type?: string | null
           chef_validateur_id?: string | null
           commentaire?: string | null
           created_at?: string
           date_souhaitee?: string | null
           department_id: string
+          description?: string | null
           id?: string
           lieu_projet?: string | null
           nom_article: string
+          objet?: string | null
           precision_technique?: string | null
           projet_id?: string | null
           quantite?: number | null
@@ -1594,19 +1639,23 @@ export type Database = {
           titre?: string | null
           unite?: string | null
           updated_at?: string
+          urgence?: Database["public"]["Enums"]["besoin_urgency"]
           user_id: string
           validated_at?: string | null
         }
         Update: {
           besoin_id?: string | null
+          besoin_type?: string | null
           chef_validateur_id?: string | null
           commentaire?: string | null
           created_at?: string
           date_souhaitee?: string | null
           department_id?: string
+          description?: string | null
           id?: string
           lieu_projet?: string | null
           nom_article?: string
+          objet?: string | null
           precision_technique?: string | null
           projet_id?: string | null
           quantite?: number | null
@@ -1620,6 +1669,7 @@ export type Database = {
           titre?: string | null
           unite?: string | null
           updated_at?: string
+          urgence?: Database["public"]["Enums"]["besoin_urgency"]
           user_id?: string
           validated_at?: string | null
         }
@@ -1663,6 +1713,7 @@ export type Database = {
       }
       expressions_besoin_lignes: {
         Row: {
+          category: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at: string
           expression_id: string
           id: string
@@ -1674,8 +1725,10 @@ export type Database = {
           status: string
           unite: string | null
           updated_at: string
+          urgency: Database["public"]["Enums"]["besoin_urgency"]
         }
         Insert: {
+          category?: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at?: string
           expression_id: string
           id?: string
@@ -1687,8 +1740,10 @@ export type Database = {
           status?: string
           unite?: string | null
           updated_at?: string
+          urgency?: Database["public"]["Enums"]["besoin_urgency"]
         }
         Update: {
+          category?: Database["public"]["Enums"]["besoin_ligne_category"]
           created_at?: string
           expression_id?: string
           id?: string
@@ -1700,6 +1755,7 @@ export type Database = {
           status?: string
           unite?: string | null
           updated_at?: string
+          urgency?: Database["public"]["Enums"]["besoin_urgency"]
         }
         Relationships: [
           {
