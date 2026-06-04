@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Info, User, Plus, Trash2, Send, Calendar, MapPin, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Info, User, Plus, Trash2, Send, Calendar, MapPin, FolderOpen, FileText, AlertTriangle } from 'lucide-react';
 import { UserBadge } from '@/components/ui/UserBadge';
 import { useQuery } from '@tanstack/react-query';
 import { MobileFormFooter, MobileFormSpacer } from '@/components/ui/MobileFormFooter';
@@ -31,6 +31,8 @@ interface ArticleLine {
   quantite: string;
   unite: string;
   justification: string;
+  category: 'materiel' | 'service' | 'transport' | 'autre';
+  urgency: 'normale' | 'urgente' | 'critique';
 }
 
 export default function ExpressionCreate() {
@@ -43,10 +45,16 @@ export default function ExpressionCreate() {
 
   // Multi-line articles
   const [articles, setArticles] = useState<ArticleLine[]>([
-    { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }
+    { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '', category: 'materiel', urgency: 'normale' }
   ]);
 
-  // Nouveaux champs: projet, lieu, date
+  // Champs en-tête enrichis
+  const [objet, setObjet] = useState('');
+  const [description, setDescription] = useState('');
+  const [besoinType, setBesoinType] = useState<'article' | 'service' | 'mission' | 'autre'>('article');
+  const [urgence, setUrgence] = useState<'normale' | 'urgente' | 'critique'>('normale');
+
+  // Projet, lieu, date
   const [projetId, setProjetId] = useState<string | null>(null);
   const [lieuProjet, setLieuProjet] = useState('');
   const [dateSouhaitee, setDateSouhaitee] = useState('');
@@ -87,7 +95,7 @@ export default function ExpressionCreate() {
   const hasManager = !!profile?.chef_hierarchique_id;
 
   const addArticle = () => {
-    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '' }]);
+    setArticles([...articles, { id: crypto.randomUUID(), nomArticle: '', quantite: '', unite: 'unité', justification: '', category: 'materiel', urgency: 'normale' }]);
   };
 
   const removeArticle = (id: string) => {
@@ -116,6 +124,15 @@ export default function ExpressionCreate() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!objet.trim()) {
+      toast({
+        title: 'Objet requis',
+        description: 'Précisez un objet/titre clair pour cette expression de besoin.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (validArticles.length === 0) {
       toast({
         title: 'Erreur',
@@ -137,11 +154,7 @@ export default function ExpressionCreate() {
     setIsSubmitting(true);
 
     try {
-      // 1. Créer l'expression groupe (parent) — toujours en brouillon d'abord
-      // pour respecter la RLS sur expressions_besoin_lignes qui exige status='brouillon'
-      const titre = validArticles.length > 1 
-        ? `${validArticles.length} articles demandés`
-        : validArticles[0].nomArticle.trim();
+      const titre = objet.trim();
 
       const { data: expression, error: expressionError } = await supabase
         .from('expressions_besoin')
@@ -149,8 +162,12 @@ export default function ExpressionCreate() {
           user_id: user?.id,
           department_id: profile.department_id,
           titre,
+          objet: titre,
           nom_article: titre, // Legacy field - pour compatibilité
-          commentaire: null,
+          commentaire: description.trim() || null,
+          description: description.trim() || null,
+          besoin_type: besoinType,
+          urgence,
           projet_id: projetId || null,
           lieu_projet: lieuProjet.trim() || null,
           date_souhaitee: dateSouhaitee || null,
@@ -168,6 +185,8 @@ export default function ExpressionCreate() {
         quantite: article.quantite ? parseInt(article.quantite) : null,
         unite: article.unite || 'unité',
         justification: article.justification.trim() || null,
+        category: article.category,
+        urgency: article.urgency,
       }));
 
       const { error: lignesError } = await supabase
