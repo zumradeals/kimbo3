@@ -253,7 +253,7 @@ export default function ExpressionCreate() {
       </Link>
       <Button 
         type="submit" 
-        disabled={isSubmitting || validArticles.length === 0}
+        disabled={isSubmitting || validArticles.length === 0 || !objet.trim()}
         className="flex-1 sm:flex-none"
       >
         {isSubmitting ? (
