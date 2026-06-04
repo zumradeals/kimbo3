@@ -527,6 +527,37 @@ export default function ExpressionCreate() {
                           </Select>
                         </div>
                       </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Catégorie</Label>
+                          <Select
+                            value={article.category}
+                            onValueChange={(v) => updateArticle(article.id, 'category', v)}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="materiel">Matériel</SelectItem>
+                              <SelectItem value="service">Service</SelectItem>
+                              <SelectItem value="transport">Transport</SelectItem>
+                              <SelectItem value="autre">Autre</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Urgence ligne</Label>
+                          <Select
+                            value={article.urgency}
+                            onValueChange={(v) => updateArticle(article.id, 'urgency', v)}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="normale">Normale</SelectItem>
+                              <SelectItem value="urgente">Urgente</SelectItem>
+                              <SelectItem value="critique">Critique</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">
                           Justification (optionnel)
