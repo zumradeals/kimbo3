@@ -361,6 +361,55 @@ export default function ExpressionCreate() {
                 </div>
               </div>
 
+              {/* Objet (titre) — obligatoire */}
+              <div className="space-y-2">
+                <Label htmlFor="objet" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Objet de l'expression *
+                </Label>
+                <Input
+                  id="objet"
+                  placeholder="Ex: Achat cartouches d'encre bureau marketing"
+                  value={objet}
+                  onChange={(e) => setObjet(e.target.value)}
+                  maxLength={200}
+                  required
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Titre court et clair — réutilisé tel quel par la Logistique pour le Besoin / la DA.
+                </p>
+              </div>
+
+              {/* Type et urgence */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Type de besoin</Label>
+                  <Select value={besoinType} onValueChange={(v: any) => setBesoinType(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="article">Article</SelectItem>
+                      <SelectItem value="service">Service</SelectItem>
+                      <SelectItem value="mission">Mission</SelectItem>
+                      <SelectItem value="autre">Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Niveau d'urgence
+                  </Label>
+                  <Select value={urgence} onValueChange={(v: any) => setUrgence(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normale">Normale</SelectItem>
+                      <SelectItem value="urgente">Urgente</SelectItem>
+                      <SelectItem value="critique">Critique</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* Projet, Lieu et Date souhaitée */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
@@ -401,6 +450,20 @@ export default function ExpressionCreate() {
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
+              </div>
+
+              {/* Description / contexte général */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description / contexte (optionnel)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Contexte global, objectif, contraintes particulières..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  className="resize-y min-h-[80px]"
+                />
               </div>
 
               {/* Articles list */}
